@@ -1,0 +1,141 @@
+import { useState } from "react"
+import { useNavigate, Link } from "react-router-dom"
+import { Code, Github } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/context/AuthContext"
+import { useToast } from "@/hooks/use-toast"
+import { siteConfig } from "@/lib/constants"
+
+export default function SignUp() {
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const [name, setName] = useState("")
+    const [username, setUsername] = useState("")
+    const [loading, setLoading] = useState(false)
+    const { signUp } = useAuth()
+    const navigate = useNavigate()
+    const { toast } = useToast()
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+
+        try {
+            await signUp({ email, password, name, username })
+            toast({
+                title: "Welcome!",
+                description: "Your account has been created successfully.",
+            })
+            navigate("/feed")
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Failed to create account. Please try again.",
+                variant: "destructive",
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-8">
+            <Card className="w-full max-w-md">
+                <CardHeader className="space-y-1 text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 rounded-full bg-primary/10">
+                            <Code className="h-8 w-8 text-primary" />
+                        </div>
+                    </div>
+                    <CardTitle className="text-2xl font-headline">Create an account</CardTitle>
+                    <CardDescription>
+                        Join {siteConfig.name} to connect with other developers
+                    </CardDescription>
+                </CardHeader>
+                <form onSubmit={handleSubmit}>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Full Name</Label>
+                            <Input
+                                id="name"
+                                placeholder="John Doe"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="username">Username</Label>
+                            <Input
+                                id="username"
+                                placeholder="johndoe"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="john@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="password">Password</Label>
+                            <Input
+                                id="password"
+                                type="password"
+                                placeholder="Create a password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                    </CardContent>
+                    <CardContent className="space-y-4 pt-0">
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <Button variant="outline" type="button" onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/auth/github/login`}>
+                                <Github className="mr-2 h-4 w-4" />
+                                Github
+                            </Button>
+                            <Button variant="outline" type="button" onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/auth/google/login`}>
+                                <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                                    <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                                </svg>
+                                Google
+                            </Button>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col space-y-4">
+                        <Button type="submit" className="w-full" disabled={loading}>
+                            {loading ? "Creating account..." : "Sign Up"}
+                        </Button>
+                        <p className="text-sm text-muted-foreground text-center">
+                            Already have an account?{" "}
+                            <Link to="/auth/signin" className="text-primary hover:underline font-medium">
+                                Sign in
+                            </Link>
+                        </p>
+                    </CardFooter>
+                </form>
+            </Card>
+        </div>
+    )
+}
