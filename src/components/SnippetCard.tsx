@@ -5,10 +5,24 @@ import { cn } from "@/lib/utils";
 import { CodeBlock } from "./CodeBlock";
 import { ReactLivePreview } from "./preview/ReactLivePreview";
 import { useAuth } from "@/context/AuthContext";
-import { Terminal, Copy, LayoutTemplate, AlignLeft } from "lucide-react";
+import { Terminal, Copy, LayoutTemplate, AlignLeft, Eye, GitFork, Star } from "lucide-react";
 import { Button } from "./ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
+
+// Helper Colors
+const typeColors: Record<string, string> = {
+    ALGORITHM: "text-blue-400",
+    UTILITY: "text-purple-400",
+    EXAMPLE: "text-yellow-400",
+    VISUAL: "text-pink-400"
+};
+
+const diffColors: Record<string, string> = {
+    EASY: "text-emerald-400",
+    MEDIUM: "text-amber-400",
+    HARD: "text-rose-400"
+};
 
 interface SnippetCardProps {
     snippet: any;
@@ -16,11 +30,6 @@ interface SnippetCardProps {
 
 export function SnippetCard({ snippet }: SnippetCardProps) {
     const { } = useAuth();
-    // const isAuthor = user?.id === snippet.authorId; // Not needed for MVP output
-    // Default view mode: React/HTML -> Preview, Others -> Code (or Output?)
-    // Constraint: "Preview NOT allowed for Python/JS/Go/C++" -> "Show Output tab only"
-    // So for non-preview langs, defaulting to 'output' or 'code' is better.
-    // Spec says: "Others: Hide Preview tab completely. Show Output tab only." which implies Code/Output toggle.
 
     const isReact = snippet.language?.toLowerCase() === 'react' ||
         snippet.language?.toLowerCase() === 'typescript' ||
@@ -37,7 +46,6 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
         if (hasPreview) {
             setViewMode('preview');
         } else {
-            // "Default view should be OUTPUT first, not SOURCE."
             setViewMode('output');
         }
     }, [hasPreview]);
@@ -47,7 +55,6 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
         return 'center';
     });
 
-    // Inject centering styles for HTML iframe if needed
     const getIframeSrc = (code: string) => {
         if (alignment === 'center') {
             return `
@@ -95,17 +102,43 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                                 <div className={cn("w-1.5 h-1.5 rounded-full", snippet.verified ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-primary")} />
                                 {snippet.language}
                             </span>
+
+                            {/* Snippet Type Badge */}
+                            {snippet.type && (
+                                <>
+                                    <div className="w-[1px] h-3 bg-white/20" />
+                                    <span className={cn("text-[9px] font-black uppercase tracking-widest", typeColors[snippet.type] || "text-white/50")}>
+                                        {snippet.type}
+                                    </span>
+                                </>
+                            )}
+
                             <div className="w-[1px] h-3 bg-white/20" />
-                            <span className="text-xs font-bold text-white truncate max-w-[200px]">
+                            <span className="text-xs font-bold text-white truncate max-w-[150px]">
                                 {snippet.title}
                             </span>
                         </div>
 
-                        {/* System Signals (Mini) */}
+                        {/* System Signals (Rich) */}
                         <div className="flex items-center gap-2 text-[9px] font-mono text-white/40 bg-black/40 px-2 py-1 rounded-md mb-auto border border-white/5">
-                            <span>{snippet.code.split('\n').length} LINES</span>
-                            <span className="text-white/20">•</span>
-                            <span>{snippet.runtime ? `${snippet.runtime}ms` : '0.04ms'}</span>
+                            {snippet.difficulty && (
+                                <>
+                                    <span className={cn("font-bold", diffColors[snippet.difficulty] || "text-white/40")}>
+                                        {snippet.difficulty}
+                                    </span>
+                                    <span className="text-white/20">•</span>
+                                </>
+                            )}
+                            {snippet.isFeatured && (
+                                <>
+                                    <span className="text-yellow-500 font-bold flex items-center gap-1">
+                                        <Star className="w-2 h-2 fill-yellow-500" /> FEATURED
+                                    </span>
+                                    <span className="text-white/20">•</span>
+                                </>
+                            )}
+
+                            <span>{snippet.code.split('\n').length} LOC</span>
                             <span className="text-white/20">•</span>
                             <span className={snippet.lastExecutionStatus === 'SUCCESS' ? "text-emerald-500/80" : "text-red-500/80"}>
                                 {snippet.lastExecutionStatus === 'SUCCESS' ? 'EXIT 0' : 'ERR'}
@@ -192,8 +225,6 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                 <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 w-[90%] sm:w-auto">
                     <div className="bg-black/80 backdrop-blur-xl rounded-full p-1.5 border border-white/15 shadow-2xl flex items-center gap-2 justify-between sm:justify-start">
 
-                        {/* Removed Run Button */}
-
                         {/* View Toggles */}
                         <div className="bg-white/10 rounded-full p-1 flex items-center gap-1">
                             {hasPreview && (
@@ -261,14 +292,27 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                 {/* D. FOOTER (Metadata) - Glass Overlay */}
                 <div className="absolute bottom-5 left-5 right-5 z-20 pointer-events-none">
                     <div className="bg-black/40 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider">
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider flex items-center gap-1.5">
                                 BY {snippet.author?.name || 'User'}
                             </span>
+                            <span className="w-1 h-1 rounded-full bg-white/20" />
+                            <span className="text-[10px] text-white/30 font-mono">
+                                {snippet.createdAt ? formatDistanceToNow(new Date(snippet.createdAt), { addSuffix: true }) : 'Just now'}
+                            </span>
                         </div>
-                        <span className="text-[10px] text-white/30 font-mono">
-                            {snippet.createdAt ? formatDistanceToNow(new Date(snippet.createdAt), { addSuffix: true }) : 'Just now'}
-                        </span>
+
+                        {/* Stats - MVP v1.1 */}
+                        <div className="flex items-center gap-4 text-[10px] font-bold text-white/40">
+                            <div className="flex items-center gap-1.5" title="Views">
+                                <Eye className="h-3 w-3 text-white/30" />
+                                <span className="text-white/60">{snippet.viewsCount || 0}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5" title="Forks">
+                                <GitFork className="h-3 w-3 text-white/30" />
+                                <span className="text-white/60">{snippet.forkCount || 0}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

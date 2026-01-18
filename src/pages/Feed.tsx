@@ -11,14 +11,18 @@ import { SystemSignals } from "@/components/SystemSignals";
 export default function Feed() {
     const [search, setSearch] = useState("");
     const [language, setLanguage] = useState("all");
+    const [type, setType] = useState("all");
+    const [difficulty, setDifficulty] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
 
     // Debounce search ideally, but for now simple state
     const { data, isLoading: loading } = useQuery({
-        queryKey: ['snippets', search, language, sortBy],
+        queryKey: ['snippets', search, language, type, difficulty, sortBy],
         queryFn: () => snippetsAPI.getAll({
             search: search,
             ...(language !== 'all' ? { language } : {}),
+            ...(type !== 'all' ? { type } : {}),
+            ...(difficulty !== 'all' ? { difficulty } : {}),
             orderBy: sortBy === 'oldest' ? 'oldest' : 'newest'
         })
     });
@@ -32,7 +36,7 @@ export default function Feed() {
                 <div className="lg:col-span-8 space-y-6">
                     {/* Filter Bar */}
                     <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-surface p-4 rounded-xl border border-border shadow-sm">
-                        <div className="relative w-full md:w-96">
+                        <div className="relative w-full md:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search snippets..."
@@ -42,15 +46,40 @@ export default function Feed() {
                             />
                         </div>
 
-                        <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
+                            <Select value={type} onValueChange={setType}>
+                                <SelectTrigger className="w-[100px] h-9 text-xs uppercase font-bold tracking-wider">
+                                    <SelectValue placeholder="Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Types</SelectItem>
+                                    <SelectItem value="ALGORITHM">Algo</SelectItem>
+                                    <SelectItem value="UTILITY">Utility</SelectItem>
+                                    <SelectItem value="EXAMPLE">Example</SelectItem>
+                                    <SelectItem value="VISUAL">Visual</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={difficulty} onValueChange={setDifficulty}>
+                                <SelectTrigger className="w-[100px] h-9 text-xs uppercase font-bold tracking-wider">
+                                    <SelectValue placeholder="Diff" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Diff</SelectItem>
+                                    <SelectItem value="EASY">Easy</SelectItem>
+                                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                                    <SelectItem value="HARD">Hard</SelectItem>
+                                </SelectContent>
+                            </Select>
+
                             <Select value={language} onValueChange={setLanguage}>
-                                <SelectTrigger className="w-[130px] h-9 text-xs uppercase font-bold tracking-wider">
+                                <SelectTrigger className="w-[110px] h-9 text-xs uppercase font-bold tracking-wider">
                                     <SelectValue placeholder="Language" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Languages</SelectItem>
-                                    <SelectItem value="javascript">JavaScript</SelectItem>
-                                    <SelectItem value="typescript">TypeScript</SelectItem>
+                                    <SelectItem value="all">All Langs</SelectItem>
+                                    <SelectItem value="javascript">JS</SelectItem>
+                                    <SelectItem value="typescript">TS</SelectItem>
                                     <SelectItem value="python">Python</SelectItem>
                                     <SelectItem value="go">Go</SelectItem>
                                     <SelectItem value="react">React</SelectItem>
@@ -58,7 +87,7 @@ export default function Feed() {
                             </Select>
 
                             <Select value={sortBy} onValueChange={setSortBy}>
-                                <SelectTrigger className="w-[110px] h-9 text-xs uppercase font-bold tracking-wider">
+                                <SelectTrigger className="w-[90px] h-9 text-xs uppercase font-bold tracking-wider">
                                     <SelectValue placeholder="Sort" />
                                 </SelectTrigger>
                                 <SelectContent>

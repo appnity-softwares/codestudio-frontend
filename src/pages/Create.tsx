@@ -20,6 +20,8 @@ export default function Create() {
     const [snippetTitle, setSnippetTitle] = useState("");
     const [snippetDesc, setSnippetDesc] = useState("");
     const [snippetLang, setSnippetLang] = useState("typescript");
+    const [snippetType, setSnippetType] = useState("ALGORITHM");
+    const [snippetDifficulty, setSnippetDifficulty] = useState("MEDIUM");
     const [snippetCode, setSnippetCode] = useState("");
     const [snippetTags, setSnippetTags] = useState("");
     const [executing, setExecuting] = useState(false);
@@ -81,6 +83,8 @@ export default function Create() {
                 title: snippetTitle,
                 description: snippetDesc,
                 language: snippetLang,
+                type: snippetType,
+                difficulty: snippetDifficulty,
                 code: snippetCode,
                 tags: snippetTags.split(",").map(t => t.trim()).filter(Boolean),
                 outputSnapshot: executionResult.stdout + (executionResult.stderr ? `\n[STDERR]\n${executionResult.stderr}` : ""),
@@ -117,6 +121,37 @@ export default function Create() {
                         <Label>Description</Label>
                         <Textarea placeholder="What does this code do?" value={snippetDesc} onChange={e => setSnippetDesc(e.target.value)} />
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Type</Label>
+                            <Select value={snippetType} onValueChange={setSnippetType}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALGORITHM">Algorithm</SelectItem>
+                                    <SelectItem value="UTILITY">Utility</SelectItem>
+                                    <SelectItem value="EXAMPLE">Example</SelectItem>
+                                    <SelectItem value="VISUAL">Visual</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Difficulty</Label>
+                            <Select value={snippetDifficulty} onValueChange={setSnippetDifficulty}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="EASY">Easy</SelectItem>
+                                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                                    <SelectItem value="HARD">Hard</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Language</Label>

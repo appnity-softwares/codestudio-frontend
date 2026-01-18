@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Bookmark, Users, TrendingUp, Clock } from "lucide-react";
+import { Heart, Bookmark, Users, TrendingUp, Clock, Code2 } from "lucide-react";
 // import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { SnippetCard } from "@/components/SnippetCard";
 import { ActivityTimeline } from "./ActivityTimeline";
@@ -12,7 +12,7 @@ interface ProfileDashboardProps {
     dashboardSnippets: any[];
 }
 
-export function ProfileDashboard({ profileUser: _profileUser, dashboardSnippets }: ProfileDashboardProps) {
+export function ProfileDashboard({ profileUser, dashboardSnippets }: ProfileDashboardProps) {
     // const { user: currentUser } = useAuth();
     // const isOwnProfile = currentUser?.id === profileUser?.id;
 
@@ -68,6 +68,32 @@ export function ProfileDashboard({ profileUser: _profileUser, dashboardSnippets 
             </Card> 
             */}
 
+            {/* 1. About Section */}
+            {profileUser.bio && (
+                <Card className="border-none bg-white/5 backdrop-blur-md p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Users className="h-4 w-4 text-primary" />
+                        <h3 className="font-black text-white italic tracking-tight">About</h3>
+                    </div>
+                    <p className="text-white/70 leading-relaxed text-sm">{profileUser.bio}</p>
+                </Card>
+            )}
+
+            {/* 2. Pinned Snippet (Featured) */}
+            {profileUser.pinnedSnippet && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        <h3 className="font-black text-white italic tracking-tight uppercase">Featured Work</h3>
+                    </div>
+                    {/* Render with isFeatured forced to true visually or rely on data */}
+                    <SnippetCard snippet={{ ...profileUser.pinnedSnippet, isFeatured: true }} />
+                </div>
+            )}
+
+            {/* 3. Analytics (Placeholder) */}
+            {/* ... */}
+
             <div className="p-6 rounded-xl bg-muted/5 border border-dashed border-border flex flex-col items-center text-center space-y-3">
                 <TrendingUp className="h-8 w-8 text-muted-foreground/30" />
                 <div>
@@ -78,7 +104,7 @@ export function ProfileDashboard({ profileUser: _profileUser, dashboardSnippets 
                 </div>
             </div>
 
-            {/* Activity Timeline */}
+            {/* 4. Activity Timeline */}
             <Card className="border-none bg-white/5 backdrop-blur-md p-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Clock className="h-4 w-4 text-primary" />
@@ -87,10 +113,11 @@ export function ProfileDashboard({ profileUser: _profileUser, dashboardSnippets 
                 <ActivityTimeline limit={5} />
             </Card>
 
+            {/* 5. Recent Snippets */}
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    <h3 className="font-black text-white italic tracking-tight">High Engagement Objects</h3>
+                    <Code2 className="h-4 w-4 text-primary" />
+                    <h3 className="font-black text-white italic tracking-tight">Recent Snippets</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {dashboardSnippets.map((snippet) => (

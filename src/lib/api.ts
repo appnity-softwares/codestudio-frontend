@@ -82,7 +82,7 @@ export const authAPI = {
 
 // Snippets API
 export const snippetsAPI = {
-    getAll: (params?: { search?: string; tag?: string; language?: string; author?: string; orderBy?: string }) => {
+    getAll: (params?: { search?: string; tag?: string; language?: string; author?: string; orderBy?: string; type?: string; difficulty?: string }) => {
         const query = new URLSearchParams(params as any).toString();
         return apiRequest<{ snippets: any[] }>(`/snippets${query ? `?${query}` : ''}`);
     },
@@ -100,6 +100,8 @@ export const snippetsAPI = {
         visibility?: string;
         outputSnapshot?: string;
         previewType?: string;
+        type?: string;
+        difficulty?: string;
     }) =>
         apiRequest<{ snippet: any }>('/snippets', {
             method: 'POST',
