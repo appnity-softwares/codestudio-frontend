@@ -86,7 +86,7 @@ export default function SignIn() {
                             />
                         </div>
                         <p className="text-sm text-muted-foreground text-center mt-2">
-                            Demo Credentials: demo@devconnect.com / password123
+                            Demo Credentials: demo@appnity.cloud / password123
                         </p>
 
                         <div className="relative">
