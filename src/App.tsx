@@ -39,6 +39,7 @@ import AdminSystem from "./pages/admin/AdminSystem"
 import AdminChangelog from "./pages/admin/AdminChangelog"
 import Changelog from "./pages/Changelog"
 import Practice from "./pages/Practice" // v1.2: Practice Arena
+import NotFound from "./pages/NotFound"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthError } from "./lib/api";
@@ -64,6 +65,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     if (!isAuthenticated) {
         return <Navigate to="/auth/signin" replace />
+    }
+
+    return <>{children}</>
+}
+
+// Admin Route Component
+function AdminRoute({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated, user } = useAuth()
+
+    if (!isAuthenticated) {
+        return <Navigate to="/auth/signin" replace />
+    }
+
+    if (user?.role !== 'ADMIN') {
+        return <NotFound />
     }
 
     return <>{children}</>
@@ -167,7 +183,7 @@ function AppRoutes() {
                 <Route path="snippets/:id" element={<SnippetDetail />} />
                 <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
                 {/* Admin Routes */}
-                <Route path="admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+                <Route path="admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<AdminUsers />} />
                     <Route path="contests" element={<ContestManager />} />
@@ -179,6 +195,9 @@ function AppRoutes() {
                     <Route path="audit-logs" element={<AuditLogs />} />
                     <Route path="changelog" element={<AdminChangelog />} />
                 </Route>
+
+                {/* 404 Catch-all */}
+                <Route path="*" element={<NotFound />} />
             </Route>
         </Routes>
     )
