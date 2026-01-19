@@ -1,273 +1,320 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { contestsAPI } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Plus, Trash2, Save, ArrowLeft, Code } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { adminAPI } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, ArrowLeft, Save, Plus, Trash, Eye, EyeOff, Edit } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { CodeEditor } from "@/components/CodeEditor"; // Fixed named import
 
-interface ProblemEditorProps {
-    eventId: string;
-    eventTitle?: string;
-    onBack: () => void;
-}
-
-export function ProblemEditor({ eventId, eventTitle, onBack }: ProblemEditorProps) {
+export default function ProblemEditor() {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const { toast } = useToast();
     const queryClient = useQueryClient();
-    const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
-    const [view, setView] = useState<'LIST' | 'EDIT'>('LIST');
 
-    // Fetch Problems
-    const { data: problemsData, isLoading: isLoadingProblems } = useQuery({
-        queryKey: ['adminProblems', eventId],
-        queryFn: () => contestsAPI.getProblems(eventId)
-    });
-
-    const problems = problemsData?.problems || [];
-
-    // Edit Mode State
-    const [editForm, setEditForm] = useState({
-        title: '',
-        description: '',
-        difficulty: 'EASY',
-        points: 10,
-        timeLimit: 1.0,
-        memoryLimit: 256,
-        testCases: [] as { input: string; output: string; isHidden: boolean }[]
-    });
-
-    // Populate form when problem selected
-    const { data: problemDetail } = useQuery({
-        queryKey: ['adminProblem', eventId, selectedProblemId],
-        queryFn: () => contestsAPI.getProblem(eventId, selectedProblemId!),
-        enabled: !!selectedProblemId && view === 'EDIT'
-    });
-
-    useEffect(() => {
-        if (problemDetail?.problem) {
-            const p = problemDetail.problem;
-            setEditForm({
-                title: p.title,
-                description: p.description,
-                difficulty: p.difficulty,
-                points: p.points,
-                timeLimit: p.timeLimit,
-                memoryLimit: p.memoryLimit,
-                testCases: p.testCases || []
-            });
-        }
-    }, [problemDetail]);
-
-    // Mutations
-    const createMutation = useMutation({
-        mutationFn: (data: any) => contestsAPI.createProblem(eventId, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminProblems', eventId] });
-            setView('LIST');
-            toast({ title: "Problem Created" });
-        }
+    const { data, isLoading } = useQuery({
+        queryKey: ["admin-problem", id],
+        queryFn: () => adminAPI.getProblem(id!),
+        enabled: !!id
     });
 
     const updateMutation = useMutation({
-        mutationFn: (data: any) => contestsAPI.updateProblem(eventId, selectedProblemId!, data),
+        mutationFn: (data: any) => adminAPI.updateProblem(id!, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminProblems', eventId] });
-            queryClient.invalidateQueries({ queryKey: ['adminProblem', eventId, selectedProblemId] });
-            toast({ title: "Problem Updated" });
+            toast({ title: "Saved", description: "Problem updated successfully." });
+            queryClient.invalidateQueries({ queryKey: ["admin-problem", id] });
         }
     });
 
-    const handleCreateNew = () => {
-        setSelectedProblemId(null);
-        setEditForm({
-            title: '',
-            description: '',
-            difficulty: 'EASY',
-            points: 10,
-            timeLimit: 1.0,
-            memoryLimit: 256,
-            testCases: []
-        });
-        setView('EDIT');
-    };
+    const createTestCaseMutation = useMutation({
+        mutationFn: (data: any) => adminAPI.createTestCase(id!, data),
+        onSuccess: () => {
+            toast({ title: "Added", description: "Test case added." });
+            queryClient.invalidateQueries({ queryKey: ["admin-problem", id] });
+        }
+    });
 
-    const handleEdit = (id: string) => {
-        setSelectedProblemId(id);
-        setView('EDIT');
-    };
+    const deleteTestCaseMutation = useMutation({
+        mutationFn: adminAPI.deleteTestCase,
+        onSuccess: () => {
+            toast({ title: "Deleted", description: "Test case deleted." });
+            queryClient.invalidateQueries({ queryKey: ["admin-problem", id] });
+        }
+    });
+
+    // Form Stats
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [difficulty, setDifficulty] = useState("Medium");
+    const [points, setPoints] = useState(100);
+    const [timeLimit, setTimeLimit] = useState(1.0);
+    const [memoryLimit, setMemoryLimit] = useState(256);
+    const [penalty, setPenalty] = useState(10);
+    const [order, setOrder] = useState(1);
+
+    // For handling starter code editor per language
+    const [selectedLang, setSelectedLang] = useState("javascript");
+    const [boilerplateMap, setBoilerplateMap] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (data?.problem) {
+            const p = data.problem;
+            setTitle(p.title);
+            setDescription(p.description);
+            setDifficulty(p.difficulty);
+            setPoints(p.points);
+            setTimeLimit(p.timeLimit);
+            setMemoryLimit(p.memoryLimit);
+            setPenalty(p.penalty || 10);
+            setOrder(p.order);
+
+            try {
+                const parsed = JSON.parse(p.starterCode || "{}");
+                setBoilerplateMap(parsed);
+            } catch (e) {
+                setBoilerplateMap({});
+            }
+        }
+    }, [data]);
 
     const handleSave = () => {
-        const payload = {
-            ...editForm,
-            points: Number(editForm.points),
-            timeLimit: Number(editForm.timeLimit),
-            memoryLimit: Number(editForm.memoryLimit)
-        };
-
-        if (selectedProblemId) {
-            updateMutation.mutate(payload);
-        } else {
-            createMutation.mutate(payload);
-        }
+        updateMutation.mutate({
+            title,
+            description,
+            difficulty,
+            points: Number(points),
+            timeLimit: Number(timeLimit),
+            memoryLimit: Number(memoryLimit),
+            penalty: Number(penalty),
+            order: Number(order),
+            starterCode: JSON.stringify(boilerplateMap)
+        });
     };
 
-    const addTestCase = () => {
-        setEditForm(prev => ({
-            ...prev,
-            testCases: [...prev.testCases, { input: '', output: '', isHidden: false }]
-        }));
+    const updateBoilerplate = (code: string | undefined) => {
+        setBoilerplateMap(prev => ({ ...prev, [selectedLang]: code || "" }));
     };
 
-    const removeTestCase = (idx: number) => {
-        setEditForm(prev => ({
-            ...prev,
-            testCases: prev.testCases.filter((_, i) => i !== idx)
-        }));
+    const handleAddTestCase = () => {
+        createTestCaseMutation.mutate({
+            input: "input",
+            output: "output",
+            isHidden: false
+        });
     };
 
-    if (view === 'LIST') {
-        return (
-            <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="w-4 h-4" /></Button>
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight">{eventTitle} Problems</h2>
-                        <p className="text-muted-foreground">Manage problems for this contest.</p>
-                    </div>
-                    <Button onClick={handleCreateNew} className="ml-auto"><Plus className="w-4 h-4 mr-2" /> Add Problem</Button>
-                </div>
-
-                <div className="grid gap-4">
-                    {isLoadingProblems && <Loader2 className="w-8 h-8 animate-spin mx-auto text-neutral-500" />}
-                    {problems.map((p: any) => (
-                        <Card key={p.id} className="bg-neutral-900 border-neutral-800 hover:border-neutral-700 cursor-pointer" onClick={() => handleEdit(p.id)}>
-                            <CardContent className="p-6 flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-bold text-white">{p.title}</h3>
-                                    <div className="flex gap-2 mt-1">
-                                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${p.difficulty === 'HARD' ? 'bg-red-500/20 text-red-500' :
-                                            p.difficulty === 'MEDIUM' ? 'bg-yellow-500/20 text-yellow-500' :
-                                                'bg-green-500/20 text-green-500'
-                                            }`}>{p.difficulty}</span>
-                                        <span className="text-xs text-neutral-500 font-mono">{p.points} pts</span>
-                                    </div>
-                                </div>
-                                <Code className="w-5 h-5 text-neutral-600" />
-                            </CardContent>
-                        </Card>
-                    ))}
-                    {problems.length === 0 && !isLoadingProblems && <p className="text-center text-neutral-500">No problems yet.</p>}
-                </div>
-            </div>
-        );
-    }
+    if (isLoading) return <Loader2 className="animate-spin h-8 w-8 mx-auto mt-20" />;
+    const problem = data?.problem;
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => setView('LIST')}><ArrowLeft className="w-4 h-4" /></Button>
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight">{selectedProblemId ? 'Edit Problem' : 'New Problem'}</h2>
-                    </div>
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
+                <div>
+                    <h1 className="text-2xl font-bold">{title || "Edit Problem"}</h1>
+                    <Badge variant="secondary">{difficulty}</Badge>
                 </div>
-                <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
-                    {(createMutation.isPending || updateMutation.isPending) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                    Save Problem
-                </Button>
+                <div className="ml-auto">
+                    <Button onClick={handleSave} disabled={updateMutation.isPending}>
+                        {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Problem
+                    </Button>
+                </div>
             </div>
 
-            <Tabs defaultValue="details" className="w-full">
-                <TabsList className="bg-neutral-900 border-b border-neutral-800 w-full justify-start rounded-none h-auto p-0">
-                    <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">Details</TabsTrigger>
-                    <TabsTrigger value="testcases" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">Test Cases ({editForm.testCases.length})</TabsTrigger>
+            <Tabs defaultValue="details">
+                <TabsList>
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    <TabsTrigger value="boilerplate">Boilerplate</TabsTrigger>
+                    <TabsTrigger value="testcases">Test Cases</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="details" className="pt-6 space-y-4">
+                <TabsContent value="details" className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Title</Label>
-                            <Input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} className="bg-neutral-900 border-neutral-800" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Difficulty</Label>
-                            <select
-                                className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white"
-                                value={editForm.difficulty}
-                                onChange={e => setEditForm({ ...editForm, difficulty: e.target.value })}
-                            >
-                                <option value="EASY">Easy</option>
-                                <option value="MEDIUM">Medium</option>
-                                <option value="HARD">Hard</option>
-                            </select>
-                        </div>
+                        <Card>
+                            <CardHeader><CardTitle>Basic Info</CardTitle></CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Title</label>
+                                    <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Order</label>
+                                    <Input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Difficulty</label>
+                                    <Select value={difficulty} onValueChange={setDifficulty}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Easy">Easy</SelectItem>
+                                            <SelectItem value="Medium">Medium</SelectItem>
+                                            <SelectItem value="Hard">Hard</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Points</label>
+                                    <Input type="number" value={points} onChange={(e) => setPoints(Number(e.target.value))} />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader><CardTitle>Limits & Penalties</CardTitle></CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Time Limit (s)</label>
+                                    <Input type="number" step="0.1" value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value))} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Memory Limit (MB)</label>
+                                    <Input type="number" value={memoryLimit} onChange={(e) => setMemoryLimit(Number(e.target.value))} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Penalty per Wrong Attempt (min)</label>
+                                    <Input type="number" value={penalty} onChange={(e) => setPenalty(Number(e.target.value))} />
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                    <div className="space-y-2">
-                        <Label>Description (Markdown)</Label>
-                        <Textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} className="bg-neutral-900 border-neutral-800 min-h-[200px] font-mono" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                            <Label>Points</Label>
-                            <Input type="number" value={editForm.points} onChange={e => setEditForm({ ...editForm, points: Number(e.target.value) })} className="bg-neutral-900 border-neutral-800" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Time Limit (s)</Label>
-                            <Input type="number" step="0.1" value={editForm.timeLimit} onChange={e => setEditForm({ ...editForm, timeLimit: Number(e.target.value) })} className="bg-neutral-900 border-neutral-800" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Memory Limit (MB)</Label>
-                            <Input type="number" value={editForm.memoryLimit} onChange={e => setEditForm({ ...editForm, memoryLimit: Number(e.target.value) })} className="bg-neutral-900 border-neutral-800" />
-                        </div>
-                    </div>
+
+                    <Card>
+                        <CardHeader><CardTitle>Description (Markdown)</CardTitle></CardHeader>
+                        <CardContent>
+                            <Textarea className="h-64 font-mono" value={description} onChange={(e) => setDescription(e.target.value)} />
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
-                <TabsContent value="testcases" className="pt-6">
-                    <div className="space-y-4">
-                        {editForm.testCases.map((tc, idx) => (
-                            <div key={idx} className="bg-neutral-900 border border-neutral-800 p-4 rounded-lg space-y-3 relative group">
-                                <Button size="icon" variant="ghost" className="absolute top-2 right-2 text-neutral-500 hover:text-red-500 h-6 w-6" onClick={() => removeTestCase(idx)}>
-                                    <Trash2 className="w-3 h-3" />
-                                </Button>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <Label className="text-xs text-neutral-400">Input</Label>
-                                        <Textarea value={tc.input} onChange={e => {
-                                            const newTC = [...editForm.testCases];
-                                            newTC[idx].input = e.target.value;
-                                            setEditForm({ ...editForm, testCases: newTC });
-                                        }} className="bg-black border-neutral-800 font-mono text-xs h-20" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs text-neutral-400">Output</Label>
-                                        <Textarea value={tc.output} onChange={e => {
-                                            const newTC = [...editForm.testCases];
-                                            newTC[idx].output = e.target.value;
-                                            setEditForm({ ...editForm, testCases: newTC });
-                                        }} className="bg-black border-neutral-800 font-mono text-xs h-20" />
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input type="checkbox" checked={tc.isHidden} onChange={e => {
-                                        const newTC = [...editForm.testCases];
-                                        newTC[idx].isHidden = e.target.checked;
-                                        setEditForm({ ...editForm, testCases: newTC });
-                                    }} className="rounded bg-neutral-800 border-neutral-700" />
-                                    <Label className="text-xs text-neutral-400">Hidden (Not shown to user)</Label>
-                                </div>
+                <TabsContent value="boilerplate" className="space-y-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Starter Code</CardTitle>
+                            <Select value={selectedLang} onValueChange={setSelectedLang}>
+                                <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="javascript">JavaScript</SelectItem>
+                                    <SelectItem value="python">Python</SelectItem>
+                                    <SelectItem value="go">Go</SelectItem>
+                                    <SelectItem value="java">Java</SelectItem>
+                                    <SelectItem value="cpp">C++</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-[400px] border rounded-md overflow-hidden">
+                                <CodeEditor
+                                    code={boilerplateMap[selectedLang] || ""}
+                                    language={selectedLang}
+                                    onChange={updateBoilerplate}
+                                />
                             </div>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                This code will be pre-filled when a user selects this language.
+                            </p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="testcases" className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-medium">Test Cases</h3>
+                        <Button onClick={handleAddTestCase} size="sm"><Plus className="mr-2 h-4 w-4" /> Add Case</Button>
+                    </div>
+
+                    <div className="space-y-4">
+                        {problem?.TestCases?.map((tc: any, index: number) => (
+                            <TestCaseCard
+                                key={tc.id}
+                                tc={tc}
+                                index={index}
+                                onDelete={() => deleteTestCaseMutation.mutate(tc.id)}
+                            />
                         ))}
-                        <Button variant="outline" onClick={addTestCase} className="w-full border-dashed border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500">
-                            <Plus className="w-4 h-4 mr-2" /> Add Test Case
-                        </Button>
                     </div>
                 </TabsContent>
             </Tabs>
         </div>
+    );
+}
+
+function TestCaseCard({ tc, index, onDelete }: { tc: any, index: number, onDelete: () => void }) {
+    const queryClient = useQueryClient();
+    const { toast } = useToast();
+    const [isEditing, setIsEditing] = useState(false);
+    const [input, setInput] = useState(tc.input);
+    const [output, setOutput] = useState(tc.output);
+    const [isHidden, setIsHidden] = useState(tc.isHidden);
+
+    const updateMutation = useMutation({
+        mutationFn: (data: any) => adminAPI.updateTestCase(tc.id, data),
+        onSuccess: () => {
+            toast({ title: "Saved", description: "Test case updated." });
+            setIsEditing(false);
+            queryClient.invalidateQueries({ queryKey: ["admin-problem"] });
+        }
+    });
+
+    const handleSave = () => {
+        updateMutation.mutate({ input, output, isHidden });
+    };
+
+    if (isEditing) {
+        return (
+            <Card>
+                <CardContent className="p-4 space-y-4">
+                    <div className="flex justify-between">
+                        <h4 className="font-semibold">Test Case #{index + 1}</h4>
+                        <div className="flex gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+                            <Button size="sm" onClick={handleSave}>Save</Button>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs font-semibold">Input</label>
+                            <Textarea value={input} onChange={(e) => setInput(e.target.value)} className="font-mono text-xs h-24" />
+                        </div>
+                        <div>
+                            <label className="text-xs font-semibold">Expected Output</label>
+                            <Textarea value={output} onChange={(e) => setOutput(e.target.value)} className="font-mono text-xs h-24" />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={isHidden} onChange={(e) => setIsHidden(e.target.checked)} id={`hidden-${tc.id}`} />
+                        <label htmlFor={`hidden-${tc.id}`} className="text-sm font-medium">Hidden Test Case (Server-side only)</label>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardContent className="p-4 flex items-start gap-4">
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-semibold">Test Case #{index + 1}</h4>
+                        {tc.isHidden ? <Badge variant="secondary"><EyeOff className="h-3 w-3 mr-1" /> Hidden</Badge> : <Badge variant="outline"><Eye className="h-3 w-3 mr-1" /> Public</Badge>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-muted/50 p-2 rounded">
+                        <div className="truncate">In: {tc.input.slice(0, 50)}...</div>
+                        <div className="truncate">Out: {tc.output.slice(0, 50)}...</div>
+                    </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={onDelete}><Trash className="h-4 w-4" /></Button>
+                </div>
+            </CardContent>
+        </Card>
     );
 }

@@ -5,10 +5,13 @@ import { cn } from "@/lib/utils";
 import { CodeBlock } from "./CodeBlock";
 import { ReactLivePreview } from "./preview/ReactLivePreview";
 import { useAuth } from "@/context/AuthContext";
-import { Terminal, Copy, LayoutTemplate, AlignLeft, Eye, GitFork, Star } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Terminal, Copy, Check, LayoutTemplate, AlignLeft, Eye, GitFork, Star, Clipboard } from "lucide-react";
 import { Button } from "./ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
+import { snippetsAPI } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 
 // Helper Colors
 const typeColors: Record<string, string> = {
@@ -29,19 +32,27 @@ interface SnippetCardProps {
 }
 
 export function SnippetCard({ snippet }: SnippetCardProps) {
-    const { } = useAuth();
+    const { isAuthenticated } = useAuth();
+    const { toast } = useToast();
+    const navigate = useNavigate();
+    const [copied, setCopied] = useState(false);
+    const [forking, setForking] = useState(false);
 
-    const isReact = snippet.language?.toLowerCase() === 'react' ||
-        snippet.language?.toLowerCase() === 'typescript' ||
-        (snippet.language?.toLowerCase() === 'javascript' && (snippet.code.includes('import React') || snippet.code.includes('render(') || snippet.code.includes('export default')));
+    const isVisual = snippet.previewType?.startsWith('WEB_PREVIEW');
+    const isReact = (snippet.language?.toLowerCase() === 'react') ||
+        (isVisual && (snippet.language?.toLowerCase() === 'typescript' || snippet.language?.toLowerCase() === 'javascript')) ||
+        (snippet.code.includes('import React') || snippet.code.includes('export default') || snippet.code.includes('useState(') || snippet.code.includes('render('));
 
-    const isHTML = snippet.language?.toLowerCase() === 'html' ||
-        (snippet.language?.toLowerCase() === 'javascript' && !isReact); // Plain JS goes to HTML iframe unless it's React
-    const hasPreview = isReact || isHTML || snippet.previewType?.startsWith('WEB_PREVIEW');
+    const isHTML = snippet.language?.toLowerCase() === 'html' || (isVisual && !isReact);
+    const hasPreview = isReact || isHTML || isVisual;
 
-    const [viewMode, setViewMode] = useState<'preview' | 'code' | 'output'>('code');
+    const [viewMode, setViewMode] = useState<'preview' | 'code' | 'output'>(() => {
+        // Initial state logic moved to initializer to avoid layout shift
+        if (isReact || isHTML || snippet.previewType?.startsWith('WEB_PREVIEW')) return 'preview';
+        return 'output';
+    });
 
-    // Initial View Mode Logic
+    // Sync view mode if it changes (rare but possible in dynamic environments)
     useEffect(() => {
         if (hasPreview) {
             setViewMode('preview');
@@ -179,9 +190,19 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                             </div>
                         )
                     ) : viewMode === 'output' ? (
-                        <div className="absolute inset-0 bg-[#0c0c0e] p-6 pt-24 font-mono text-xs overflow-auto">
-                            <div className="absolute top-6 left-6 flex items-center gap-2 text-white/30 uppercase tracking-widest text-[10px] font-black pointer-events-none">
-                                <Terminal className="h-3 w-3" /> Stored Output
+                        <div className="absolute inset-0 bg-[#09090b] p-8 pt-32 font-mono text-xs overflow-auto">
+                            {/* Terminal Window Header Decoration */}
+                            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
+                            <div className="absolute top-8 left-8 flex items-center gap-6 z-20 pointer-events-none">
+                                <div className="flex gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500/30 border border-rose-500/20" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500/30 border border-amber-500/20" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/30 border border-emerald-500/20" />
+                                </div>
+                                <div className="flex items-center gap-2 text-white/30 uppercase tracking-[0.2em] text-[9px] font-black">
+                                    <Terminal className="h-3.5 w-3.5 stroke-[3]" />
+                                    Execution Console
+                                </div>
                             </div>
                             {(() => {
                                 const rawOutput = snippet.outputSnapshot || snippet.output;
@@ -196,15 +217,19 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                                 try {
                                     if (rawOutput.trim().startsWith('{')) {
                                         const parsed = JSON.parse(rawOutput);
-                                        if (parsed.stdout !== undefined) {
-                                            displayOutput = parsed.stdout + (parsed.stderr ? `\n[STDERR]\n${parsed.stderr}` : "");
+                                        // Piston v2 format: { run: { stdout, stderr, code } }
+                                        if (parsed.run && parsed.run.stdout !== undefined) {
+                                            displayOutput = parsed.run.stdout + (parsed.run.stderr ? `\n[ERR]\n${parsed.run.stderr}` : "");
+                                        } else if (parsed.stdout !== undefined) {
+                                            // Fallback for older formats
+                                            displayOutput = parsed.stdout + (parsed.stderr ? `\n[ERR]\n${parsed.stderr}` : "");
                                         }
                                     }
                                 } catch (e) {
                                     // Not JSON, use as is
                                 }
 
-                                return <div className="text-green-400 whitespace-pre-wrap">{displayOutput}</div>;
+                                return <div className="text-emerald-400 whitespace-pre-wrap font-mono leading-relaxed">{displayOutput || "Success (No output)"}</div>;
                             })()}
                         </div>
                     ) : (
@@ -258,7 +283,7 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                                     )}
                                 </>
                             )}
-                            {!hasPreview && (
+                            {(snippet.outputSnapshot || snippet.output) && (
                                 <button
                                     onClick={() => setViewMode('output')}
                                     className={cn(
@@ -281,9 +306,20 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                         </div>
 
                         {/* Copy (only in source) */}
+                        {/* Copy (only in source) */}
                         {viewMode === 'code' && (
-                            <Button variant="ghost" size="icon" className="h-9 w-9 text-white/50 hover:text-white hover:bg-white/10 rounded-full" onClick={() => navigator.clipboard.writeText(snippet.code)}>
-                                <Copy className="h-4 w-4" />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(snippet.code);
+                                    setCopied(true);
+                                    toast({ title: "Copied!", description: "Snippet code copied to clipboard." });
+                                    setTimeout(() => setCopied(false), 2000);
+                                }}
+                            >
+                                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                             </Button>
                         )}
                     </div>
@@ -302,16 +338,49 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                             </span>
                         </div>
 
-                        {/* Stats - MVP v1.1 */}
-                        <div className="flex items-center gap-4 text-[10px] font-bold text-white/40">
+                        {/* Stats - MVP v1.2 */}
+                        <div className="flex items-center gap-4 text-[10px] font-bold text-white/40 pointer-events-auto">
                             <div className="flex items-center gap-1.5" title="Views">
                                 <Eye className="h-3 w-3 text-white/30" />
                                 <span className="text-white/60">{snippet.viewsCount || 0}</span>
                             </div>
-                            <div className="flex items-center gap-1.5" title="Forks">
-                                <GitFork className="h-3 w-3 text-white/30" />
-                                <span className="text-white/60">{snippet.forkCount || 0}</span>
-                            </div>
+                            <button
+                                className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                                title="Fork this snippet"
+                                disabled={forking}
+                                onClick={async () => {
+                                    if (!isAuthenticated) {
+                                        toast({ variant: "destructive", title: "Login required to fork" });
+                                        return;
+                                    }
+                                    setForking(true);
+                                    try {
+                                        const res = await snippetsAPI.fork(snippet.id);
+                                        toast({ title: "Forked!", description: "Opening in editor..." });
+                                        navigate(`/create?fork=${res.snippet.id}`);
+                                    } catch (e: any) {
+                                        toast({ variant: "destructive", title: "Fork failed", description: e.message });
+                                    } finally {
+                                        setForking(false);
+                                    }
+                                }}
+                            >
+                                <GitFork className="h-3 w-3" />
+                                <span>{snippet.forkCount || 0}</span>
+                            </button>
+                            <button
+                                className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                                title="Copy code to clipboard"
+                                onClick={async () => {
+                                    navigator.clipboard.writeText(snippet.code);
+                                    toast({ title: "Copied!", description: "Code copied to clipboard." });
+                                    // Track copy count
+                                    try { await snippetsAPI.copy(snippet.id); } catch { }
+                                }}
+                            >
+                                <Clipboard className="h-3 w-3" />
+                                <span>{snippet.copyCount || 0}</span>
+                            </button>
                         </div>
                     </div>
                 </div>

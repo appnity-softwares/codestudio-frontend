@@ -1,152 +1,194 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { eventsAPI } from '@/lib/api';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Calendar, Clock, ChevronRight, Trophy } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
+import { Link, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { adminAPI } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+    Loader2,
+    Plus,
+    MoreVertical,
+    Trophy,
+    ExternalLink,
+    Edit,
+    Trash
+} from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
-interface ContestManagerProps {
-    onSelectEvent: (eventId: string, title: string) => void;
-}
-
-export function ContestManager({ onSelectEvent }: ContestManagerProps) {
+export default function ContestManager() {
+    const navigate = useNavigate();
     const { toast } = useToast();
     const queryClient = useQueryClient();
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-    // Form State
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        slug: '',
-        startTime: '',
-        endTime: '',
-        price: 0,
-        banner: ''
-    });
 
     const { data, isLoading } = useQuery({
-        queryKey: ['adminEvents'],
-        queryFn: () => eventsAPI.getAll({ type: 'ALL' }) // Assuming API supports 'ALL' or returns all by default
+        queryKey: ["admin-contests"],
+        queryFn: adminAPI.getContests
     });
 
     const createMutation = useMutation({
-        mutationFn: (data: any) => eventsAPI.create(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminEvents'] });
-            setIsCreateOpen(false);
-            toast({ title: "Event Created", className: "bg-green-600 text-white" });
-            setFormData({ title: '', description: '', slug: '', startTime: '', endTime: '', price: 0, banner: '' });
+        mutationFn: adminAPI.createContest,
+        onSuccess: (newContest: any) => {
+            toast({ title: "Contest Created", description: "Draft created successfully." });
+            queryClient.invalidateQueries({ queryKey: ["admin-contests"] });
+            navigate(`/admin/contests/${newContest.id}`); // Go to editor
         },
         onError: (err: any) => {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+            toast({ title: "Failed to create", description: err.message, variant: "destructive" });
         }
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Convert to ISO strings if needed, or backend handles it.
-        // Assuming backend expects standard ISO.
-        const payload = {
-            ...formData,
-            price: Number(formData.price),
-            startTime: new Date(formData.startTime).toISOString(),
-            endTime: new Date(formData.endTime).toISOString(),
-        };
-        createMutation.mutate(payload);
+    const startMutation = useMutation({
+        mutationFn: adminAPI.startContest,
+        onSuccess: () => {
+            toast({ title: "Contest Started", description: "The contest is now LIVE." });
+            queryClient.invalidateQueries({ queryKey: ["admin-contests"] });
+        }
+    });
+
+    const endMutation = useMutation({
+        mutationFn: adminAPI.endContest,
+        onSuccess: () => {
+            toast({ title: "Contest Ended", description: "The contest has been ended." });
+            queryClient.invalidateQueries({ queryKey: ["admin-contests"] });
+        }
+    });
+
+    const handleCreate = () => {
+        // Create a default draft
+        createMutation.mutate({
+            title: "New Untitled Contest",
+            description: "# New Contest\nDescribe your contest here.",
+            startTime: new Date().toISOString(),
+            endTime: new Date(Date.now() + 3600000).toISOString(), // +1 hour
+            type: "INTERNAL",
+            banner: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80"
+        });
     };
 
-    const events = data?.events || [];
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "LIVE": return "bg-green-500/10 text-green-500 border-green-500/20";
+            case "UPCOMING": return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+            case "ENDED": return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+            case "FROZEN": return "bg-cyan-500/10 text-cyan-500 border-cyan-500/20";
+            default: return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"; // DRAFT
+        }
+    };
+
+    if (isLoading) return <Loader2 className="animate-spin h-8 w-8 mx-auto mt-20" />;
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Contests</h2>
-                    <p className="text-muted-foreground">Manage competitive programming events.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Contests</h1>
+                    <p className="text-muted-foreground">Manage contests, problems, and lifecycle.</p>
                 </div>
-                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                    <DialogTrigger asChild>
-                        <Button><Plus className="w-4 h-4 mr-2" /> Create Contest</Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl bg-neutral-900 border-neutral-800 text-white">
-                        <DialogHeader>
-                            <DialogTitle>Create New Contest</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Title</Label>
-                                    <Input required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="bg-neutral-800 border-neutral-700" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Slug (URL)</Label>
-                                    <Input required value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} className="bg-neutral-800 border-neutral-700" placeholder="e.g. weekly-contest-1" />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Description</Label>
-                                <Textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="bg-neutral-800 border-neutral-700" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Start Time</Label>
-                                    <Input type="datetime-local" required value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} className="bg-neutral-800 border-neutral-700" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>End Time</Label>
-                                    <Input type="datetime-local" required value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} className="bg-neutral-800 border-neutral-700" />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Entry Fee (₹)</Label>
-                                    <Input type="number" min="0" value={formData.price} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} className="bg-neutral-800 border-neutral-700" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Banner URL</Label>
-                                    <Input value={formData.banner} onChange={e => setFormData({ ...formData, banner: e.target.value })} className="bg-neutral-800 border-neutral-700" placeholder="https://..." />
-                                </div>
-                            </div>
-                            <Button type="submit" disabled={createMutation.isPending} className="w-full">
-                                {createMutation.isPending ? "Creating..." : "Create Contest"}
-                            </Button>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                    {createMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                    Create Contest
+                </Button>
             </div>
 
-            <div className="grid gap-4">
-                {isLoading && <p>Loading contests...</p>}
-                {events.map((event: any) => (
-                    <Card key={event.id} className="bg-neutral-900 border-neutral-800 hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => onSelectEvent(event.id, event.title)}>
-                        <CardContent className="p-6 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                    <Trophy className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-lg text-white group-hover:text-primary transition-colors">{event.title}</h3>
-                                    <div className="flex items-center gap-4 text-sm text-neutral-400 mt-1">
-                                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {format(new Date(event.startTime), "MMM d, yyyy")}</span>
-                                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {format(new Date(event.startTime), "HH:mm")}</span>
-                                        <Badge variant={event.status === 'LIVE' ? 'default' : 'secondary'} className="uppercase text-[10px]">{event.status}</Badge>
-                                        {event.price > 0 && <Badge variant="outline" className="text-yellow-500 border-yellow-500/20">₹{event.price}</Badge>}
-                                    </div>
-                                </div>
-                            </div>
-                            <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-primary" />
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>All Contests</CardTitle>
+                    <CardDescription>
+                        {data?.contests?.length || 0} total contests found
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Title</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Schedule</TableHead>
+                                <TableHead>Created</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {data?.contests?.map((contest: any) => (
+                                <TableRow key={contest.id}>
+                                    <TableCell>
+                                        <Badge variant="outline" className={getStatusColor(contest.status)}>
+                                            {contest.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                        <div className="flex flex-col">
+                                            <span>{contest.title}</span>
+                                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">{contest.id}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        {contest.type === "EXTERNAL" ? (
+                                            <Badge variant="secondary" className="gap-1">
+                                                <ExternalLink className="h-3 w-3" /> Ext
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="secondary" className="gap-1">
+                                                <Trophy className="h-3 w-3" /> Int
+                                            </Badge>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col text-sm">
+                                            <span className="text-muted-foreground text-xs">Start: {format(new Date(contest.startTime), "PP p")}</span>
+                                            <span className="text-muted-foreground text-xs">End: {format(new Date(contest.endTime), "PP p")}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground text-xs">
+                                        {format(new Date(contest.createdAt), "PP")}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Link to={`/admin/contests/${contest.id}`}>
+                                                <Button variant="ghost" size="icon">
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                            </Link>
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Lifecycle</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => startMutation.mutate(contest.id)} disabled={contest.status === "LIVE"}>
+                                                        Start Contest
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => endMutation.mutate(contest.id)} disabled={contest.status === "ENDED"}>
+                                                        End Contest
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="text-destructive">
+                                                        <Trash className="mr-2 h-4 w-4" /> Delete (Drafts only)
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
     );
 }

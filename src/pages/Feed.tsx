@@ -2,38 +2,75 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StreamFeed } from "@/components/StreamFeed";
-import { snippetsAPI } from "@/lib/api";
+import { snippetsAPI, feedAPI } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Flame, Clock, Star } from "lucide-react";
 import { SystemSignals } from "@/components/SystemSignals";
+import { cn } from "@/lib/utils";
+
+type FeedBucket = 'trending' | 'new' | 'editor';
 
 export default function Feed() {
+    const [bucket, setBucket] = useState<FeedBucket>('trending');
     const [search, setSearch] = useState("");
     const [language, setLanguage] = useState("all");
     const [type, setType] = useState("all");
     const [difficulty, setDifficulty] = useState("all");
-    const [sortBy, setSortBy] = useState("newest");
 
-    // Debounce search ideally, but for now simple state
-    const { data, isLoading: loading } = useQuery({
-        queryKey: ['snippets', search, language, type, difficulty, sortBy],
+    // Use Smart Feed API for bucket-based feeds
+    const { data: feedData, isLoading: feedLoading } = useQuery({
+        queryKey: ['feed', bucket],
+        queryFn: () => feedAPI.get(bucket),
+        enabled: !search && language === 'all' && type === 'all' && difficulty === 'all',
+    });
+
+    // Use traditional search API when filters are active
+    const { data: searchData, isLoading: searchLoading } = useQuery({
+        queryKey: ['snippets', search, language, type, difficulty],
         queryFn: () => snippetsAPI.getAll({
-            search: search,
+            search,
             ...(language !== 'all' ? { language } : {}),
             ...(type !== 'all' ? { type } : {}),
             ...(difficulty !== 'all' ? { difficulty } : {}),
-            orderBy: sortBy === 'oldest' ? 'oldest' : 'newest'
-        })
+        }),
+        enabled: !!(search || language !== 'all' || type !== 'all' || difficulty !== 'all'),
     });
 
-    const snippets = data?.snippets || [];
+    const isFiltering = !!(search || language !== 'all' || type !== 'all' || difficulty !== 'all');
+    const snippets = isFiltering ? (searchData?.snippets || []) : (feedData?.snippets || []);
+    const loading = isFiltering ? searchLoading : feedLoading;
+
+    const tabs: { id: FeedBucket; label: string; icon: React.ReactNode }[] = [
+        { id: 'trending', label: 'Trending', icon: <Flame className="h-4 w-4" /> },
+        { id: 'new', label: 'New', icon: <Clock className="h-4 w-4" /> },
+        { id: 'editor', label: 'Editor Picks', icon: <Star className="h-4 w-4" /> },
+    ];
 
     return (
         <div className="min-h-full bg-canvas container max-w-7xl mx-auto py-8 px-4">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Main Feed Column */}
                 <div className="lg:col-span-8 space-y-6">
+                    {/* v1.2: Feed Bucket Tabs */}
+                    <div className="flex items-center gap-2 p-1 bg-surface/50 rounded-xl border border-border/50 w-fit">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setBucket(tab.id)}
+                                className={cn(
+                                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                                    bucket === tab.id
+                                        ? "bg-primary text-primary-foreground shadow-md"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                                )}
+                            >
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Filter Bar */}
                     <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-surface p-4 rounded-xl border border-border shadow-sm">
                         <div className="relative w-full md:w-64">
@@ -83,16 +120,6 @@ export default function Feed() {
                                     <SelectItem value="python">Python</SelectItem>
                                     <SelectItem value="go">Go</SelectItem>
                                     <SelectItem value="react">React</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            <Select value={sortBy} onValueChange={setSortBy}>
-                                <SelectTrigger className="w-[90px] h-9 text-xs uppercase font-bold tracking-wider">
-                                    <SelectValue placeholder="Sort" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="newest">Newest</SelectItem>
-                                    <SelectItem value="oldest">Oldest</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

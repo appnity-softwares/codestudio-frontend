@@ -7,8 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Swords, Trophy, Timer, ArrowRight, BrainCircuit } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Loader2, Trophy, ArrowRight, BrainCircuit } from "lucide-react";
+import { OfficialContestCard } from "@/components/OfficialContestCard";
 
 export default function Arena() {
     const navigate = useNavigate();
@@ -40,10 +40,9 @@ export default function Arena() {
                     <TabsTrigger value="contest">Official Contests</TabsTrigger>
                 </TabsList>
 
-                {/* PRACTICE TAB */}
+                {/* PRACTICE TAB (Reverted to Original) */}
                 <TabsContent value="practice" className="space-y-4">
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {/* Main Practice Card */}
                         <Card className="col-span-full bg-gradient-to-br from-primary/10 via-background to-background border-primary/20">
                             <CardHeader>
                                 <div className="flex items-center justify-between">
@@ -88,51 +87,20 @@ export default function Arena() {
                     </div>
                 </TabsContent>
 
-                {/* CONTESTS TAB */}
-                <TabsContent value="contest" className="space-y-4">
+                {/* CONTESTS TAB (Polished) */}
+                <TabsContent value="contest" className="space-y-6">
                     {isLoading ? (
-                        <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8" /></div>
+                        <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
                     ) : contestEvents.length === 0 ? (
-                        <div className="text-center py-12 border rounded-xl bg-muted/10">
-                            <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                        <div className="text-center py-12 border rounded-xl bg-muted/10 border-dashed">
+                            <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
                             <h3 className="text-lg font-medium">No Official Contests Found</h3>
                             <p className="text-muted-foreground">Check back later for upcoming events.</p>
                         </div>
                     ) : (
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="space-y-4">
                             {contestEvents.map((event: any) => (
-                                <Card key={event.id} className="flex flex-col">
-                                    <CardHeader>
-                                        <div className="flex justify-between items-start">
-                                            <CardTitle className="truncate pr-2">{event.title}</CardTitle>
-                                            <Badge variant={event.status === 'LIVE' ? "default" : "secondary"}>{event.status}</Badge>
-                                        </div>
-                                        <CardDescription className="line-clamp-2 min-h-[40px]">
-                                            {event.description}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="flex-1 space-y-4">
-                                        <div className="flex items-center text-sm text-muted-foreground gap-2">
-                                            <Timer className="h-4 w-4" />
-                                            {event.status === 'UPCOMING' ? (
-                                                <span>Starts {formatDistanceToNow(new Date(event.startTime), { addSuffix: true })}</span>
-                                            ) : event.status === 'LIVE' ? (
-                                                <span className="text-green-500 font-medium">Ends {formatDistanceToNow(new Date(event.endTime), { addSuffix: true })}</span>
-                                            ) : (
-                                                <span>Ended {formatDistanceToNow(new Date(event.endTime), { addSuffix: true })}</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center text-sm text-muted-foreground gap-2">
-                                            <Swords className="h-4 w-4" />
-                                            <span>Ranked Competition</span>
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter>
-                                        <Button className="w-full" disabled={event.status === 'ENDED'} onClick={() => navigate(`/arena/env/${event.id}`)}>
-                                            {event.status === 'UPCOMING' ? "Register / View" : "Enter Contest"}
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
+                                <OfficialContestCard key={event.id} event={event} />
                             ))}
                         </div>
                     )}

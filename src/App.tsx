@@ -11,6 +11,7 @@ import Feed from "./pages/Feed"
 import Arena from "./pages/arena/Arena"
 import EventDetail from "./pages/arena/EventDetail"
 import ContestEnvironment from "./pages/arena/Environment"
+import OfficialContest from "./pages/arena/OfficialContest"
 import ContestLeaderboard from "./pages/arena/Leaderboard"
 
 import Convert from "./pages/Convert"
@@ -25,14 +26,32 @@ import OAuthCallback from "./pages/auth/OAuthCallback"
 import Create from "./pages/Create"
 import SnippetDetail from "./pages/SnippetDetail"
 import Chat from "./pages/Chat"
-import AdminConsole from "./pages/admin/AdminConsole"
+import AdminLayout from "./pages/admin/AdminLayout"
+import AdminDashboard from "./pages/admin/AdminDashboard"
+import ContestManager from "./pages/admin/ContestManager"
+import ContestEditor from "./pages/admin/ContestEditor"
+import ProblemEditor from "./pages/admin/ProblemEditor"
+import FlagReview from "./pages/admin/FlagReview"
+import AuditLogs from "./pages/admin/AuditLogs"
+import AdminUsers from "./pages/admin/AdminUsers"
+import AdminSubmissions from "./pages/admin/AdminSubmissions"
+import AdminSystem from "./pages/admin/AdminSystem"
+import AdminChangelog from "./pages/admin/AdminChangelog"
+import Changelog from "./pages/Changelog"
+import Practice from "./pages/Practice" // v1.2: Practice Arena
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthError } from "./lib/api";
 
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            retry: false,
+            retry: (failureCount, error) => {
+                if (error instanceof AuthError) return false;
+                // Don't retry if it's a 404 (optional, but good practice)
+                if (error instanceof Error && error.message.includes('404')) return false;
+                return failureCount < 2;
+            },
             refetchOnWindowFocus: false,
             staleTime: 5 * 60 * 1000,
         },
@@ -94,12 +113,25 @@ function AppRoutes() {
                     }
                 />
                 <Route
+                    path="arena/official/:id"
+                    element={
+                        <ProtectedRoute>
+                            <OfficialContest />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
                     path="contest/:id/*"
                     element={
                         <ProtectedRoute>
                             <ContestEnvironment />
                         </ProtectedRoute>
                     }
+                />
+                {/* v1.2: Practice Arena (casual, no auth required to view) */}
+                <Route
+                    path="practice"
+                    element={<Practice />}
                 />
                 <Route
                     path="feed"
@@ -130,30 +162,47 @@ function AppRoutes() {
                 />
                 <Route path="profile/:username" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="changelog" element={<Changelog />} />
 
                 <Route path="snippets/:id" element={<SnippetDetail />} />
                 <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
-                <Route path="admin" element={<ProtectedRoute><AdminConsole /></ProtectedRoute>} />
+                {/* Admin Routes */}
+                <Route path="admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="users" element={<AdminUsers />} />
+                    <Route path="contests" element={<ContestManager />} />
+                    <Route path="contests/:id" element={<ContestEditor />} />
+                    <Route path="problems/:id" element={<ProblemEditor />} />
+                    <Route path="submissions" element={<AdminSubmissions />} />
+                    <Route path="flags" element={<FlagReview />} />
+                    <Route path="system" element={<AdminSystem />} />
+                    <Route path="audit-logs" element={<AuditLogs />} />
+                    <Route path="changelog" element={<AdminChangelog />} />
+                </Route>
             </Route>
         </Routes>
     )
 }
 
+import { HelmetProvider } from "react-helmet-async";
+
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <BrowserRouter>
-                <ThemeProvider defaultTheme="dark">
-                    <AuthProvider>
-                        <SocketProvider>
-                            <TooltipProvider>
-                                <AppRoutes />
-                                <Toaster />
-                            </TooltipProvider>
-                        </SocketProvider>
-                    </AuthProvider>
-                </ThemeProvider>
-            </BrowserRouter>
+            <HelmetProvider>
+                <BrowserRouter>
+                    <ThemeProvider defaultTheme="dark">
+                        <AuthProvider>
+                            <SocketProvider>
+                                <TooltipProvider>
+                                    <AppRoutes />
+                                    <Toaster />
+                                </TooltipProvider>
+                            </SocketProvider>
+                        </AuthProvider>
+                    </ThemeProvider>
+                </BrowserRouter>
+            </HelmetProvider>
         </QueryClientProvider>
     )
 }

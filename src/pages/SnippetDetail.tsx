@@ -12,8 +12,9 @@ import { ReactLivePreview } from "@/components/preview/ReactLivePreview";
 import { SnippetInteraction } from "@/components/SnippetInteraction";
 // import { CommentsSection } from "@/components/CommentsSection";
 import { formatDistanceToNow } from "date-fns";
-import { Copy, Terminal, Code2, Info, ArrowLeft, Loader2 } from "lucide-react";
+import { Copy, Terminal, Code2, Info, ArrowLeft, Loader2, GitFork } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Seo } from "@/components/Seo";
 
 export default function SnippetDetail() {
     const { id } = useParams<{ id: string }>();
@@ -28,6 +29,9 @@ export default function SnippetDetail() {
         const fetchSnippet = async () => {
             if (!id) return;
             try {
+                // Fire view tracking (fire-and-forget)
+                snippetsAPI.recordView(id).catch(() => { });
+
                 setLoading(true);
                 const data = await snippetsAPI.getById(id);
                 setSnippet(data.snippet);
@@ -68,6 +72,14 @@ export default function SnippetDetail() {
 
     return (
         <div className="container max-w-6xl mx-auto py-6 px-4">
+            <Seo
+                title={`${snippet.title} | CodeStudio`}
+                description={snippet.description || `Check out this ${snippet.language} snippet by ${snippet.author?.name}`}
+                type="article"
+                image={snippet.author?.image} // Or a generated snippet image if available
+                url={window.location.href}
+            />
+
             {/* Back button */}
             <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4">
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
@@ -98,9 +110,38 @@ export default function SnippetDetail() {
                                     <TabsTrigger value="preview" className="text-xs h-7"><Terminal className="w-3 h-3 mr-2" /> Output</TabsTrigger>
                                     <TabsTrigger value="code" className="text-xs h-7"><Code2 className="w-3 h-3 mr-2" /> Source</TabsTrigger>
                                 </TabsList>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigator.clipboard.writeText(snippet.code)}>
-                                    <Copy className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={async () => {
+                                        try {
+                                            toast({ title: "Forking...", description: "Creating your copy..." });
+                                            const res = await snippetsAPI.fork(snippet.id);
+                                            toast({ title: "Forked!", description: "Redirecting to your new snippet." });
+                                            navigate(`/snippets/${res.snippet.id}`);
+                                        } catch (err: any) {
+                                            if (err.message.includes("503") || err.status === 503) {
+                                                toast({
+                                                    variant: "destructive",
+                                                    title: "Forking Disabled",
+                                                    description: "Snippet creation and forking is currently disabled by administrators."
+                                                });
+                                            } else if (err.status === 401) {
+                                                toast({ variant: "destructive", title: "Login Required", description: "You must be logged in to fork snippets." });
+                                            } else {
+                                                toast({ variant: "destructive", title: "Fork Failed", description: err.message || "Could not fork snippet." });
+                                            }
+                                        }
+                                    }}>
+                                        <GitFork className="h-3.5 w-3.5 mr-1.5" />
+                                        Fork
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                                        navigator.clipboard.writeText(snippet.code);
+                                        snippetsAPI.recordCopy(snippet.id).catch(() => { });
+                                        toast({ title: "Copied!", description: "Code copied to clipboard." });
+                                    }}>
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                             <TabsContent value="preview" className="m-0 min-h-[300px]">
                                 {(() => {

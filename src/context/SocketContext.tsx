@@ -23,11 +23,17 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     useEffect(() => {
         if (user?.id && !socketRef.current) {
             socketRef.current = io(SOCKET_URL, {
-                query: { userId: user.id },
-                transports: ['websocket'], // Force WebSocket to avoid polling conflicts
-                upgrade: false, // Disable upgrade from polling
-                reconnection: false, // MVP Rule: No reconnection loops outside Chat
-                autoConnect: false, // MVP Rule: Manual connect only
+                query: {
+                    userId: user.id,
+                    token: localStorage.getItem('authToken')
+                },
+                auth: {
+                    token: localStorage.getItem('authToken')
+                },
+                transports: ['websocket'], // Force WebSocket
+                upgrade: false,
+                reconnection: true, // Allow reconnection for stability
+                autoConnect: false,
             });
 
             // Manual connect since autoConnect is false

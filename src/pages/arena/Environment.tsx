@@ -138,11 +138,15 @@ export default function ContestEnvironment() {
             // Execute against sample cases via backend
             const res = await contestsAPI.runSolution(eventId!, selectedProblemId!, code, language);
 
+            // Adapt new detailed results to legacy view
+            const aggregatedStdout = res.results.map((r, i) => `--- Case ${i + 1} ---\nInput: ${r.input}\nExpected: ${r.expected}\nActual: ${r.actual}\nStatus: ${r.status}`).join("\n\n");
+            const aggregatedStderr = res.results.filter(r => r.stderr).map((r, i) => `Case ${i + 1}: ${r.stderr}`).join("\n");
+
             setExecutionResult({
                 type: 'run',
-                stdout: res.stdout,
-                stderr: res.stderr,
-                code: res.code
+                stdout: aggregatedStdout,
+                stderr: aggregatedStderr,
+                code: 0
             });
             setActiveTab("result");
         } catch (e) {

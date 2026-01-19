@@ -61,6 +61,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         checkAuth();
+
+        const handleLogoutEvent = () => {
+            setUser(null);
+            setIsAuthenticated(false);
+            setLoading(false);
+        };
+
+        window.addEventListener('auth:logout', handleLogoutEvent);
+        return () => window.removeEventListener('auth:logout', handleLogoutEvent);
     }, []);
 
     const signIn = async (email: string, password: string) => {

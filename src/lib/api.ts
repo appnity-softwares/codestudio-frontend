@@ -15,6 +15,16 @@ export const removeToken = () => {
     localStorage.removeItem('authToken');
 };
 
+// Custom Error for Auth failures
+export class AuthError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+        super(message);
+        this.name = 'AuthError';
+        this.status = status;
+    }
+}
+
 // Generic API request helper
 async function apiRequest<T>(
     endpoint: string,
@@ -34,8 +44,25 @@ async function apiRequest<T>(
         });
 
         if (!response.ok) {
+            // Handle 401 Unauthorized globally
+            if (response.status === 401) {
+                removeToken();
+                // Dispatch logout event only if not already logging out (debounce)
+                if (!window.localStorage.getItem('isLoggingOut')) {
+                    window.localStorage.setItem('isLoggingOut', 'true'); // Reset on login or page load
+                    window.dispatchEvent(new Event('auth:logout'));
+                    setTimeout(() => window.localStorage.removeItem('isLoggingOut'), 1000); // Clear after 1s
+                }
+                throw new AuthError(401, 'Session expired or invalid token');
+            }
+
+            if (response.status === 403) {
+                const errorData = await response.json().catch(() => ({ error: 'Access denied' }));
+                console.error("[API] 403 Forbidden:", errorData);
+                throw new AuthError(403, errorData.error || 'Access denied');
+            }
+
             const error = await response.json().catch(() => ({ error: 'Network error or server down' }));
-            // Throw generic error for 500s/404s so React Query can handle (or not retry if configured)
             throw new Error(error.error || `API Request failed: ${response.status}`);
         }
 
@@ -44,9 +71,9 @@ async function apiRequest<T>(
         // Handle network connection failures (Offline, Server Down, CORS)
         if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
             console.warn(`[API] Network error for ${endpoint}: Server unbreakable or offline.`);
-            // Re-throw so callers (AuthContext) can decide to logout or show offline state
             throw new Error('NETWORK_ERROR');
         }
+        console.warn(`[API] Request failed for ${endpoint}:`, error);
         throw error;
     }
 }
@@ -78,6 +105,11 @@ export const authAPI = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
+};
+
+// Changelog API (public)
+export const changelogAPI = {
+    getAll: () => apiRequest<{ entries: any[] }>('/changelog'),
 };
 
 // Snippets API
@@ -141,14 +173,58 @@ export const snippetsAPI = {
         }),
 
     execute: (language: string, code: string) =>
-        apiRequest<{ run: { stdout: string; stderr: string; code: number; signal: string } }>('/snippets/execute', { // Changed endpoint if previously /execute was global? Checking routes... handlers/snippet.go:RunSnippet is correct? Let's assume it might be different in routes.go. Wait, snippet.go was POST /snippets/execute usually or /execute. The handler RunSnippet calls `services.ExecuteCode`. I need to check `routes/snippet.go` but I missed reading it. The file `cmd/server/main.go` registers snippet routes.
-            // Actually, let's keep it safe. If I didn't see explicit /execute in main.go, it might be inside RegisterSnippetRoutes.
-            // I will assume /execute for now or check routes again if fails.
-            // Correction: Looking at `backend-go/internal/handlers/snippet.go`, RunSnippet is defined.
-            // I will stick to what the backend likely exposes. If unsure I'll leave as /execute or check later.
+        apiRequest<{ run: { stdout: string; stderr: string; code: number; signal: string } }>('/snippets/execute', {
             method: 'POST',
             body: JSON.stringify({ language, code }),
         }),
+
+    // v1.2: Fork & Copy
+    fork: (id: string) =>
+        apiRequest<{ snippet: any; message: string }>(`/snippets/${id}/fork`, {
+            method: 'POST',
+        }),
+
+    copy: (id: string) =>
+        apiRequest<{ message: string }>(`/snippets/${id}/copy`, {
+            method: 'POST',
+        }),
+
+    recordView: (id: string) =>
+        apiRequest<{ message: string }>(`/snippets/${id}/view`, {
+            method: 'POST',
+        }),
+
+    recordCopy: (id: string) =>
+        apiRequest<{ message: string }>(`/snippets/${id}/copy`, {
+            method: 'POST',
+        }),
+};
+
+// v1.2: Smart Feed API
+export const feedAPI = {
+    get: (bucket: 'trending' | 'new' | 'editor' = 'trending') =>
+        apiRequest<{ snippets: any[]; bucket: string }>(`/feed?bucket=${bucket}`),
+};
+
+// v1.2: Practice Arena API
+export const practiceAPI = {
+    getProblems: (params?: { difficulty?: string; category?: string }) => {
+        const query = new URLSearchParams(params as any).toString();
+        return apiRequest<{ problems: any[] }>(`/practice/problems${query ? `?${query}` : ''}`);
+    },
+    getProblem: (id: string) =>
+        apiRequest<{ problem: any; isSolved: boolean }>(`/practice/problems/${id}`),
+    getDailyProblem: () =>
+        apiRequest<{ problem: any }>('/practice/daily'),
+    submit: (data: { problemId: string; code: string; language: string }) =>
+        apiRequest<{ submission: any; output: string; stderr: string }>('/practice/submit', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+    getSubmissions: (problemId?: string) => {
+        const query = problemId ? `?problemId=${problemId}` : '';
+        return apiRequest<{ submissions: any[] }>(`/practice/submissions${query}`);
+    },
 };
 
 // Documents API (Stubbed)
@@ -254,7 +330,7 @@ export const eventsAPI = {
         return apiRequest<{ events: any[] }>(`/events${query ? `?${query}` : ''}`);
     },
 
-    getById: (id: string) => apiRequest<{ event: any }>(`/events/${id}`),
+    getById: (id: string) => apiRequest<{ event: any; isRegistered: boolean; rulesAccepted: boolean; registrationStatus: string; metadata: any }>(`/events/${id}`),
 
     create: (data: any) =>
         apiRequest<{ event: any }>('/events', {
@@ -270,6 +346,11 @@ export const eventsAPI = {
 
     getAccessDetails: (id: string) =>
         apiRequest<{ access: boolean; message: string; secretLink?: string }>(`/events/${id}/access`),
+
+    acceptRules: (id: string) =>
+        apiRequest<{ message: string }>(`/events/${id}/rules`, {
+            method: 'POST'
+        }),
 };
 
 // Submissions API (Stubbed/Backend Pending or using contest API)
@@ -334,14 +415,14 @@ export const contestsAPI = {
             method: 'DELETE'
         }),
 
-    submitSolution: (eventId: string, problemId: string, code: string, language: string) =>
+    submitSolution: (eventId: string, problemId: string, code: string, language: string, metrics?: { pasteCount: number; pastedChars: number; blurCount: number }) =>
         apiRequest<{ submission: any }>(`/contests/${eventId}/problems/${problemId}/submit`, {
             method: 'POST',
-            body: JSON.stringify({ code, language })
+            body: JSON.stringify({ code, language, ...metrics })
         }),
 
     runSolution: (eventId: string, problemId: string, code: string, language: string) =>
-        apiRequest<{ type: string; stdout: string; stderr: string; code: number }>(`/contests/${eventId}/problems/${problemId}/run`, {
+        apiRequest<{ type: string; results: { input: string; expected: string; actual: string; status: string; stderr: string }[] }>(`/contests/${eventId}/problems/${problemId}/run`, {
             method: 'POST',
             body: JSON.stringify({ code, language })
         }),
@@ -365,5 +446,92 @@ export const messagesAPI = {
         apiRequest<{ messages: any[] }>(`/chat/messages?userId=${userId}`),
     markAsRead: (senderId: string) =>
         apiRequest<{ markedRead: number }>(`/chat/read/${senderId}`, { method: 'POST' }),
+};
+
+// Admin API
+export const adminAPI = {
+    // Dashboard
+    getDashboard: () => apiRequest<{ metrics: any }>('/admin/dashboard'),
+
+    // Contests
+    getContests: () => apiRequest<{ contests: any[] }>('/admin/contests'),
+    createContest: (data: any) => apiRequest<{ contest: any }>('/admin/contests', { method: 'POST', body: JSON.stringify(data) }),
+    updateContest: (id: string, data: any) => apiRequest<{ message: string }>('/admin/contests/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteContest: (id: string) => apiRequest<{ message: string }>('/admin/contests/' + id, { method: 'DELETE' }),
+    startContest: (id: string) => apiRequest<{ message: string }>(`/admin/contests/${id}/start`, { method: 'POST' }),
+    freezeContest: (id: string) => apiRequest<{ message: string }>(`/admin/contests/${id}/freeze`, { method: 'POST' }),
+    endContest: (id: string) => apiRequest<{ message: string }>(`/admin/contests/${id}/end`, { method: 'POST' }),
+
+    // Problems
+    getProblem: (id: string) => apiRequest<{ problem: any }>(`/admin/problems/${id}`),
+    createProblem: (data: any) => apiRequest<{ problem: any }>('/admin/problems', { method: 'POST', body: JSON.stringify(data) }),
+    updateProblem: (id: string, data: any) => apiRequest<{ message: string }>('/admin/problems/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteProblem: (id: string) => apiRequest<{ message: string }>('/admin/problems/' + id, { method: 'DELETE' }),
+    reorderProblems: (eventId: string, problemIds: string[]) => apiRequest<{ message: string }>('/admin/problems/reorder', { method: 'POST', body: JSON.stringify({ eventId, problemIds }) }),
+
+    // Test Cases
+    createTestCase: (problemId: string, data: any) => apiRequest<{ testCase: any }>(`/admin/problems/${problemId}/testcases`, { method: 'POST', body: JSON.stringify(data) }),
+    updateTestCase: (tcId: string, data: any) => apiRequest<{ message: string }>(`/admin/testcases/${tcId}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteTestCase: (tcId: string) => apiRequest<{ message: string }>(`/admin/testcases/${tcId}`, { method: 'DELETE' }),
+
+    // Flags
+    getFlags: () => apiRequest<{ submissions: any[] }>('/admin/flags'),
+    ignoreFlag: (id: string, reason: string) => apiRequest<{ message: string }>(`/admin/flags/${id}/ignore`, { method: 'POST', body: JSON.stringify({ reason }) }),
+    warnSubmission: (id: string, reason: string) => apiRequest<{ message: string }>(`/admin/flags/${id}/warn`, { method: 'POST', body: JSON.stringify({ reason }) }),
+    disqualifySubmission: (id: string, reason: string) => apiRequest<{ message: string }>(`/admin/flags/${id}/disqualify-submission`, { method: 'POST', body: JSON.stringify({ reason }) }),
+    disqualifyUser: (id: string) => apiRequest<{ message: string }>(`/admin/flags/${id}/disqualify-user`, { method: 'POST' }),
+
+    // Users
+    getUsers: (page: number = 1, limit: number = 20) =>
+        apiRequest<{ users: any[]; pagination: any }>(`/admin/users?page=${page}&limit=${limit}`),
+    searchUsers: (query: string) =>
+        apiRequest<{ users: any[]; count: number }>(`/admin/users/search?q=${encodeURIComponent(query)}`),
+    getUser: (id: string) => apiRequest<{ user: any; suspensions: any[]; trustHistory: any[]; submissions: any[]; ips: string[] }>(`/admin/users/${id}`),
+    warnUser: (id: string, reason: string) => apiRequest<{ message: string }>(`/admin/users/${id}/warn`, { method: 'POST', body: JSON.stringify({ reason }) }),
+    suspendUser: (id: string, type: string, reason: string, expiresIn?: number) =>
+        apiRequest<{ message: string }>(`/admin/users/${id}/suspend`, { method: 'POST', body: JSON.stringify({ type, reason, expiresIn }) }),
+    unsuspendUser: (id: string) => apiRequest<{ message: string }>(`/admin/users/${id}/unsuspend`, { method: 'POST' }),
+    banUserContest: (id: string, eventId: string) => apiRequest<{ message: string }>(`/admin/users/${id}/ban-contest`, { method: 'POST', body: JSON.stringify({ eventId }) }),
+    adjustTrustScore: (id: string, trustScore: number, reason: string) =>
+        apiRequest<{ message: string }>(`/admin/users/${id}/trust`, { method: 'POST', body: JSON.stringify({ trustScore, reason }) }),
+
+    // Submissions
+    getSubmissions: (params: { page?: number; contestId?: string; userId?: string; verdict?: string; flagged?: string }) => {
+        const query = new URLSearchParams();
+        if (params.page) query.append('page', params.page.toString());
+        if (params.contestId) query.append('contestId', params.contestId);
+        if (params.userId) query.append('userId', params.userId);
+        if (params.verdict) query.append('verdict', params.verdict);
+        if (params.flagged) query.append('flagged', params.flagged);
+        return apiRequest<{ submissions: any[]; pagination: any }>(`/admin/submissions?${query.toString()}`);
+    },
+    getSubmission: (id: string) => apiRequest<{ submission: any }>(`/admin/submissions/${id}`),
+    restoreSubmission: (id: string, reason: string) =>
+        apiRequest<{ message: string }>(`/admin/submissions/${id}/restore`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+    // Snippets
+    pinSnippet: (id: string, featured: boolean) =>
+        apiRequest<{ message: string }>(`/admin/snippets/${id}/pin`, { method: 'POST', body: JSON.stringify({ featured }) }),
+
+    // System Settings
+    getSystemSettings: () => apiRequest<{ settings: Record<string, string> }>('/admin/system'),
+    updateSystemSettings: (key: string, value: string) =>
+        apiRequest<{ message: string; setting: any }>('/admin/system', { method: 'PUT', body: JSON.stringify({ key, value }) }),
+
+    // Audit
+    getAuditLogs: () => apiRequest<{ logs: any[] }>('/admin/audit-logs'),
+
+    // Analytics
+    getTopSnippets: (limit: number = 10) =>
+        apiRequest<{ snippets: any[] }>(`/admin/analytics/top-snippets?limit=${limit}`),
+
+    getSuspiciousActivity: () =>
+        apiRequest<{ highCopySnippets: any[]; highForkSnippets: any[] }>('/admin/analytics/suspicious'),
+
+    // Changelog
+    getChangelogs: () => apiRequest<{ entries: any[] }>('/admin/changelog'),
+    createChangelog: (data: any) => apiRequest<{ entry: any; message: string }>('/admin/changelog', { method: 'POST', body: JSON.stringify(data) }),
+    updateChangelog: (id: string, data: any) => apiRequest<{ message: string }>('/admin/changelog/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteChangelog: (id: string) => apiRequest<{ message: string }>('/admin/changelog/' + id, { method: 'DELETE' }),
 };
 

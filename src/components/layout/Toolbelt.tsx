@@ -50,6 +50,12 @@ export function Toolbelt() {
                                 <span className="text-[10px] font-mono">Arena</span>
                             </div>
                         </a>
+                        <a href="/changelog" className="block col-span-2">
+                            <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer flex items-center justify-center gap-2">
+                                <Activity className="w-4 h-4 text-emerald-400" />
+                                <span className="text-[10px] font-mono">View Changelog</span>
+                            </div>
+                        </a>
                     </div>
                 </div>
 

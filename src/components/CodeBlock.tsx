@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "./ui/button";
-import { Copy, Check } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 import { Highlight, themes } from 'prism-react-renderer';
 import { useTheme } from "@/context/ThemeContext";
 
@@ -16,18 +13,9 @@ interface CodeBlockProps {
 
 export function CodeBlock({ code, language, className }: CodeBlockProps) {
     const [mounted, setMounted] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const { toast } = useToast();
     const { theme } = useTheme();
 
     useEffect(() => setMounted(true), []);
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(code);
-        setCopied(true);
-        toast({ title: "Code Copied!", description: "The code has been copied to your clipboard." });
-        setTimeout(() => setCopied(false), 2000);
-    };
 
     const prismTheme = theme === 'dark' ? themes.vsDark : themes.vsLight;
 
@@ -75,15 +63,7 @@ export function CodeBlock({ code, language, className }: CodeBlockProps) {
                             );
                         })}
                     </pre>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80 backdrop-blur-sm"
-                        onClick={handleCopy}
-                    >
-                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                        <span className="sr-only">Copy code</span>
-                    </Button>
+
                 </div>
             )}
         </Highlight>
