@@ -531,10 +531,11 @@ export const adminAPI = {
     disqualifyUser: (id: string) => apiRequest<{ message: string }>(`/admin/flags/${id}/disqualify-user`, { method: 'POST' }),
 
     // Users
-    getUsers: (page: number = 1, limit: number = 20) =>
-        apiRequest<{ users: any[]; pagination: any }>(`/admin/users?page=${page}&limit=${limit}`),
+    getUsers: (page: number = 1, limit: number = 20, search: string = "") =>
+        apiRequest<{ users: any[]; pagination: any }>(`/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`),
     searchUsers: (query: string) =>
-        apiRequest<{ users: any[]; count: number }>(`/admin/users/search?q=${encodeURIComponent(query)}`),
+        apiRequest<{ users: any[]; count: number }>(`/admin/users?search=${encodeURIComponent(query)}`), // Reuse same endpoint logic if we want, or keep deprecated
+
     getUser: (id: string) => apiRequest<{ user: any; suspensions: any[]; trustHistory: any[]; submissions: any[]; ips: string[] }>(`/admin/users/${id}`),
     warnUser: (id: string, reason: string) => apiRequest<{ message: string }>(`/admin/users/${id}/warn`, { method: 'POST', body: JSON.stringify({ reason }) }),
     suspendUser: (id: string, type: string, reason: string, expiresIn?: number) =>

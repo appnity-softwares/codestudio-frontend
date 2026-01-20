@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, ChevronLeft, ChevronRight, AlertTriangle, Ban, Unlock } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -30,23 +30,29 @@ export default function AdminUsers() {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
+    // State for Suspensions
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
     const [suspendReason, setSuspendReason] = useState("");
     const [suspendType, setSuspendType] = useState<"TEMPORARY" | "PERMANENT">("TEMPORARY");
     const [suspendHours, setSuspendHours] = useState(24);
 
-    // Fetch users with pagination
-    const { data: usersData, isLoading } = useQuery({
-        queryKey: ["admin-users", page],
-        queryFn: () => adminAPI.getUsers(page),
-    });
+    // Debounce search input
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+            setPage(1); // Reset to page 1 on new search
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
-    // Search users
-    const { data: searchResults, isLoading: isSearching } = useQuery({
-        queryKey: ["admin-users-search", searchQuery],
-        queryFn: () => adminAPI.searchUsers(searchQuery),
-        enabled: searchQuery.length > 2,
+    // Unified Fetch (List + Search)
+    const { data: usersData, isLoading } = useQuery({
+        queryKey: ["admin-users", page, debouncedSearch],
+        queryFn: () => adminAPI.getUsers(page, 20, debouncedSearch),
+        placeholderData: (previousData: any) => previousData, // Keep previous data while fetching
     });
 
     // Suspend user mutation
@@ -77,7 +83,9 @@ export default function AdminUsers() {
         },
     });
 
-    const displayUsers = searchQuery.length > 2 ? searchResults?.users : usersData?.users;
+
+
+    const displayUsers = usersData?.users || [];
     const pagination = usersData?.pagination;
 
     const handleSuspend = () => {
@@ -128,7 +136,7 @@ export default function AdminUsers() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoading || isSearching ? (
+                        {isLoading ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                     Loading...
@@ -206,7 +214,7 @@ export default function AdminUsers() {
             </div>
 
             {/* Pagination */}
-            {pagination && !searchQuery && (
+            {pagination && (
                 <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
                         Showing page {pagination.page} of {pagination.totalPages} ({pagination.total} users)
