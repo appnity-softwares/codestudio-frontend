@@ -24,7 +24,7 @@ export default function Arena() {
 
     // Filter Events
     const activeContests = events.filter((e: any) => e.id !== 'practice-arena-mvp' && e.status !== 'ENDED');
-
+    const pastContests = events.filter((e: any) => e.id !== 'practice-arena-mvp' && e.status === 'ENDED');
 
     return (
         <div className="container mx-auto py-8 max-w-5xl space-y-8">
@@ -115,6 +115,24 @@ export default function Arena() {
                             </div>
                         )}
                     </div>
+
+                    {/* Past Contests Section */}
+                    {pastContests.length > 0 && (
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between border-t border-border pt-8">
+                                <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 text-muted-foreground">
+                                    <BrainCircuit className="h-5 w-5" />
+                                    Past Contests
+                                </h2>
+                            </div>
+
+                            <div className="space-y-4 opacity-75 hover:opacity-100 transition-opacity">
+                                {pastContests.map((event: any) => (
+                                    <OfficialContestCard key={event.id} event={event} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* My Contest History Section */}
                     <ContestHistorySection />
