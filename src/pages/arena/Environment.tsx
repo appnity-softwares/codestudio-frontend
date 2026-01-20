@@ -45,11 +45,11 @@ export default function ContestEnvironment() {
             const isEnded = eventData.event.status === 'ENDED' || new Date() > new Date(eventData.event.endTime);
             // Practice Arena is separate
             if (eventId !== 'practice-arena-mvp' && isEnded) {
-                toast({ title: "Contest Ended", description: "Redirecting to leaderboard...", duration: 3000 });
-                navigate(`/contest/${eventId}/leaderboard`);
+                // Allow staying in the environment for upsolving/practice
+                // Just notify the user
             }
         }
-    }, [eventData, eventId, navigate, toast]);
+    }, [eventData, eventId]);
 
     // Auto-select first problem
     useEffect(() => {
