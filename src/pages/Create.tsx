@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { snippetsAPI } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Code2, Play } from "lucide-react";
+import { Loader2, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Create() {
@@ -105,145 +105,156 @@ export default function Create() {
         <div className="container max-w-2xl mx-auto py-10 animate-in fade-in duration-500">
             <h1 className="text-3xl font-headline font-bold mb-8">Create New Content</h1>
 
-            <Card className="border-border/50 bg-black/40 backdrop-blur-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Code2 className="h-5 w-5 text-primary" />
-                        Create Snippet
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label>Title</Label>
-                        <Input placeholder="My Awesome Component" value={snippetTitle} onChange={e => setSnippetTitle(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Description</Label>
-                        <Textarea placeholder="What does this code do?" value={snippetDesc} onChange={e => setSnippetDesc(e.target.value)} />
-                    </div>
+            {/* Two-Column Layout for Identity and Code */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Col: Identity */}
+                <div className="lg:col-span-4 space-y-6">
+                    <Card className="border-border/50 bg-black/40 backdrop-blur-sm sticky top-24">
+                        <CardHeader>
+                            <CardTitle className="text-base font-semibold">1. Snippet Identity</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Title</Label>
+                                <Input placeholder="My Awesome Component" value={snippetTitle} onChange={e => setSnippetTitle(e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Description</Label>
+                                <Textarea className="min-h-[100px]" placeholder="What does this code do?" value={snippetDesc} onChange={e => setSnippetDesc(e.target.value)} />
+                                <p className="text-[10px] text-muted-foreground">Focus on a single idea. Clean snippets perform better.</p>
+                            </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Type</Label>
-                            <Select value={snippetType} onValueChange={setSnippetType}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="ALGORITHM">Algorithm</SelectItem>
-                                    <SelectItem value="UTILITY">Utility</SelectItem>
-                                    <SelectItem value="EXAMPLE">Example</SelectItem>
-                                    <SelectItem value="VISUAL">Visual</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Difficulty</Label>
-                            <Select value={snippetDifficulty} onValueChange={setSnippetDifficulty}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="EASY">Easy</SelectItem>
-                                    <SelectItem value="MEDIUM">Medium</SelectItem>
-                                    <SelectItem value="HARD">Hard</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Type</Label>
+                                    <Select value={snippetType} onValueChange={setSnippetType}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="ALGORITHM">Algorithm</SelectItem>
+                                            <SelectItem value="UTILITY">Utility</SelectItem>
+                                            <SelectItem value="EXAMPLE">Example</SelectItem>
+                                            <SelectItem value="VISUAL">Visual</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Difficulty</Label>
+                                    <Select value={snippetDifficulty} onValueChange={setSnippetDifficulty}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="EASY">Easy</SelectItem>
+                                            <SelectItem value="MEDIUM">Medium</SelectItem>
+                                            <SelectItem value="HARD">Hard</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Tags</Label>
+                                <Input placeholder="react, ui, hooks" value={snippetTags} onChange={e => setSnippetTags(e.target.value)} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Language</Label>
-                            <Select value={snippetLang} onValueChange={setSnippetLang}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="python">Python</SelectItem>
-                                    <SelectItem value="javascript">JavaScript</SelectItem>
-                                    <SelectItem value="typescript">TypeScript</SelectItem>
-                                    <SelectItem value="go">Go</SelectItem>
-                                    <SelectItem value="cpp">C++</SelectItem>
-                                    <SelectItem value="java">Java</SelectItem>
-                                    <SelectItem value="rust">Rust</SelectItem>
-                                    <SelectItem value="html">HTML + Tailwind</SelectItem>
-                                    <SelectItem value="react">React + Tailwind</SelectItem>
-                                    <SelectItem value="c">C</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Tags (comma separated)</Label>
-                            <Input placeholder="react, ui, hooks" value={snippetTags} onChange={e => setSnippetTags(e.target.value)} />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Code</Label>
-                        <Textarea
-                            className="font-mono text-xs min-h-[200px]"
-                            value={snippetCode}
-                            onChange={e => setSnippetCode(e.target.value)}
-                            spellCheck={false}
-                        />
-                    </div>
+                {/* Right Col: Code */}
+                <div className="lg:col-span-8 space-y-6">
+                    <Card className="border-border/50 bg-black/40 backdrop-blur-sm h-full flex flex-col">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-base font-semibold">2. Implementation</CardTitle>
+                            <div className="w-[180px]">
+                                <Select value={snippetLang} onValueChange={setSnippetLang}>
+                                    <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="python">Python</SelectItem>
+                                        <SelectItem value="javascript">JavaScript</SelectItem>
+                                        <SelectItem value="typescript">TypeScript</SelectItem>
+                                        <SelectItem value="go">Go</SelectItem>
+                                        <SelectItem value="cpp">C++</SelectItem>
+                                        <SelectItem value="java">Java</SelectItem>
+                                        <SelectItem value="rust">Rust</SelectItem>
+                                        <SelectItem value="html">HTML + Tailwind</SelectItem>
+                                        <SelectItem value="react">React + Tailwind</SelectItem>
+                                        <SelectItem value="c">C</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4 flex-1 flex flex-col">
+                            <div className="flex-1 min-h-[400px]">
+                                <Textarea
+                                    className="font-mono text-xs h-full min-h-[400px] resize-none leading-relaxed bg-black/50 border-white/10"
+                                    value={snippetCode}
+                                    onChange={e => setSnippetCode(e.target.value)}
+                                    spellCheck={false}
+                                    placeholder="// Write your code here..."
+                                />
+                            </div>
 
-                    {/* Alignment Toggle for Web Previews */}
-                    {(snippetLang === 'html' || snippetLang === 'react') && (
-                        <div className="flex items-center gap-4 bg-muted/30 p-3 rounded-md border border-border/40">
-                            <Label className="text-sm font-medium">Initial Preview Alignment:</Label>
-                            <div className="flex items-center gap-2">
+                            {/* Alignment Toggle */}
+                            {(snippetLang === 'html' || snippetLang === 'react') && (
+                                <div className="flex items-center gap-4 bg-muted/30 p-2 rounded-md border border-border/40">
+                                    <Label className="text-xs font-medium">Preview:</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant={previewAlignment === 'center' ? "secondary" : "ghost"}
+                                            onClick={() => setPreviewAlignment('center')}
+                                            className={cn("h-6 text-[10px]", previewAlignment === 'center' ? "bg-primary text-white" : "text-muted-foreground")}
+                                        >
+                                            Center
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant={previewAlignment === 'top' ? "secondary" : "ghost"}
+                                            onClick={() => setPreviewAlignment('top')}
+                                            className={cn("h-6 text-[10px]", previewAlignment === 'top' ? "bg-primary text-white" : "text-muted-foreground")}
+                                        >
+                                            Top-Left
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Execution Output */}
+                            {executionResult && (
+                                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                    <Label className="text-xs text-muted-foreground">Console Output</Label>
+                                    <div className="bg-black/90 text-white p-4 rounded-md font-mono text-sm whitespace-pre-wrap max-h-40 overflow-auto border-l-4 border-emerald-500">
+                                        {executionResult.stdout || executionResult.stderr || "No output"}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex gap-4 pt-4 border-t border-white/10 mt-auto">
                                 <Button
-                                    size="sm"
-                                    variant={previewAlignment === 'center' ? "secondary" : "ghost"}
-                                    onClick={() => setPreviewAlignment('center')}
-                                    className={cn("h-7 text-xs", previewAlignment === 'center' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                                    className="w-1/3"
+                                    variant="secondary"
+                                    onClick={handleRunCode}
+                                    disabled={executing || !snippetCode}
                                 >
-                                    Center
+                                    {executing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                                    Run Code
                                 </Button>
                                 <Button
-                                    size="sm"
-                                    variant={previewAlignment === 'top' ? "secondary" : "ghost"}
-                                    onClick={() => setPreviewAlignment('top')}
-                                    className={cn("h-7 text-xs", previewAlignment === 'top' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                                    className="w-2/3"
+                                    onClick={handleCreateSnippet}
+                                    disabled={loading || !executionResult}
                                 >
-                                    Top-Left
+                                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {!executionResult ? "Run to Publish" : "Post Snippet"}
                                 </Button>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Execution Output */}
-                    {executionResult && (
-                        <div className="space-y-2">
-                            <Label>Output</Label>
-                            <div className="bg-black/90 text-white p-4 rounded-md font-mono text-sm whitespace-pre-wrap max-h-40 overflow-auto">
-                                {executionResult.stdout || executionResult.stderr || "No output"}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex gap-4 pt-4">
-                        <Button
-                            className="w-1/3"
-                            variant="secondary"
-                            onClick={handleRunCode}
-                            disabled={executing || !snippetCode}
-                        >
-                            {executing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                            Run Code
-                        </Button>
-                        <Button
-                            className="w-2/3"
-                            onClick={handleCreateSnippet}
-                            disabled={loading || !executionResult}
-                        >
-                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {!executionResult ? "Run to Publish" : "Post Snippet"}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
     );
 }

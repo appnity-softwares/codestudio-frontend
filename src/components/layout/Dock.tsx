@@ -5,7 +5,6 @@ import {
     Settings,
     Zap,
     ShieldCheck,
-    MessageSquare,
     Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,7 +19,6 @@ export function Dock() {
     const navItems = [
         { icon: Home, label: "Stream", path: "/feed", shortcut: "⌘1" },
         { icon: Trophy, label: "Arena", path: "/arena", shortcut: "⌘2" },
-        { icon: MessageSquare, label: "Chat", path: "/chat", shortcut: "⌘3" },
     ];
 
     const bottomItems = [

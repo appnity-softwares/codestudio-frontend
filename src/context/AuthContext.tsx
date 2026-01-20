@@ -9,7 +9,12 @@ interface User {
     username?: string;
     image?: string;
     bio?: string;
-    role?: string;
+    github_id?: string;
+    google_id?: string;
+    role: 'USER' | 'ADMIN';
+    onboardingCompleted?: boolean;
+    preferredLanguages?: string[];
+    interests?: string[];
     visibility?: string;
 }
 
@@ -19,7 +24,7 @@ interface AuthContextType {
     signIn: (email: string, password: string) => Promise<void>;
     signUp: (data: { email: string; password: string; name: string; username: string }) => Promise<void>;
     signOut: () => void;
-    updateUser: (user: User) => void;
+    updateUser: (user: Partial<User>) => void;
     loginWithToken: (token: string) => Promise<void>;
 }
 
@@ -118,8 +123,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         navigate('/auth/signin');
     };
 
-    const updateUser = (newUser: User) => {
-        setUser(newUser);
+    const updateUser = (updates: Partial<User>) => {
+        if (user) {
+            setUser({ ...user, ...updates });
+        }
     };
 
     if (loading) {

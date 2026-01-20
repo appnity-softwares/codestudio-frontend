@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Code2, Bug, Trophy, X } from "lucide-react";
+import { Plus, Code2, Trophy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FABOption {
@@ -17,12 +17,6 @@ const fabOptions: FABOption[] = [
         label: "Create Snippet",
         path: "/create",
         color: "bg-emerald-500 hover:bg-emerald-600"
-    },
-    {
-        icon: <Bug className="h-5 w-5" />,
-        label: "Report Bug",
-        path: "/bugs",
-        color: "bg-rose-500 hover:bg-rose-600"
     },
     {
         icon: <Trophy className="h-5 w-5" />,

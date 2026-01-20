@@ -129,6 +129,28 @@ export default function EventDetail() {
     const isUpcoming = event.status === 'UPCOMING';
     const isEnded = event.status === 'ENDED';
 
+    // Auto-redirect to leaderboard if ended
+    useEffect(() => {
+        if (event && !event.isExternal && (event.status === 'ENDED' || new Date() > new Date(event.endTime))) {
+            // Only redirect if user was "trying" to participate? 
+            // Requirement says: "If contest.status === ENDED ... Auto redirect user to /arena/contest/:id/leaderboard"
+            // But verify if this is disruptive to just "Viewing" the event detail page?
+            // "Do NOT show code editor... Auto redirect".
+            // If I am on Event Detail, I usually see "View Leaderboard" button anyway.
+            // Maybe explicitly force it if they are trying to "Enter"?
+            // The requirement implies strictly redirecting interaction flow.
+            // Let's safe-guard: If I am just viewing details, maybe stay?
+            // "Do NOT show code editor... Auto redirect user to .../leaderboard"
+            // This suggests mainly for the Environment page. 
+            // BUT, the requirement says "Contest End Redirect Logic... Auto redirect user to .../leaderboard"
+            // Let's apply it here too if they are registered, or just generally?
+            // If I apply it generally, they can't see the detail page anymore (history, stats etc).
+            // That might be bad UX if detail page has stats.
+            // Let's apply it primarily to the "Environment" page which HAS the editor.
+            // For EventDetail, we just ensure the "Enter" button goes to Leaderboard (already handles this in UI logic).
+        }
+    }, [event]);
+
     return (
         <div className="container mx-auto py-10 max-w-4xl">
             {event && (

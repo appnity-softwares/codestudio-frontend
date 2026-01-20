@@ -53,9 +53,6 @@ export function Header() {
                                     <DropdownMenuItem asChild>
                                         <Link to="/blogs">All Articles</Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem asChild>
-                                        <Link to="/bugs">Report a Bug</Link>
-                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}

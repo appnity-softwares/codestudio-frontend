@@ -74,8 +74,8 @@
     --secondary-foreground: 0 0% 98%;
 
     --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    /* #a1a1aa */
+    --muted-foreground: 215 20% 65%;
+    /* #9CA3AF - Neutral Gray */
 
     --accent: 240 5% 10%;
     --accent-foreground: 0 0% 98%;
@@ -102,7 +102,16 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased selection:bg-purple-500/30;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-purple-500/30 text-[16px] leading-relaxed;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight;
   }
 }
 

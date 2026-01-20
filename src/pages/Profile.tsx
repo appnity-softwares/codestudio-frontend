@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-    Code, Users, Settings, Shield, Terminal
+    Code, Users, Settings, Shield, Terminal, Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
@@ -14,6 +14,8 @@ import { useAuth } from "@/context/AuthContext";
 import { format } from "date-fns";
 import { ProfileSettings } from "@/components/profile/ProfileSettings";
 import { useTheme } from "@/context/ThemeContext";
+import { BadgeTab } from "@/components/profile/BadgeTab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
@@ -216,110 +218,130 @@ export default function Profile() {
                 )}
             </div>
 
-            {/* 2. Stats Grid (Snippet Summary & Arena Summary) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Snippet Summary */}
-                <div className="bg-surface border border-border resize-none p-6 rounded-xl space-y-4">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Code className="h-4 w-4 text-primary" />
-                        <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground">Snippet Summary</h3>
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-black text-foreground">{snippetCount}</span>
-                        <span className="text-sm text-muted-foreground font-mono">Total Snippets</span>
-                    </div>
+            {/* TABS NAVIGATION */}
+            <Tabs defaultValue="overview" className="space-y-6">
+                <TabsList className="bg-surface border border-border">
+                    <TabsTrigger value="overview" className="gap-2">
+                        <Terminal className="h-4 w-4" /> Overview
+                    </TabsTrigger>
+                    <TabsTrigger value="badges" className="gap-2">
+                        <Trophy className="h-4 w-4" /> Badges & Progress
+                    </TabsTrigger>
+                </TabsList>
 
-                    {/* Language Distribution Bar */}
-                    <div className="h-1 w-full bg-muted/20 rounded-full overflow-hidden flex">
-                        <div style={{ width: `${totalSpecific ? ((langStats.typescript || 0) / totalSpecific) * 100 : 0}%` }} className="h-full bg-blue-500 transition-all duration-500" />
-                        <div style={{ width: `${totalSpecific ? ((langStats.python || 0) / totalSpecific) * 100 : 0}%` }} className="h-full bg-yellow-500 transition-all duration-500" />
-                        <div style={{ width: `${totalSpecific ? ((langStats.go || 0) / totalSpecific) * 100 : 0}%` }} className="h-full bg-green-500 transition-all duration-500" />
-                    </div>
-
-                    <div className="flex gap-4 text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-                        <span className="flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> TypeScript ({langStats.typescript || 0})
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> Python ({langStats.python || 0})
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Go ({langStats.go || 0})
-                        </span>
-                    </div>
-                </div>
-
-                {/* Arena Summary */}
-                <div className="bg-surface border border-border p-6 rounded-xl space-y-4">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Shield className="h-4 w-4 text-orange-500" />
-                        <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground">Arena Summary</h3>
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-black text-foreground">{contestCount}</span>
-                        <span className="text-sm text-muted-foreground font-mono">Contests Joined</span>
-                    </div>
-                    <div className="p-3 bg-canvas border border-border/50 rounded-lg">
-                        <p className="text-xs text-muted-foreground font-mono text-center">
-                            {contestCount > 0 ? "Active in the Arena." : "No contest history available yet."}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* 3. Work Showcase (Pinned/Recent Snippets) */}
-            <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-border pb-4">
-                    <h2 className="text-lg font-bold font-headline flex items-center gap-2">
-                        <Terminal className="h-5 w-5 text-primary" />
-                        Work Showcase
-                    </h2>
-                    <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                        Latest 3 Public Snippets
-                    </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {snippets.slice(0, 3).map((snippet: any) => (
-                        <SnippetCard key={snippet.id} snippet={snippet} />
-                    ))}
-                    {snippets.length === 0 && (
-                        <div className="col-span-full py-12 border border-dashed border-white/10 rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center">
-                            <div className="h-10 w-10 rounded-full bg-muted/20 flex items-center justify-center mb-3">
-                                <Terminal className="h-5 w-5 text-muted-foreground" />
+                <TabsContent value="overview" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    {/* 2. Stats Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Snippet Summary */}
+                        <div className="bg-surface border border-border resize-none p-6 rounded-xl space-y-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Code className="h-4 w-4 text-primary" />
+                                <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground">Snippet Summary</h3>
                             </div>
-                            <h4 className="text-sm font-bold text-foreground mb-1">Index Empty</h4>
-                            <p className="text-xs text-muted-foreground font-mono mb-4">
-                                You haven't published any public snippets yet.
-                            </p>
-                            {currentUser?.id === profileUser.id && (
-                                <Link to="/create">
-                                    <Button variant="secondary" size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest">
-                                        Initialize Snippet
-                                    </Button>
-                                </Link>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-4xl font-black text-foreground">{snippetCount}</span>
+                                <span className="text-sm text-muted-foreground font-mono">Total Snippets</span>
+                            </div>
+
+                            {/* Language Distribution Bar */}
+                            <div className="h-1 w-full bg-muted/20 rounded-full overflow-hidden flex">
+                                <div style={{ width: `${totalSpecific ? ((langStats.typescript || 0) / totalSpecific) * 100 : 0}%` }} className="h-full bg-blue-500 transition-all duration-500" />
+                                <div style={{ width: `${totalSpecific ? ((langStats.python || 0) / totalSpecific) * 100 : 0}%` }} className="h-full bg-yellow-500 transition-all duration-500" />
+                                <div style={{ width: `${totalSpecific ? ((langStats.go || 0) / totalSpecific) * 100 : 0}%` }} className="h-full bg-green-500 transition-all duration-500" />
+                            </div>
+
+                            <div className="flex gap-4 text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                                <span className="flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> TypeScript ({langStats.typescript || 0})
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> Python ({langStats.python || 0})
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Go ({langStats.go || 0})
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Arena Summary */}
+                        <div className="bg-surface border border-border p-6 rounded-xl space-y-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Shield className="h-4 w-4 text-orange-500" />
+                                <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground">Arena Summary</h3>
+                            </div>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-4xl font-black text-foreground">{contestCount}</span>
+                                <span className="text-sm text-muted-foreground font-mono">Contests Joined</span>
+                            </div>
+                            <div className="p-3 bg-canvas border border-border/50 rounded-lg">
+                                <p className="text-xs text-muted-foreground font-mono text-center">
+                                    {contestCount > 0 ? "Active in the Arena." : "No contest history available yet."}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. Work Showcase */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between border-b border-border pb-4">
+                            <h2 className="text-lg font-bold font-headline flex items-center gap-2">
+                                <Terminal className="h-5 w-5 text-primary" />
+                                Work Showcase
+                            </h2>
+                            <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                                Latest 3 Public Snippets
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {snippets.slice(0, 3).map((snippet: any) => (
+                                <SnippetCard key={snippet.id} snippet={snippet} />
+                            ))}
+                            {snippets.length === 0 && (
+                                <div className="col-span-full py-12 border border-dashed border-white/10 rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center">
+                                    <div className="h-10 w-10 rounded-full bg-muted/20 flex items-center justify-center mb-3">
+                                        <Terminal className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                    <h4 className="text-sm font-bold text-foreground mb-1">Index Empty</h4>
+                                    <p className="text-xs text-muted-foreground font-mono mb-4">
+                                        You haven't published any public snippets yet.
+                                    </p>
+                                    {currentUser?.id === profileUser.id && (
+                                        <Link to="/create">
+                                            <Button variant="secondary" size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest">
+                                                Initialize Snippet
+                                            </Button>
+                                        </Link>
+                                    )}
+                                </div>
                             )}
                         </div>
-                    )}
-                </div>
-            </div>
+                    </div>
+                </TabsContent>
 
-            {currentUser?.id === profileUser.id && (
-                <div className="hidden">
-                    {/* Hidden Components for future features or settings only accessible via route */}
-                    <ProfileSettings
-                        name={name} setName={setName}
-                        username={editedUsername} setUsername={setEditedUsername}
-                        bio={bio} setBio={setBio}
-                        visibility={visibility} setVisibility={setVisibility}
-                        onSave={handleSaveSettings} isLoading={isLoadingSettings}
-                        signOut={signOut!} theme={theme} setTheme={setTheme}
-                        currentImage={profileImage} onImageUpdate={setProfileImage}
-                        githubUrl={githubUrl} setGithubUrl={setGithubUrl}
-                        instagramUrl={instagramUrl} setInstagramUrl={setInstagramUrl}
-                    />
-                </div>
-            )}
-        </div>
+                <TabsContent value="badges" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <BadgeTab username={profileUser.username} />
+                </TabsContent>
+            </Tabs>
+
+            {
+                currentUser?.id === profileUser.id && (
+                    <div className="hidden">
+                        {/* Hidden Components for future features or settings only accessible via route */}
+                        <ProfileSettings
+                            name={name} setName={setName}
+                            username={editedUsername} setUsername={setEditedUsername}
+                            bio={bio} setBio={setBio}
+                            visibility={visibility} setVisibility={setVisibility}
+                            onSave={handleSaveSettings} isLoading={isLoadingSettings}
+                            signOut={signOut!} theme={theme} setTheme={setTheme}
+                            currentImage={profileImage} onImageUpdate={setProfileImage}
+                            githubUrl={githubUrl} setGithubUrl={setGithubUrl}
+                            instagramUrl={instagramUrl} setInstagramUrl={setInstagramUrl}
+                        />
+                    </div>
+                )
+            }
+        </div >
     );
 }

@@ -105,6 +105,9 @@ export const authAPI = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
+
+    checkUsername: (username: string) =>
+        apiRequest<{ available: boolean; suggestions?: string[]; error?: string }>(`/auth/check-username?username=${encodeURIComponent(username)}`),
 };
 
 // Changelog API (public)
@@ -265,6 +268,15 @@ export const usersAPI = {
         apiRequest<{ snippets: { total: number; byLanguage: Record<string, number> }; arena: { contestsJoined: number } }>(
             `/users/profile/summary${username ? `?username=${username}` : ''}`
         ),
+
+    getContestHistory: () => apiRequest<{ history: any[] }>('/users/me/contests'),
+
+    completeOnboarding: (data: { bio: string; languages: string[]; interests: string[] }) =>
+        apiRequest<{ message: string; user: any }>('/users/onboarding', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+    getBadges: (username: string) => apiRequest<{ badges: any[] }>(`/users/${username}/badges`),
 };
 
 

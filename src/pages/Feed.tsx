@@ -48,10 +48,10 @@ export default function Feed() {
     ];
 
     return (
-        <div className="min-h-full bg-canvas container max-w-7xl mx-auto py-8 px-4">
+        <div className="min-h-full bg-canvas container max-w-[1600px] mx-auto py-8 px-4">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Main Feed Column */}
-                <div className="lg:col-span-8 space-y-6">
+                {/* Main Feed Column - Widened */}
+                <div className="lg:col-span-9 space-y-6">
                     {/* v1.2: Feed Bucket Tabs */}
                     <div className="flex items-center gap-2 p-1 bg-surface/50 rounded-xl border border-border/50 w-fit">
                         {tabs.map((tab) => (
@@ -126,12 +126,33 @@ export default function Feed() {
                     </div>
 
                     {/* Feed Content */}
-                    <StreamFeed snippets={snippets} loading={loading} />
+                    <div className="pb-20">
+                        {snippets.length === 0 && !loading ? (
+                            <div className="text-center py-20 opacity-50">
+                                <p className="text-lg">Nothing here yet — be the first to share.</p>
+                            </div>
+                        ) : (
+                            <StreamFeed snippets={snippets} loading={loading} />
+                        )}
+                    </div>
                 </div>
 
-                {/* Right Sidebar - System Density */}
-                <div className="hidden lg:block lg:col-span-4">
-                    <SystemSignals snippets={snippets} />
+                {/* Right Sidebar - System Density (Reduced Width) */}
+                {/* Collapsed by default unless interacted - Visual simplified here */}
+                <div className="hidden lg:block lg:col-span-3">
+                    <div className="sticky top-24 space-y-4">
+                        <div className="p-4 rounded-xl bg-card border border-white/5">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">System Status</h3>
+                            <div className="flex items-center gap-2 text-sm text-emerald-400">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                All Systems Operational
+                            </div>
+                        </div>
+                        <SystemSignals snippets={snippets} />
+                    </div>
                 </div>
             </div>
         </div>

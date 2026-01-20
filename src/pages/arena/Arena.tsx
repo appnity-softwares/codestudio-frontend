@@ -23,7 +23,8 @@ export default function Arena() {
     const events = data?.events || [];
 
     // Filter Events
-    const contestEvents = events.filter((e: any) => e.id !== 'practice-arena-mvp');
+    const activeContests = events.filter((e: any) => e.id !== 'practice-arena-mvp' && e.status !== 'ENDED');
+
 
     return (
         <div className="container mx-auto py-8 max-w-5xl space-y-8">
@@ -88,24 +89,87 @@ export default function Arena() {
                 </TabsContent>
 
                 {/* CONTESTS TAB (Polished) */}
-                <TabsContent value="contest" className="space-y-6">
-                    {isLoading ? (
-                        <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
-                    ) : contestEvents.length === 0 ? (
-                        <div className="text-center py-12 border rounded-xl bg-muted/10 border-dashed">
-                            <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-                            <h3 className="text-lg font-medium">No Official Contests Found</h3>
-                            <p className="text-muted-foreground">Check back later for upcoming events.</p>
+                <TabsContent value="contest" className="space-y-12">
+                    {/* Active/Upcoming Contests */}
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                                <Trophy className="h-5 w-5 text-primary" />
+                                Live & Upcoming
+                            </h2>
                         </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {contestEvents.map((event: any) => (
-                                <OfficialContestCard key={event.id} event={event} />
-                            ))}
-                        </div>
-                    )}
+
+                        {isLoading ? (
+                            <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
+                        ) : activeContests.length === 0 ? (
+                            <div className="text-center py-12 border rounded-xl bg-muted/10 border-dashed">
+                                <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                                <h3 className="text-lg font-medium">No Active Contests</h3>
+                                <p className="text-muted-foreground">Check back later for upcoming events.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {activeContests.map((event: any) => (
+                                    <OfficialContestCard key={event.id} event={event} />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* My Contest History Section */}
+                    <ContestHistorySection />
                 </TabsContent>
             </Tabs>
+        </div >
+    );
+}
+
+function ContestHistorySection() {
+    const { data, isLoading } = useQuery({
+        queryKey: ['my-contest-history'],
+        queryFn: () => import("@/lib/api").then(m => m.usersAPI.getContestHistory())
+    });
+
+    const history = data?.history || [];
+
+    if (isLoading) return <div className="py-8 text-center text-muted-foreground text-sm">Loading history...</div>;
+    if (history.length === 0) return null;
+
+    return (
+        <div className="space-y-4 pt-8 border-t border-border">
+            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                <BrainCircuit className="h-5 w-5 text-muted-foreground" />
+                My Contest History
+            </h2>
+            <div className="grid gap-4">
+                {history.map((contest: any) => (
+                    <div key={contest.id} className="group flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl bg-card/30 border border-white/5 hover:bg-card/50 transition-all gap-4">
+                        <div className="flex items-center gap-4 w-full sm:w-auto">
+                            <div className="h-10 w-10 rounded-full bg-muted/20 flex items-center justify-center font-bold text-muted-foreground text-sm">
+                                #{contest.rank}
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{contest.title}</h3>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span>Score: {contest.score}</span>
+                                    <span>•</span>
+                                    <span className="capitalize">{contest.status.toLowerCase()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                            {/* Badge Logic Mock */}
+                            {contest.rank === 1 && <Badge className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border-yellow-500/50">Winner</Badge>}
+                            {contest.rank <= 3 && contest.rank > 1 && <Badge className="bg-gray-400/20 text-gray-400 border-white/20">Podium</Badge>}
+
+                            <Button variant="ghost" size="sm" onClick={() => window.location.href = `/arena/contest/${contest.id}/leaderboard`}>
+                                Leaderboard <ArrowRight className="ml-2 h-3 w-3" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

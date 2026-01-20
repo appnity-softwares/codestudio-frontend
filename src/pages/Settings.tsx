@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, LogOut, Terminal, Lock, Trash2, Shield } from "lucide-react";
+import { User, LogOut, Lock, Trash2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -35,7 +35,7 @@ export default function SettingsPage() {
     const handleSaveProfile = async () => {
         setIsLoading(true);
         try {
-            const response = await usersAPI.update({ name, bio, visibility: publicProfile ? "PUBLIC" : "PRIVATE" });
+            const response = await usersAPI.update({ name, username, bio, visibility: publicProfile ? "PUBLIC" : "PRIVATE" });
             updateUser(response.user);
             toast({ title: "SYSTEM_UPDATE: SUCCESS", description: "Identity parameters updated." });
         } catch (error) {
@@ -63,82 +63,86 @@ export default function SettingsPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-6">
                     <div>
-                        <h1 className="text-2xl font-bold font-mono tracking-tight flex items-center gap-3">
-                            <Terminal className="h-6 w-6 text-primary" />
-                            SYS_CONFIG
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
+                            <User className="h-6 w-6 text-primary" />
+                            Settings
                         </h1>
-                        <p className="text-xs text-muted-foreground font-mono mt-1 opacity-70">
-                            /etc/user/profile_config
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Manage your profile and preferences
                         </p>
                     </div>
                     <Button
                         variant="destructive"
                         size="sm"
-                        className="h-8 font-mono text-xs gap-2"
+                        className="h-9 gap-2"
                         onClick={signOut}
                     >
-                        <LogOut className="h-3 w-3" />
-                        TERMINATE_SESSION
+                        <LogOut className="h-4 w-4" />
+                        Log Out
                     </Button>
                 </div>
 
-                {/* Identity Matrix */}
+                {/* Profile Section */}
                 <div className="space-y-6 bg-surface/30 p-6 rounded-xl border border-white/5">
-                    <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest border-b border-white/5 pb-3">
-                        <User className="h-3.5 w-3.5" /> Identity_Matrix
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-white/5 pb-3">
+                        <User className="h-4 w-4 text-primary" /> Profile Details
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-mono text-muted-foreground uppercase">Display_Name</Label>
+                            <Label className="text-sm">Display Name</Label>
                             <Input
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="bg-black/20 border-white/10 font-mono text-xs h-9 focus-visible:ring-primary/20"
+                                className="bg-black/20 border-white/10 h-10"
                                 placeholder="Enter display name"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-mono text-muted-foreground uppercase">Codename (Immutable)</Label>
+                            <Label className="text-sm text-foreground">Username</Label>
                             <Input
                                 value={username}
-                                disabled
-                                className="bg-black/10 border-white/5 font-mono text-xs h-9 opacity-50 cursor-not-allowed"
+                                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                className="bg-black/20 border-white/10 h-10"
+                                placeholder="Change username (limited)"
                             />
+                            <p className="text-[10px] text-muted-foreground">
+                                Limited to 2 changes every 90 days.
+                            </p>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-mono text-muted-foreground uppercase">Bio_Data (Max 160)</Label>
+                        <Label className="text-sm">Bio</Label>
                         <Input
                             value={bio}
                             onChange={(e) => setBio(e.target.value)}
                             maxLength={160}
-                            className="bg-black/20 border-white/10 font-mono text-xs h-9 focus-visible:ring-primary/20"
-                            placeholder="Brief system description..."
+                            className="bg-black/20 border-white/10 h-10"
+                            placeholder="Tell us about yourself..."
                         />
-                        <div className="text-[10px] text-right text-muted-foreground font-mono">{bio.length}/160</div>
+                        <div className="text-xs text-right text-muted-foreground">{bio.length}/160</div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-[10px] font-mono text-muted-foreground uppercase">Email_Uplink (Locked)</Label>
-                        <div className="flex items-center gap-2 px-3 h-9 bg-black/10 border border-white/5 rounded-md text-xs font-mono text-muted-foreground opacity-50 cursor-not-allowed">
-                            <Lock className="h-3 w-3" />
+                        <Label className="text-sm text-muted-foreground">Email</Label>
+                        <div className="flex items-center gap-2 px-3 h-10 bg-black/10 border border-white/5 rounded-md text-sm text-muted-foreground opacity-50 cursor-not-allowed">
+                            <Lock className="h-4 w-4" />
                             {user?.email}
                         </div>
                     </div>
                 </div>
 
-                {/* Visibility */}
+                {/* Privacy Section */}
                 <div className="space-y-6 bg-surface/30 p-6 rounded-xl border border-white/5">
-                    <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest border-b border-white/5 pb-3">
-                        <Shield className="h-3.5 w-3.5" /> Visibility_Protocol
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-white/5 pb-3">
+                        <Shield className="h-4 w-4 text-primary" /> Privacy
                     </div>
 
                     <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
-                            <Label className="text-sm font-bold font-mono text-foreground">Public_Reach</Label>
-                            <p className="text-xs text-muted-foreground font-mono">Allow external nodes to query your profile data.</p>
+                            <Label className="text-sm font-medium text-foreground">Public Profile</Label>
+                            <p className="text-xs text-muted-foreground">Allow others to view your profile details.</p>
                         </div>
                         <Switch
                             checked={publicProfile}
@@ -153,9 +157,9 @@ export default function SettingsPage() {
                     <Button
                         onClick={handleSaveProfile}
                         disabled={isLoading}
-                        className="w-full font-mono font-bold tracking-wider"
+                        className="w-full text-base font-medium h-11"
                     >
-                        {isLoading ? "WRITING..." : "EXECUTE_UPDATE"}
+                        {isLoading ? "Saving..." : "Save Changes"}
                     </Button>
 
                     <Separator className="bg-white/10 my-2" />
@@ -163,10 +167,10 @@ export default function SettingsPage() {
                     <Button
                         variant="ghost"
                         onClick={handleDeleteAccount}
-                        className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive font-mono text-xs opacity-70 hover:opacity-100"
+                        className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive text-sm"
                     >
-                        <Trash2 className="h-3 w-3 mr-2" />
-                        INITIATE_ACCOUNT_DESTRUCTION
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Account
                     </Button>
                 </div>
             </div>

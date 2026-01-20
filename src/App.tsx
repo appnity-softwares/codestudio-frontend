@@ -17,11 +17,13 @@ import ContestLeaderboard from "./pages/arena/Leaderboard"
 import Convert from "./pages/Convert"
 import Dashboard from "./pages/Dashboard"
 import Profile from "./pages/Profile"
+import { ContestHistory } from "./pages/profile/ContestHistory"
 import Settings from "./pages/Settings"
-import SignIn from "./pages/auth/SignIn"
-import SignUp from "./pages/auth/SignUp"
-import ForgotPassword from "./pages/auth/ForgotPassword"
-import ResetPassword from "./pages/auth/ResetPassword"
+import SignIn from '@/pages/auth/SignIn';
+import SignUp from '@/pages/auth/SignUp';
+import Onboarding from '@/pages/auth/Onboarding';
+import ForgotPassword from '@/pages/auth/ForgotPassword';
+import ResetPassword from '@/pages/auth/ResetPassword';
 import OAuthCallback from "./pages/auth/OAuthCallback"
 import Create from "./pages/Create"
 import SnippetDetail from "./pages/SnippetDetail"
@@ -92,6 +94,14 @@ function AppRoutes() {
             <Route path="/auth/signup" element={<SignUp />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route
+                path="/onboarding"
+                element={
+                    <ProtectedRoute>
+                        <Onboarding />
+                    </ProtectedRoute>
+                }
+            />
             <Route path="/oauth-callback" element={<OAuthCallback />} />
 
             <Route path="/" element={<DashboardLayout />}>
@@ -177,6 +187,7 @@ function AppRoutes() {
                     }
                 />
                 <Route path="profile/:username" element={<Profile />} />
+                <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="changelog" element={<Changelog />} />
 
