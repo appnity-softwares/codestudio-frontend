@@ -36,9 +36,10 @@ export default function Arena() {
             </div>
 
             <Tabs defaultValue="practice" value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+                <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
                     <TabsTrigger value="practice">Practice Arena</TabsTrigger>
                     <TabsTrigger value="contest">Official Contests</TabsTrigger>
+                    <TabsTrigger value="past">Past Contests</TabsTrigger>
                 </TabsList>
 
                 {/* PRACTICE TAB (Reverted to Original) */}
@@ -116,26 +117,34 @@ export default function Arena() {
                         )}
                     </div>
 
-                    {/* Past Contests Section */}
-                    {pastContests.length > 0 && (
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between border-t border-border pt-8">
-                                <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 text-muted-foreground">
-                                    <BrainCircuit className="h-5 w-5" />
-                                    Past Contests
-                                </h2>
-                            </div>
-
-                            <div className="space-y-4 opacity-75 hover:opacity-100 transition-opacity">
-                                {pastContests.map((event: any) => (
-                                    <OfficialContestCard key={event.id} event={event} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
                     {/* My Contest History Section */}
                     <ContestHistorySection />
+                </TabsContent>
+
+                {/* PAST CONTESTS TAB */}
+                <TabsContent value="past" className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 text-muted-foreground">
+                            <BrainCircuit className="h-5 w-5" />
+                            Past Contests
+                        </h2>
+                    </div>
+
+                    {isLoading ? (
+                        <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8 text-muted-foreground" /></div>
+                    ) : pastContests.length === 0 ? (
+                        <div className="text-center py-12 border rounded-xl bg-muted/10 border-dashed">
+                            <BrainCircuit className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                            <h3 className="text-lg font-medium">No Past Contests</h3>
+                            <p className="text-muted-foreground">Historical events will appear here.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 opacity-90 hover:opacity-100 transition-opacity">
+                            {pastContests.map((event: any) => (
+                                <OfficialContestCard key={event.id} event={event} />
+                            ))}
+                        </div>
+                    )}
                 </TabsContent>
             </Tabs>
         </div >
