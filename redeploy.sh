@@ -46,7 +46,7 @@ git pull origin main
 
 # 3. Install Dependencies
 echo "📦 Installing dependencies..."
-npm install
+npm install --legacy-peer-deps
 
 # 4. Build
 echo "🏗️ Building project..."
