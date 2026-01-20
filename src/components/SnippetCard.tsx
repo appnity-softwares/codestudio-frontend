@@ -6,7 +6,7 @@ import { CodeBlock } from "./CodeBlock";
 import { ReactLivePreview } from "./preview/ReactLivePreview";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Terminal, Copy, Check, LayoutTemplate, AlignLeft, Eye, GitFork, Clipboard } from "lucide-react";
+import { Copy, Check, LayoutTemplate, AlignLeft, Eye, GitFork, Clipboard } from "lucide-react";
 import { Button } from "./ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
