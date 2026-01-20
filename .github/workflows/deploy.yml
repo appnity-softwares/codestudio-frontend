@@ -16,5 +16,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/codestudio/frontend
+            git fetch --all
+            git reset --hard origin/main
             chmod +x redeploy.sh
             ./redeploy.sh
