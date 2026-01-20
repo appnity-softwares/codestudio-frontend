@@ -7,9 +7,10 @@ interface SeoProps {
     name?: string;
     image?: string;
     url?: string;
+    schema?: string; // JSON-LD schema string
 }
 
-export const Seo = ({ title, description, type, name, image, url }: SeoProps) => {
+export const Seo = ({ title, description, type, name, image, url, schema }: SeoProps) => {
     return (
         <Helmet>
             {/* Standard metadata tags */}
@@ -29,6 +30,13 @@ export const Seo = ({ title, description, type, name, image, url }: SeoProps) =>
             <meta name="twitter:title" content={title} />
             <meta name="twitter:description" content={description} />
             {image && <meta name="twitter:image" content={image} />}
+
+            {/* Schema Markup */}
+            {schema && (
+                <script type="application/ld+json">
+                    {schema}
+                </script>
+            )}
         </Helmet>
     );
 };

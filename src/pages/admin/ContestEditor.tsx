@@ -52,7 +52,10 @@ export default function ContestEditor() {
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
     const [type, setType] = useState("INTERNAL");
-    const [externalUrl, setExternalUrl] = useState("");
+    const [isExternal, setIsExternal] = useState(false);
+    const [platform, setPlatform] = useState("");
+    const [externalJoinUrl, setExternalJoinUrl] = useState("");
+    const [visibleAt, setVisibleAt] = useState("");
 
     useEffect(() => {
         if (data?.event) {
@@ -60,8 +63,11 @@ export default function ContestEditor() {
             setDescription(data.event.description);
             setStartTime(data.event.startTime.slice(0, 16)); // Format for datetime-local
             setEndTime(data.event.endTime.slice(0, 16));
-            setType(data.event.type);
-            setExternalUrl(data.event.externalUrl || "");
+            setType(data.event.type || "INTERNAL");
+            setIsExternal(data.event.isExternal || false);
+            setPlatform(data.event.externalPlatform || "");
+            setExternalJoinUrl(data.event.externalJoinUrl || "");
+            setVisibleAt(data.event.externalJoinVisibleAt ? data.event.externalJoinVisibleAt.slice(0, 16) : "");
         }
     }, [data]);
 
@@ -72,7 +78,10 @@ export default function ContestEditor() {
             startTime: new Date(startTime).toISOString(),
             endTime: new Date(endTime).toISOString(),
             type,
-            externalUrl
+            isExternal,
+            platform,
+            joinUrl: externalJoinUrl,
+            visibleAt: visibleAt ? new Date(visibleAt).toISOString() : null
         });
     };
 
@@ -116,6 +125,7 @@ export default function ContestEditor() {
                 <TabsList>
                     <TabsTrigger value="settings">Settings</TabsTrigger>
                     <TabsTrigger value="problems">Problems</TabsTrigger>
+                    <TabsTrigger value="participants">Participants</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="settings" className="space-y-4">
@@ -148,20 +158,62 @@ export default function ContestEditor() {
                             </div>
 
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium">Type</label>
-                                <Select value={type} onValueChange={setType}>
+                                <label className="text-sm font-medium">Contest Type</label>
+                                <Select value={isExternal ? "EXTERNAL" : "INTERNAL"} onValueChange={(val) => setIsExternal(val === "EXTERNAL")}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="INTERNAL">Internal (Hosted on CodeStudio)</SelectItem>
-                                        <SelectItem value="EXTERNAL">External (Link to other platform)</SelectItem>
+                                        <SelectItem value="INTERNAL">Internal (CodeStudio Hosted)</SelectItem>
+                                        <SelectItem value="EXTERNAL">External (Hosted Elsewhere)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
-                            {type === "EXTERNAL" && (
-                                <div className="grid gap-2">
-                                    <label className="text-sm font-medium">External URL</label>
-                                    <Input value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="https://hackerrank.com/..." />
+                            {isExternal && (
+                                <div className="space-y-4 pt-4 border-t">
+                                    <div className="grid gap-2">
+                                        <label className="text-sm font-medium text-blue-500">External Platform</label>
+                                        <Select value={platform} onValueChange={setPlatform}>
+                                            <SelectTrigger><SelectValue placeholder="Select Platform" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="HACKERRANK">HackerRank</SelectItem>
+                                                <SelectItem value="CODEFORCES">Codeforces</SelectItem>
+                                                <SelectItem value="LEETCODE">LeetCode</SelectItem>
+                                                <SelectItem value="CUSTOM">Custom Platform / Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <label className="text-sm font-medium text-blue-500">Join URL (Direct contest link)</label>
+                                        <Input
+                                            value={externalJoinUrl}
+                                            onChange={(e) => setExternalJoinUrl(e.target.value)}
+                                            placeholder="https://hackerrank.com/contests/my-contest"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <label className="text-sm font-medium text-blue-500">Join Link Visible At</label>
+                                        <div className="flex gap-2 items-center">
+                                            <Input
+                                                type="datetime-local"
+                                                value={visibleAt}
+                                                onChange={(e) => setVisibleAt(e.target.value)}
+                                            />
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const start = new Date(startTime);
+                                                    start.setMinutes(start.getMinutes() - 15);
+                                                    setVisibleAt(start.toISOString().slice(0, 16));
+                                                }}
+                                            >
+                                                15m Before
+                                            </Button>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Defaults to 15 minutes before the start time if left blank.
+                                        </p>
+                                    </div>
                                 </div>
                             )}
                         </CardContent>
@@ -193,7 +245,90 @@ export default function ContestEditor() {
                         ))}
                     </div>
                 </TabsContent>
+
+                <TabsContent value="participants">
+                    <ParticipantMonitoring id={id!} />
+                </TabsContent>
             </Tabs>
+        </div>
+    );
+}
+
+function ParticipantMonitoring({ id }: { id: string }) {
+    const { data: monitoringData, isLoading } = useQuery({
+        queryKey: ["admin-contest-monitoring", id],
+        queryFn: () => adminAPI.getContestParticipants(id),
+    });
+
+    if (isLoading) return <Loader2 className="animate-spin h-6 w-6 mx-auto mt-10" />;
+
+    const stats = monitoringData?.stats;
+    const participants = monitoringData?.participants || [];
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm text-muted-foreground uppercase">Registered</CardTitle>
+                        <div className="text-2xl font-bold">{stats?.totalRegistered || 0}</div>
+                    </CardHeader>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm text-muted-foreground uppercase text-green-500">Joined External</CardTitle>
+                        <div className="text-2xl font-bold text-green-600">{stats?.joinedExternal || 0}</div>
+                    </CardHeader>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm text-muted-foreground uppercase text-red-500">No Shows</CardTitle>
+                        <div className="text-2xl font-bold text-red-600">{stats?.noShows || 0}</div>
+                    </CardHeader>
+                </Card>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Participant List</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="border-b">
+                                <tr className="text-left font-medium text-muted-foreground">
+                                    <th className="py-2 px-4">User</th>
+                                    <th className="py-2 px-4">Email</th>
+                                    <th className="py-2 px-4 text-center">Status</th>
+                                    <th className="py-2 px-4">Joined At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {participants.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="py-10 text-center text-muted-foreground italic">No participants registered yet</td>
+                                    </tr>
+                                ) : (
+                                    participants.map((reg: any) => (
+                                        <tr key={reg.id} className="border-b hover:bg-muted/50">
+                                            <td className="py-2 px-4">{reg.user?.name || 'Unknown'}</td>
+                                            <td className="py-2 px-4 text-muted-foreground">{reg.user?.email || 'N/A'}</td>
+                                            <td className="py-2 px-4 text-center">
+                                                <Badge variant={reg.status === 'JOINED' ? 'default' : 'outline'}>
+                                                    {reg.status}
+                                                </Badge>
+                                            </td>
+                                            <td className="py-2 px-4 font-mono text-xs">
+                                                {reg.joinedExternalAt ? new Date(reg.joinedExternalAt).toLocaleString() : '-'}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

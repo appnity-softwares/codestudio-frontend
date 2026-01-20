@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { changelogAPI } from "@/lib/api";
 import { Clock, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { Seo } from "@/components/Seo";
 
@@ -74,8 +75,25 @@ export default function Changelog() {
                                 </div>
 
                                 {/* Markdown Content */}
-                                <div className="bg-white/5 border border-white/10 rounded-lg p-6 prose prose-invert prose-sm max-w-none">
-                                    <ReactMarkdown>{entry.description || "No details provided."}</ReactMarkdown>
+                                <div className="bg-white/5 border border-white/10 rounded-lg p-6">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            ul: ({ node, ...props }) => <ul className="list-disc list-outside ml-4 space-y-2 text-white/80" {...props} />,
+                                            ol: ({ node, ...props }) => <ol className="list-decimal list-outside ml-4 space-y-2 text-white/80" {...props} />,
+                                            li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                                            strong: ({ node, ...props }) => <strong className="text-white font-bold" {...props} />,
+                                            p: ({ node, ...props }) => <p className="mb-4 last:mb-0 text-white/80 leading-relaxed" {...props} />,
+                                            h1: ({ node, ...props }) => <h1 className="text-2xl font-bold text-white mb-4 mt-6 first:mt-0" {...props} />,
+                                            h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-white mb-3 mt-5" {...props} />,
+                                            h3: ({ node, ...props }) => <h3 className="text-lg font-bold text-white mb-2 mt-4" {...props} />,
+                                            code: ({ node, ...props }) => <code className="bg-black/30 text-primary px-1.5 py-0.5 rounded text-sm font-mono border border-primary/20" {...props} />,
+                                            a: ({ node, ...props }) => <a className="text-primary hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
+                                            blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-primary/50 pl-4 py-1 italic text-white/60 bg-white/5 rounded-r" {...props} />,
+                                        }}
+                                    >
+                                        {entry.description || "No details provided."}
+                                    </ReactMarkdown>
                                 </div>
                             </div>
                         ))}

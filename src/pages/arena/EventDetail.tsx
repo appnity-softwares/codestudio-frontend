@@ -8,8 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar, ShieldCheck, AlertCircle } from "lucide-react";
+import { Loader2, Calendar, ShieldCheck, AlertCircle, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { Seo } from "@/components/Seo";
+import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { Helmet } from "react-helmet-async";
 
 export default function EventDetail() {
     const { id } = useParams<{ id: string }>();
@@ -46,6 +49,21 @@ export default function EventDetail() {
         },
         onError: (error: any) => {
             toast({ title: "Registration failed", description: error.message || "Registration failed", variant: "destructive" });
+        }
+    });
+
+    const joinExternalMutation = useMutation({
+        mutationFn: async () => {
+            return eventsAPI.joinExternal(id!);
+        },
+        onSuccess: (res: any) => {
+            if (res.url) {
+                window.open(res.url, '_blank');
+            }
+            queryClient.invalidateQueries({ queryKey: ['event-access', id] });
+        },
+        onError: (error: any) => {
+            toast({ title: "Failed to join external contest", description: error.message, variant: "destructive" });
         }
     });
 
@@ -113,6 +131,87 @@ export default function EventDetail() {
 
     return (
         <div className="container mx-auto py-10 max-w-4xl">
+            {event && (
+                <Seo
+                    title={`${event.title} - CodeStudio Arena`}
+                    description={event.description}
+                    type="website"
+                    schema={JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "Event",
+                        "name": event.title,
+                        "description": event.description,
+                        "startDate": new Date(event.startTime).toISOString(),
+                        "endDate": new Date(event.endTime).toISOString(),
+                        "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+                        "eventStatus": "https://schema.org/EventScheduled",
+                        "location": {
+                            "@type": "VirtualLocation",
+                            "url": window.location.href
+                        },
+                        "organizer": {
+                            "@type": "Organization",
+                            "name": "CodeStudio",
+                            "url": window.location.origin
+                        },
+                        "offers": {
+                            "@type": "Offer",
+                            "price": event.price,
+                            "priceCurrency": "INR",
+                            "availability": "https://schema.org/InStock",
+                            "url": window.location.href,
+                            "validFrom": new Date(event.startTime).toISOString()
+                        }
+                    })}
+                />
+            )}
+
+            {event && (
+                <BreadcrumbSchema items={[
+                    { name: 'Home', item: window.location.origin },
+                    { name: 'Arena', item: `${window.location.origin}/arena` },
+                    { name: event.title, item: window.location.href }
+                ]} />
+            )}
+
+            {event && !event.isExternal && (
+                <Helmet>
+                    <script type="application/ld+json">
+                        {JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "FAQPage",
+                            "mainEntity": [
+                                {
+                                    "@type": "Question",
+                                    "name": "Who can participate?",
+                                    "acceptedAnswer": { "@type": "Answer", "text": "This contest is open to all registered users of CodeStudio. Ensure you have a stable internet connection." }
+                                },
+                                {
+                                    "@type": "Question",
+                                    "name": "Which languages are allowed?",
+                                    "acceptedAnswer": { "@type": "Answer", "text": "We support C++, Java, Python, JavaScript, and Go. You can choose your preferred language for each problem." }
+                                },
+                                {
+                                    "@type": "Question",
+                                    "name": "How is cheating detected?",
+                                    "acceptedAnswer": { "@type": "Answer", "text": "We use advanced plagiarism detection (MOSS-like) and monitor behavioral patterns (tab switching, copy-pasting) to ensure fair play." }
+                                },
+                                {
+                                    "@type": "Question",
+                                    "name": "How is ranking calculated?",
+                                    "acceptedAnswer": { "@type": "Answer", "text": "Ranking is based on score (points per problem) and time penalties. Ties are broken by total submission time." }
+                                },
+                                {
+                                    "@type": "Question",
+                                    "name": "What happens after the contest ends?",
+                                    "acceptedAnswer": { "@type": "Answer", "text": "The leaderboard is frozen for a short verification period. Once verified, ratings are updated and editorial solutions are published." }
+                                }
+                            ]
+                        })}
+                    </script>
+                </Helmet>
+            )}
+
             <Button variant="ghost" className="mb-6" onClick={() => navigate('/arena')}>&larr; Back to Arena</Button>
 
             <div className="grid gap-6 md:grid-cols-3">
@@ -195,18 +294,41 @@ export default function EventDetail() {
                         </CardContent>
                         <CardFooter className="flex flex-col gap-3">
                             {isRegistered ? (
-                                isLive ? (
-                                    <Button className="w-full" size="lg" onClick={() => navigate(`/contest/${event.id}`)}>
-                                        Enter Contest
-                                    </Button>
-                                ) : isEnded ? (
-                                    <Button className="w-full" variant="outline" onClick={() => navigate(`/contest/${event.id}/leaderboard`)}>
-                                        View Leaderboard
-                                    </Button>
+                                event.isExternal ? (
+                                    isLive || (event.externalJoinVisibleAt && new Date() >= new Date(event.externalJoinVisibleAt)) ? (
+                                        <Button
+                                            className="w-full bg-blue-600 hover:bg-blue-500"
+                                            size="lg"
+                                            onClick={() => joinExternalMutation.mutate()}
+                                            disabled={joinExternalMutation.isPending}
+                                        >
+                                            {joinExternalMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
+                                            Go to {event.externalPlatform || 'Contest'}
+                                        </Button>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <Button className="w-full" variant="secondary" disabled>
+                                                Join Link Hidden
+                                            </Button>
+                                            <p className="text-[10px] text-center text-muted-foreground">
+                                                Link will be available ~15m before start.
+                                            </p>
+                                        </div>
+                                    )
                                 ) : (
-                                    <Button className="w-full" variant="secondary" disabled>
-                                        Starts Soon
-                                    </Button>
+                                    isLive ? (
+                                        <Button className="w-full" size="lg" onClick={() => navigate(`/contest/${event.id}`)}>
+                                            Enter Contest
+                                        </Button>
+                                    ) : isEnded ? (
+                                        <Button className="w-full" variant="outline" onClick={() => navigate(`/contest/${event.id}/leaderboard`)}>
+                                            View Leaderboard
+                                        </Button>
+                                    ) : (
+                                        <Button className="w-full" variant="secondary" disabled>
+                                            Starts Soon
+                                        </Button>
+                                    )
                                 )
                             ) : (
                                 <Button

@@ -5,6 +5,8 @@ import {
     Code, Users, Settings, Shield, Terminal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Seo } from "@/components/Seo";
+import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usersAPI, authAPI } from "@/lib/api";
 import { SnippetCard } from "@/components/SnippetCard";
@@ -139,6 +141,37 @@ export default function Profile() {
 
     return (
         <div className="space-y-8 max-w-5xl mx-auto p-6 pb-20 fade-in">
+            {profileUser && (
+                <Seo
+                    title={`${profileUser.name || profileUser.username} (@${profileUser.username}) | CodeStudio`}
+                    description={profileUser.bio || `Check out ${profileUser.name}'s developer profile on CodeStudio.`}
+                    type="profile"
+                    image={profileUser.image}
+                    url={window.location.href}
+                    schema={JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "Person",
+                        "name": profileUser.name || profileUser.username,
+                        "alternateName": profileUser.username,
+                        "description": profileUser.bio,
+                        "image": profileUser.image,
+                        "url": window.location.href,
+                        "sameAs": [
+                            profileUser.githubUrl,
+                            profileUser.instagramUrl
+                        ].filter(Boolean)
+                    })}
+                />
+            )}
+
+            {profileUser && (
+                <BreadcrumbSchema items={[
+                    { name: 'Home', item: window.location.origin },
+                    { name: 'Developers', item: `${window.location.origin}/developers` }, // Or similar listing
+                    { name: profileUser.username, item: window.location.href }
+                ]} />
+            )}
+
             {/* 1. Identity Header */}
             <div className="flex flex-col md:flex-row gap-6 items-start md:items-center bg-surface border border-border p-6 rounded-2xl">
                 <Avatar className="h-24 w-24 border-4 border-canvas shadow-lg">

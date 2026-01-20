@@ -1,7 +1,7 @@
 
 
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Trophy, Flag, ShieldAlert, FileText, LogOut, Users, Code, Settings } from "lucide-react";
+import { LayoutDashboard, Trophy, Flag, ShieldAlert, FileText, LogOut, Users, Code, Settings, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { removeToken } from "@/lib/api";
 
@@ -20,6 +20,7 @@ export default function AdminLayout() {
         { to: "/admin/submissions", icon: Code, label: "Submissions" },
         { to: "/admin/flags", icon: Flag, label: "Flag Review" },
         { to: "/admin/system", icon: Settings, label: "System" },
+        { to: "/admin/changelog", icon: Megaphone, label: "Changelog" },
         { to: "/admin/audit-logs", icon: FileText, label: "Audit Logs" },
     ];
 

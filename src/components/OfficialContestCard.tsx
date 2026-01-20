@@ -59,9 +59,9 @@ export function OfficialContestCard({ event }: OfficialContestCardProps) {
                                 <Shield className="h-3 w-3" /> Protected
                             </Badge>
 
-                            {event.type === 'EXTERNAL' && (
-                                <Badge variant="outline" className="text-[10px] gap-1 border-blue-500 text-blue-500 bg-blue-500/10">
-                                    Hosted Externally
+                            {event.isExternal && (
+                                <Badge variant="outline" className="text-[10px] gap-1 border-blue-500 text-blue-500 bg-blue-500/10 uppercase font-bold">
+                                    <ExternalLink className="h-3 w-3" /> {event.externalPlatform || 'Hosted Externally'}
                                 </Badge>
                             )}
                         </div>
@@ -136,45 +136,21 @@ export function OfficialContestCard({ event }: OfficialContestCardProps) {
                     )}
 
                     {isUpcoming ? (
-                        <Button className="w-full" size="lg" onClick={() => {
-                            if (event.type === 'EXTERNAL' && event.externalUrl) {
-                                window.open(event.externalUrl, '_blank');
-                            } else {
-                                navigate(`/arena/official/${event.id}`);
-                            }
-                        }}>
-                            {event.type === 'EXTERNAL' ? (
-                                <>View Details <ExternalLink className="ml-2 h-4 w-4" /></>
-                            ) : (
-                                "Register / Rules"
-                            )}
+                        <Button className="w-full" size="lg" onClick={() => navigate(`/arena/official/${event.id}`)}>
+                            {event.isExternal ? "View Details" : "Register / Rules"}
+                            <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     ) : isLive ? (
                         <Button
                             className="w-full bg-green-600 hover:bg-green-500 text-white"
                             size="lg"
-                            onClick={() => {
-                                if (event.type === 'EXTERNAL' && event.externalUrl) {
-                                    window.open(event.externalUrl, '_blank');
-                                } else {
-                                    navigate(`/arena/official/${event.id}`);
-                                }
-                            }}
+                            onClick={() => navigate(`/arena/official/${event.id}`)}
                         >
-                            {event.type === 'EXTERNAL' ? (
-                                <>Join Contest <ExternalLink className="ml-2 h-4 w-4" /></>
-                            ) : (
-                                <>Enter Contest <ArrowRight className="ml-2 h-4 w-4" /></>
-                            )}
+                            {event.isExternal ? "Join External Contest" : "Enter Contest"}
+                            <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     ) : (
-                        <Button variant="outline" className="w-full" onClick={() => {
-                            if (event.type === 'EXTERNAL' && event.externalUrl) {
-                                window.open(event.externalUrl, '_blank');
-                            } else {
-                                navigate(`/arena/official/${event.id}`);
-                            }
-                        }}>
+                        <Button variant="outline" className="w-full" onClick={() => navigate(`/arena/official/${event.id}`)}>
                             View Results
                         </Button>
                     )}

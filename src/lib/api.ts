@@ -351,6 +351,11 @@ export const eventsAPI = {
         apiRequest<{ message: string }>(`/events/${id}/rules`, {
             method: 'POST'
         }),
+
+    joinExternal: (id: string) =>
+        apiRequest<{ success: boolean; url: string; joinedAt: string }>(`/events/${id}/join-external`, {
+            method: 'POST'
+        }),
 };
 
 // Submissions API (Stubbed/Backend Pending or using contest API)
@@ -461,6 +466,7 @@ export const adminAPI = {
     startContest: (id: string) => apiRequest<{ message: string }>(`/admin/contests/${id}/start`, { method: 'POST' }),
     freezeContest: (id: string) => apiRequest<{ message: string }>(`/admin/contests/${id}/freeze`, { method: 'POST' }),
     endContest: (id: string) => apiRequest<{ message: string }>(`/admin/contests/${id}/end`, { method: 'POST' }),
+    getContestParticipants: (id: string) => apiRequest<{ stats: { totalRegistered: number; joinedExternal: number; noShows: number }; participants: any[] }>(`/admin/contests/${id}/participants`),
 
     // Problems
     getProblem: (id: string) => apiRequest<{ problem: any }>(`/admin/problems/${id}`),

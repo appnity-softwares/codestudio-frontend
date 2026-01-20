@@ -15,6 +15,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Copy, Terminal, Code2, Info, ArrowLeft, Loader2, GitFork } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Seo } from "@/components/Seo";
+import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 
 export default function SnippetDetail() {
     const { id } = useParams<{ id: string }>();
@@ -76,9 +77,30 @@ export default function SnippetDetail() {
                 title={`${snippet.title} | CodeStudio`}
                 description={snippet.description || `Check out this ${snippet.language} snippet by ${snippet.author?.name}`}
                 type="article"
-                image={snippet.author?.image} // Or a generated snippet image if available
+                image={snippet.author?.image}
                 url={window.location.href}
+                schema={JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareSourceCode",
+                    "name": snippet.title,
+                    "programmingLanguage": snippet.language,
+                    "author": {
+                        "@type": "Person",
+                        "name": snippet.author?.name,
+                        "url": `${window.location.origin}/u/${snippet.author?.username}`
+                    },
+                    "dateCreated": snippet.createdAt,
+                    "text": snippet.code,
+                    "codeSampleType": "full code"
+                })}
             />
+            {snippet && (
+                <BreadcrumbSchema items={[
+                    { name: 'Home', item: window.location.origin },
+                    { name: 'Snippets', item: `${window.location.origin}/snippets` },
+                    { name: snippet.title, item: window.location.href }
+                ]} />
+            )}
 
             {/* Back button */}
             <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4">
