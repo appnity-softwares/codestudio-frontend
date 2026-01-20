@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, LogOut, Lock, Trash2, Shield } from "lucide-react";
+import { User, LogOut, Lock, Trash2, Shield, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { useAuth } from "@/context/AuthContext";
 import { usersAPI } from "@/lib/api";
@@ -20,6 +21,7 @@ export default function SettingsPage() {
     const [name, setName] = useState("");
     const [username, setUsername] = useState("");
     const [bio, setBio] = useState("");
+    const [image, setImage] = useState("");
     const [publicProfile, setPublicProfile] = useState(true);
 
     // Initialize state
@@ -28,6 +30,7 @@ export default function SettingsPage() {
             setName(user.name || "");
             setUsername(user.username || "");
             setBio(user.bio || "");
+            setImage(user.image || "");
             // setPublicProfile(user.visibility === "PUBLIC"); // Assuming backend supports this
         }
     }, [user]);
@@ -35,7 +38,13 @@ export default function SettingsPage() {
     const handleSaveProfile = async () => {
         setIsLoading(true);
         try {
-            const response = await usersAPI.update({ name, username, bio, visibility: publicProfile ? "PUBLIC" : "PRIVATE" });
+            const response = await usersAPI.update({
+                name,
+                username,
+                bio,
+                image,
+                visibility: publicProfile ? "PUBLIC" : "PRIVATE"
+            });
             updateUser(response.user);
             toast({ title: "SYSTEM_UPDATE: SUCCESS", description: "Identity parameters updated." });
         } catch (error) {
@@ -86,6 +95,33 @@ export default function SettingsPage() {
                 <div className="space-y-6 bg-surface/30 p-6 rounded-xl border border-white/5">
                     <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-white/5 pb-3">
                         <User className="h-4 w-4 text-primary" /> Profile Details
+                    </div>
+
+                    {/* Image URL Section */}
+                    <div className="flex flex-col md:flex-row gap-6 items-start">
+                        <Avatar className="h-24 w-24 border-2 border-white/10">
+                            <AvatarImage src={image} alt={name} className="object-cover" />
+                            <AvatarFallback className="bg-white/5 text-2xl">{name?.charAt(0) || "U"}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 space-y-2 w-full">
+                            <Label className="text-sm flex items-center gap-2">
+                                <ImageIcon className="h-3 w-3" /> Profile Image URL
+                            </Label>
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        value={image}
+                                        onChange={(e) => setImage(e.target.value)}
+                                        className="pl-9 bg-black/20 border-white/10"
+                                        placeholder="https://example.com/my-avatar.png"
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                                Hosted URL Required (Imgur, GitHub Assets, etc.). We do not store files to keep the platform lightweight.
+                            </p>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
