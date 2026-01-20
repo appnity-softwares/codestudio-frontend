@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Send, ThumbsUp, MessageSquare, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Send, ThumbsUp, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown } from "lucide-react";
+import { motion } from "framer-motion";
 import { feedbackAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,19 +28,19 @@ interface FeedbackMessage {
 }
 
 const CATEGORY_ICONS = {
-    BUG: <Bug className="h-3.5 w-3.5" />,
-    UX: <Layout className="h-3.5 w-3.5" />,
-    FEATURE: <Sparkles className="h-3.5 w-3.5" />,
-    PERFORMANCE: <Zap className="h-3.5 w-3.5" />,
-    OTHER: <MessageCircleCode className="h-3.5 w-3.5" />
+    BUG: <Bug className="h-3 w-3" />,
+    UX: <Layout className="h-3 w-3" />,
+    FEATURE: <Sparkles className="h-3 w-3" />,
+    PERFORMANCE: <Zap className="h-3 w-3" />,
+    OTHER: <MessageCircleCode className="h-3 w-3" />
 };
 
-const CATEGORY_STYLES = {
-    BUG: "text-red-400 bg-red-400/10 border-red-500/30 ring-1 ring-red-500/20",
-    UX: "text-pink-400 bg-pink-400/10 border-pink-500/30 ring-1 ring-pink-500/20",
-    FEATURE: "text-emerald-400 bg-emerald-400/10 border-emerald-500/30 ring-1 ring-emerald-500/20",
-    PERFORMANCE: "text-amber-400 bg-amber-400/10 border-amber-500/30 ring-1 ring-amber-500/20",
-    OTHER: "text-blue-400 bg-blue-400/10 border-blue-500/30 ring-1 ring-blue-500/20"
+const CATEGORY_COLORS = {
+    BUG: "text-red-400 border-red-500/30 bg-red-500/10",
+    UX: "text-pink-400 border-pink-500/30 bg-pink-500/10",
+    FEATURE: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+    PERFORMANCE: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+    OTHER: "text-blue-400 border-blue-500/30 bg-blue-500/10"
 };
 
 export default function FeedbackWall() {
@@ -50,6 +50,8 @@ export default function FeedbackWall() {
     const [content, setContent] = useState("");
     const [showWelcome, setShowWelcome] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
     // Initial Welcome Check
     useEffect(() => {
@@ -60,38 +62,71 @@ export default function FeedbackWall() {
         }
     }, []);
 
-    // Fetch Feedback
+    // Fetch Feedback (Polled frequently for chat feel)
     const { data: messages = [], isLoading } = useQuery({
         queryKey: ['feedback', 'latest'],
         queryFn: async () => {
             const res = await feedbackAPI.getAll("latest");
-            return res.data as FeedbackMessage[];
+            // Reverse to show oldest at top, newest at bottom (Chat style)
+            return (res.data as FeedbackMessage[]).reverse();
         },
-        refetchInterval: 15000 // Tighter polling for premium feel
+        refetchInterval: 3000,
     });
+
+    // Auto-scroll effect
+    useEffect(() => {
+        if (shouldAutoScroll && bottomRef.current) {
+            bottomRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages, shouldAutoScroll]);
+
+    const handleScroll = () => {
+        if (scrollContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+            // Detect if user is near bottom
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+            setShouldAutoScroll(isNearBottom);
+        }
+    };
 
     // Post Feedback Mutation
     const postMutation = useMutation({
         mutationFn: async (newFeedback: { content: string; category: string }) => {
             return feedbackAPI.create(newFeedback);
         },
-        onSuccess: () => {
+        onMutate: async (newFeedback) => {
+            // Optimistic Update
+            await queryClient.cancelQueries({ queryKey: ['feedback'] });
+            const previousMessages = queryClient.getQueryData(['feedback', 'latest']);
+
+            // Mock new message
+            const optimisticMsg = {
+                id: Math.random().toString(),
+                content: newFeedback.content,
+                category: newFeedback.category,
+                upvotes: 0,
+                isAck: false,
+                createdAt: new Date().toISOString(),
+                user: { username: "You", image: "" }, // Placeholder
+                hasReacted: false,
+                isOptimistic: true
+            };
+
+            queryClient.setQueryData(['feedback', 'latest'], (old: FeedbackMessage[] = []) => [...old, optimisticMsg]);
+            setShouldAutoScroll(true);
             setContent("");
-            queryClient.invalidateQueries({ queryKey: ['feedback'] });
-            toast({
-                title: "Feedback Recorded",
-                description: "Our team will review this shortly. Thanks for your contribution!",
-            });
-            setTimeout(() => {
-                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-            }, 100);
+            return { previousMessages };
         },
-        onError: (err: any) => {
+        onError: (err: any, _vars, context) => {
+            queryClient.setQueryData(['feedback', 'latest'], context?.previousMessages);
             toast({
-                title: "Wait a moment...",
-                description: err.message || "Could not post feedback",
+                title: "Failed to send",
+                description: err.message || "Could not connect to chat",
                 variant: "destructive"
             });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['feedback'] });
         }
     });
 
@@ -134,227 +169,203 @@ export default function FeedbackWall() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0a0a0c] lg:pl-[240px] flex flex-col">
+        <div className="flex flex-col h-screen bg-[#0a0a0c] lg:pl-[240px] overflow-hidden relative">
 
-            {/* Wider Container */}
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
-
-                {/* Header - Glassmorphism */}
-                <div className="px-8 py-6 border-b border-white/5 bg-[#0a0a0c]/80 backdrop-blur-md sticky top-0 z-20 flex-shrink-0">
-                    <div className="max-w-[1600px] mx-auto w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div>
-                            <div className="flex items-center gap-3 mb-1">
-                                <h1 className="text-3xl font-extrabold tracking-tight text-white/90">
-                                    Community Wall
-                                </h1>
-                                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-2 py-0.5 text-[10px] tracking-wider font-bold">
-                                    BETA
-                                </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground/80 max-w-2xl">
-                                Join the conversation. Help us shape the future of CodeStudio by sharing your ideas.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/5 px-3 py-1.5 rounded-full border border-emerald-400/10">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                </span>
-                                Live View
-                            </div>
-                        </div>
-                    </div>
+            {/* Header */}
+            <header className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-[#0a0a0c]/80 backdrop-blur-md z-20 flex items-center justify-between">
+                <div>
+                    <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                        Community Chat
+                        <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5">LIVE</Badge>
+                    </h1>
+                    <p className="text-xs text-muted-foreground/60">Real-time discussions & feedback</p>
                 </div>
+            </header>
 
-                {/* Main Content - Grid Layout */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar bg-[radial-gradient(circle_at_top_right,rgba(191,149,249,0.03),transparent_50%)]">
-                    <div className="max-w-[1600px] mx-auto w-full p-6 md:p-8">
+            {/* Chat Area */}
+            <div
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto custom-scrollbar p-0 space-y-0"
+            >
+                <div className="max-w-4xl mx-auto w-full min-h-full flex flex-col justify-end p-4 md:p-6 gap-2">
+                    {/* Welcome message if empty */}
+                    {!isLoading && messages.length === 0 && (
+                        <div className="text-center py-20 opacity-50">
+                            <MessageCircleCode className="h-12 w-12 mx-auto mb-4 text-white/20" />
+                            <h3 className="text-lg font-medium text-white/40">Quiet room...</h3>
+                            <p className="text-sm text-white/20">Be the first to say hello!</p>
+                        </div>
+                    )}
 
-                        {isLoading ? (
-                            <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
-                                <div className="p-4 rounded-full bg-primary/5 border border-primary/10 relative">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    {/* Messages */}
+                    {messages.map((msg, index) => {
+                        const isContinuation = index > 0 && messages[index - 1].user.username === msg.user.username &&
+                            (new Date(msg.createdAt).getTime() - new Date(messages[index - 1].createdAt).getTime() < 60000);
+
+                        return (
+                            <motion.div
+                                key={msg.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={cn(
+                                    "group flex gap-4 w-full px-4 py-2 hover:bg-white/[0.02] rounded-lg transition-colors",
+                                    (msg as any).isOptimistic && "opacity-70"
+                                )}
+                            >
+                                {/* Avatar Column */}
+                                <div className="flex-shrink-0 w-10 pt-1">
+                                    {!isContinuation ? (
+                                        <Avatar className="h-10 w-10 rounded-xl border border-white/5 bg-white/5">
+                                            <AvatarImage src={msg.user.image} />
+                                            <AvatarFallback className="text-[10px] font-bold bg-[#1a1a1e] text-muted-foreground">
+                                                {msg.user.username[0]?.toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    ) : (
+                                        <div className="w-10 text-[10px] text-muted-foreground/20 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: false }).replace('about ', '').replace(' minutes', 'm')}
+                                        </div>
+                                    )}
                                 </div>
-                                <p className="text-sm text-muted-foreground animate-pulse">Syncing with community...</p>
-                            </div>
-                        ) : messages.length === 0 ? (
-                            <div className="h-[60vh] flex flex-col items-center justify-center text-center max-w-lg mx-auto">
-                                <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mb-6 border border-white/10 rotate-3">
-                                    <MessageSquare className="h-10 w-10 text-white/40" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-white mb-2">Be the first voice</h3>
-                                <p className="text-muted-foreground mb-8">The wall is empty. Share your brilliant idea and start the discussion.</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">
-                                <AnimatePresence mode="popLayout">
-                                    {messages.map((msg, idx) => (
-                                        <motion.div
-                                            key={msg.id}
-                                            layout
-                                            initial={{ opacity: 0, scale: 0.95 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            transition={{ duration: 0.2, delay: idx * 0.05 }}
+
+                                {/* Content Column */}
+                                <div className="flex-1 min-w-0">
+                                    {!isContinuation && (
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-sm font-bold text-white hover:underline cursor-pointer">
+                                                {msg.user.username}
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground/50">
+                                                {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
+                                            </span>
+                                            {msg.isAck && (
+                                                <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-1 border-emerald-500/20 text-emerald-400 bg-emerald-500/5">
+                                                    <CheckCircle2 className="h-2.5 w-2.5" /> Dev Replied
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="text-[15px] leading-6 text-white/90 whitespace-pre-wrap break-words">
+                                        {msg.content}
+                                    </div>
+
+                                    {/* Footer Actions */}
+                                    <div className="flex items-center gap-3 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Badge variant="outline" className={cn("text-[9px] py-0 h-5 px-1.5 border gap-1 rounded-full", CATEGORY_COLORS[msg.category])}>
+                                            {CATEGORY_ICONS[msg.category]}
+                                            {msg.category}
+                                        </Badge>
+
+                                        <button
+                                            onClick={() => reactMutation.mutate(msg.id)}
                                             className={cn(
-                                                "group relative flex flex-col gap-4 p-6 rounded-3xl border transition-all duration-300 h-full",
-                                                msg.isAck
-                                                    ? "bg-emerald-500/[0.02] border-emerald-500/20 shadow-[0_4px_20px_rgba(16,185,129,0.02)]"
-                                                    : "bg-[#121214] border-white/5 hover:border-white/10 hover:shadow-2xl hover:shadow-black/40 hover:-translate-y-1"
+                                                "flex items-center gap-1 text-[10px] font-medium px-2 h-5 rounded-full transition-colors border",
+                                                msg.hasReacted
+                                                    ? "bg-primary/10 text-primary border-primary/20"
+                                                    : "bg-transparent text-muted-foreground border-transparent hover:bg-white/5"
                                             )}
                                         >
-                                            {/* Card Header */}
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar className="h-10 w-10 border border-white/10 shadow-lg">
-                                                        <AvatarImage src={msg.user.image} />
-                                                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                                                            {msg.user.username[0].toUpperCase()}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-sm text-white/90 group-hover:text-white transition-colors">
-                                                            {msg.user.username}
-                                                        </span>
-                                                        <span className="text-[10px] text-muted-foreground/60">
-                                                            {formatDistanceToNow(new Date(msg.createdAt))} ago
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <Badge variant="outline" className={cn("text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wide border", CATEGORY_STYLES[msg.category])}>
-                                                    {CATEGORY_ICONS[msg.category]}
-                                                    <span className="ml-1.5">{msg.category}</span>
-                                                </Badge>
-                                            </div>
-
-                                            {/* Card Content */}
-                                            <div className="flex-1">
-                                                <p className="text-[15px] leading-relaxed text-muted-foreground/90 group-hover:text-white/90 transition-colors whitespace-pre-wrap">
-                                                    {msg.content}
-                                                </p>
-                                            </div>
-
-                                            {/* Card Footer */}
-                                            <div className="flex items-center justify-between pt-4 border-t border-white/[0.04] mt-auto">
-                                                {msg.isAck ? (
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-                                                        <CheckCircle2 className="h-3.5 w-3.5" />
-                                                        <span>Team Acknowledged</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="h-4" /> // Spacer
-                                                )}
-
-                                                <button
-                                                    onClick={() => reactMutation.mutate(msg.id)}
-                                                    className={cn(
-                                                        "flex items-center gap-2 text-xs px-4 py-2 rounded-xl transition-all active:scale-95 border",
-                                                        msg.hasReacted
-                                                            ? "text-primary bg-primary/10 border-primary/20 font-bold shadow-[0_0_15px_rgba(191,149,249,0.1)]"
-                                                            : "text-muted-foreground border-white/5 bg-white/[0.02] hover:bg-white/5 hover:text-white hover:border-white/10"
-                                                    )}
-                                                >
-                                                    <ThumbsUp className={cn("h-4 w-4 transition-transform", msg.hasReacted && "fill-current scale-110")} />
-                                                    <span className="min-w-[16px] text-center">{msg.upvotes}</span>
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </AnimatePresence>
-                            </div>
-                        )}
-                        <div ref={bottomRef} className="h-6" />
-                    </div>
+                                            <ThumbsUp className="h-3 w-3" />
+                                            {msg.upvotes > 0 && <span>{msg.upvotes}</span>}
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                    <div ref={bottomRef} />
                 </div>
+            </div>
 
-                {/* Input Area - Absolute Bottom */}
-                <div className="p-6 border-t border-white/5 bg-[#0a0a0c]/90 backdrop-blur-xl z-30 flex-shrink-0">
-                    <div className="max-w-[1600px] mx-auto w-full">
-                        <div className="bg-[#151518] border border-white/5 rounded-2xl p-2 flex gap-4 transition-all focus-within:border-primary/20 focus-within:ring-1 focus-within:ring-primary/10 shadow-2xl shadow-black/50">
+            {/* Scroll to Bottom Button */}
+            {!shouldAutoScroll && (
+                <div className="absolute bottom-24 right-8 z-40">
+                    <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-8 w-8 rounded-full shadow-lg bg-primary text-black hover:bg-primary/90 transition-all"
+                        onClick={() => {
+                            setShouldAutoScroll(true);
+                            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                    >
+                        <ArrowDown className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
+
+            {/* Input Area */}
+            <div className="p-4 md:p-6 bg-[#0a0a0c] border-t border-white/5 z-30">
+                <div className="max-w-4xl mx-auto w-full relative">
+                    <div className="bg-[#151518] rounded-2xl border border-white/5 p-3 shadow-2xl focus-within:ring-1 focus-within:ring-white/10 transition-all">
+                        <div className="flex gap-3">
                             <Select value={category} onValueChange={setCategory}>
-                                <SelectTrigger className="w-[160px] bg-white/[0.03] border-white/5 hover:bg-white/5 h-[50px] rounded-xl text-white/80 font-medium">
-                                    <SelectValue placeholder="Category" />
+                                <SelectTrigger className="w-[140px] h-10 border-0 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-medium focus:ring-0">
+                                    <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-[#1a1a1e] border-white/10 text-white">
-                                    <SelectItem value="FEATURE">✨ New Feature</SelectItem>
-                                    <SelectItem value="BUG">🐞 Bug Report</SelectItem>
-                                    <SelectItem value="UX">🎨 UX Improvement</SelectItem>
-                                    <SelectItem value="PERFORMANCE">⚡ Performance</SelectItem>
-                                    <SelectItem value="OTHER">🗨️ General</SelectItem>
+                                    {Object.keys(CATEGORY_ICONS).map(cat => (
+                                        <SelectItem key={cat} value={cat} className="text-xs">
+                                            {cat}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
 
-                            <Textarea
-                                value={content}
-                                onChange={(e) => setContent(e.target.value.slice(0, 500))}
-                                placeholder="I wish CodeStudio had..."
-                                className="flex-1 min-h-[50px] max-h-[120px] bg-transparent border-0 ring-0 focus-visible:ring-0 resize-none py-3 text-base leading-relaxed text-white placeholder:text-muted-foreground/40"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSubmit(e);
-                                    }
-                                }}
-                            />
+                            <div className="flex-1">
+                                <Textarea
+                                    value={content}
+                                    onChange={(e) => setContent(e.target.value)}
+                                    placeholder="Type a message..."
+                                    className="min-h-[40px] max-h-[200px] py-2 bg-transparent border-0 focus-visible:ring-0 resize-none text-sm text-white placeholder:text-muted-foreground/50"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSubmit(e);
+                                        }
+                                    }}
+                                />
+                            </div>
 
                             <Button
                                 onClick={handleSubmit}
                                 disabled={!content.trim() || postMutation.isPending}
-                                className="h-[50px] w-[50px] rounded-xl bg-primary hover:bg-primary/90 text-black shadow-lg shadow-primary/20 flex-shrink-0"
+                                size="icon"
+                                className="h-10 w-10 rounded-xl bg-primary hover:bg-primary/90 text-black shadow-lg shadow-primary/20 shrink-0"
                             >
                                 {postMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                             </Button>
                         </div>
-                        <div className="flex justify-between items-center mt-3 px-2">
-                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-bold">
-                                Constructive Feedback Only
-                            </span>
-                            <span className={cn("text-[10px] font-mono", content.length > 450 ? "text-orange-400" : "text-muted-foreground/40")}>
-                                {content.length} / 500
-                            </span>
-                        </div>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/40 text-center mt-2 font-mono">
+                        Markdown supported • Shift+Enter for new line
                     </div>
                 </div>
-
-                {/* Welcome Dialog */}
-                <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
-                    <DialogContent className="bg-[#121214] border-white/10 text-white sm:max-w-md gap-0 p-0 overflow-hidden rounded-3xl">
-                        <div className="h-32 bg-gradient-to-br from-primary/20 to-purple-900/20 relative flex items-center justify-center">
-                            <DialogHeader className="relative z-10 w-full px-6">
-                                <div className="w-12 h-12 bg-black/20 backdrop-blur-md rounded-xl flex items-center justify-center mb-4 border border-white/10 mx-auto">
-                                    <Sparkles className="h-6 w-6 text-primary" />
-                                </div>
-                                <DialogTitle className="text-xl font-bold text-center">Welcome to the Wall</DialogTitle>
-                            </DialogHeader>
-                            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay" />
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <DialogDescription className="text-center text-muted-foreground text-sm">
-                                This is your space to shape the future of CodeStudio. Your feedback is public, visible, and directly influences our roadmap.
-                            </DialogDescription>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col items-center text-center gap-2">
-                                    <ThumbsUp className="h-5 w-5 text-emerald-400" />
-                                    <span className="text-xs font-bold text-white/80">Upvote</span>
-                                    <span className="text-[10px] text-muted-foreground/60 leading-tight">Support good ideas</span>
-                                </div>
-                                <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col items-center text-center gap-2">
-                                    <MessageSquare className="h-5 w-5 text-blue-400" />
-                                    <span className="text-xs font-bold text-white/80">Suggest</span>
-                                    <span className="text-[10px] text-muted-foreground/60 leading-tight">Share your vision</span>
-                                </div>
-                            </div>
-                        </div>
-                        <DialogFooter className="p-6 pt-0 sm:justify-center">
-                            <Button onClick={() => setShowWelcome(false)} className="w-full h-12 rounded-xl font-bold bg-white text-black hover:bg-white/90">
-                                Got it, let's build!
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
             </div>
+
+            {/* Welcome Dialog */}
+            <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+                <DialogContent className="bg-[#121214] border-white/10 text-white sm:max-w-md rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Welcome to Community Chat</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                            This is a live space to discuss features, bugs, and ideas with fellow developers.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="text-sm space-y-2 py-4">
+                        <p>• Be respectful and constructive.</p>
+                        <p>• Use categories to help us filter feedback.</p>
+                        <p>• Rate limited to 1 message every 30 seconds.</p>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={() => setShowWelcome(false)} className="w-full">
+                            Join Chat
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

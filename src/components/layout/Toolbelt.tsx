@@ -4,6 +4,7 @@ import {
     Cpu,
     Activity
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function Toolbelt() {
     // const { user: currentUser } = useAuth();
@@ -41,7 +42,7 @@ export function Toolbelt() {
                         <a href="/" className="block">
                             <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer">
                                 <TerminalIcon className="w-5 h-5 mx-auto mb-1 text-primary" />
-                                <span className="text-[10px] font-mono">Create Snippet</span>
+                                <Link to="/create" className="text-[10px] font-mono">Create Snippet</Link>
                             </div>
                         </a>
                         <a href="/arena" className="block">
