@@ -58,6 +58,7 @@
     "prettier": "^3.7.4",
     "prism-react-renderer": "^2.4.1",
     "pyodide": "^0.29.1",
+    "qrcode.react": "^4.2.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-helmet-async": "^2.0.5",

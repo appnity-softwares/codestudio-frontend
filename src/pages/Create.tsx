@@ -102,70 +102,16 @@ export default function Create() {
     };
 
     return (
-        <div className="container max-w-2xl mx-auto py-10 animate-in fade-in duration-500">
+        <div className="container max-w-6xl mx-auto py-10 animate-in fade-in duration-500">
             <h1 className="text-3xl font-headline font-bold mb-8">Create New Content</h1>
 
-            {/* Two-Column Layout for Identity and Code */}
+            {/* Two-Column Layout: Editor-First (Code on Left) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Left Col: Identity */}
-                <div className="lg:col-span-4 space-y-6">
-                    <Card className="border-border/50 bg-black/40 backdrop-blur-sm sticky top-24">
-                        <CardHeader>
-                            <CardTitle className="text-base font-semibold">1. Snippet Identity</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Title</Label>
-                                <Input placeholder="My Awesome Component" value={snippetTitle} onChange={e => setSnippetTitle(e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Description</Label>
-                                <Textarea className="min-h-[100px]" placeholder="What does this code do?" value={snippetDesc} onChange={e => setSnippetDesc(e.target.value)} />
-                                <p className="text-[10px] text-muted-foreground">Focus on a single idea. Clean snippets perform better.</p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Type</Label>
-                                    <Select value={snippetType} onValueChange={setSnippetType}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="ALGORITHM">Algorithm</SelectItem>
-                                            <SelectItem value="UTILITY">Utility</SelectItem>
-                                            <SelectItem value="EXAMPLE">Example</SelectItem>
-                                            <SelectItem value="VISUAL">Visual</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Difficulty</Label>
-                                    <Select value={snippetDifficulty} onValueChange={setSnippetDifficulty}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="EASY">Easy</SelectItem>
-                                            <SelectItem value="MEDIUM">Medium</SelectItem>
-                                            <SelectItem value="HARD">Hard</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Tags</Label>
-                                <Input placeholder="react, ui, hooks" value={snippetTags} onChange={e => setSnippetTags(e.target.value)} />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Right Col: Code */}
+                {/* Left Col: Code Editor (PRIMARY) */}
                 <div className="lg:col-span-8 space-y-6">
                     <Card className="border-border/50 bg-black/40 backdrop-blur-sm h-full flex flex-col">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-base font-semibold">2. Implementation</CardTitle>
+                            <CardTitle className="text-base font-semibold">1. Implementation</CardTitle>
                             <div className="w-[180px]">
                                 <Select value={snippetLang} onValueChange={setSnippetLang}>
                                     <SelectTrigger className="h-8 text-xs">
@@ -187,9 +133,9 @@ export default function Create() {
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4 flex-1 flex flex-col">
-                            <div className="flex-1 min-h-[400px]">
+                            <div className="flex-1 min-h-[500px]">
                                 <Textarea
-                                    className="font-mono text-xs h-full min-h-[400px] resize-none leading-relaxed bg-black/50 border-white/10"
+                                    className="font-mono text-xs h-full min-h-[500px] resize-none leading-relaxed bg-black/50 border-white/10"
                                     value={snippetCode}
                                     onChange={e => setSnippetCode(e.target.value)}
                                     spellCheck={false}
@@ -250,6 +196,60 @@ export default function Create() {
                                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     {!executionResult ? "Run to Publish" : "Post Snippet"}
                                 </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Right Col: Metadata (Collapsible) */}
+                <div className="lg:col-span-4 space-y-6">
+                    <Card className="border-border/50 bg-black/40 backdrop-blur-sm sticky top-24">
+                        <CardHeader>
+                            <CardTitle className="text-base font-semibold">2. Snippet Metadata</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Title</Label>
+                                <Input placeholder="My Awesome Component" value={snippetTitle} onChange={e => setSnippetTitle(e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Description</Label>
+                                <Textarea className="min-h-[80px]" placeholder="What does this code do?" value={snippetDesc} onChange={e => setSnippetDesc(e.target.value)} />
+                                <p className="text-[10px] text-muted-foreground">Focus on a single idea. Clean snippets perform better.</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Type</Label>
+                                    <Select value={snippetType} onValueChange={setSnippetType}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="ALGORITHM">Algorithm</SelectItem>
+                                            <SelectItem value="UTILITY">Utility</SelectItem>
+                                            <SelectItem value="EXAMPLE">Example</SelectItem>
+                                            <SelectItem value="VISUAL">Visual</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Difficulty</Label>
+                                    <Select value={snippetDifficulty} onValueChange={setSnippetDifficulty}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="EASY">Easy</SelectItem>
+                                            <SelectItem value="MEDIUM">Medium</SelectItem>
+                                            <SelectItem value="HARD">Hard</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Tags</Label>
+                                <Input placeholder="react, ui, hooks" value={snippetTags} onChange={e => setSnippetTags(e.target.value)} />
                             </div>
                         </CardContent>
                     </Card>

@@ -103,10 +103,17 @@ export default function Arena() {
                         {isLoading ? (
                             <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
                         ) : activeContests.length === 0 ? (
-                            <div className="text-center py-12 border rounded-xl bg-muted/10 border-dashed">
-                                <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-                                <h3 className="text-lg font-medium">No Active Contests</h3>
-                                <p className="text-muted-foreground">Check back later for upcoming events.</p>
+                            <div className="text-center py-12 border rounded-xl bg-muted/10 border-dashed px-6">
+                                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 mx-auto">
+                                    <Trophy className="h-7 w-7 text-primary/50" />
+                                </div>
+                                <h3 className="text-lg font-bold mb-2">No Active Contests</h3>
+                                <p className="text-sm text-muted-foreground mb-3 max-w-md mx-auto">
+                                    There are no live or upcoming contests at the moment.
+                                </p>
+                                <p className="text-xs text-muted-foreground/60 max-w-sm mx-auto">
+                                    <strong>What happens next?</strong> When contests are scheduled, they'll appear here with countdown timers, rules, and registration options.
+                                </p>
                             </div>
                         ) : (
                             <div className="space-y-4">

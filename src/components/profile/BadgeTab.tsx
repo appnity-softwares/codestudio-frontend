@@ -8,6 +8,8 @@ import {
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { usersAPI } from "@/lib/api";
+import { Link } from "react-router-dom";
+import { Progress } from "@/components/ui/progress";
 
 interface BadgeType {
     id: string;
@@ -51,12 +53,22 @@ export function BadgeTab({ username }: BadgeTabProps) {
 
     if (userBadges.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-white/5 rounded-xl bg-surface/30">
-                <Trophy className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                <h3 className="text-lg font-bold">No badges yet</h3>
-                <p className="text-muted-foreground max-w-sm mt-2">
-                    Complete challenges, publish snippets, and participate in contests to earn badges.
+            <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-white/5 rounded-xl bg-surface/30 px-6">
+                <div className="h-14 w-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center mb-4">
+                    <Trophy className="h-7 w-7 text-yellow-500/50" />
+                </div>
+                <h3 className="text-lg font-bold mb-2">No Badges Earned Yet</h3>
+                <p className="text-sm text-muted-foreground max-w-md mb-3">
+                    Badges recognize your achievements and contributions to the community.
                 </p>
+                <p className="text-xs text-muted-foreground/60 max-w-sm mb-4">
+                    <strong>What happens next?</strong> Complete challenges, publish snippets, and participate in contests to unlock badges. Each badge shows your progress toward earning it.
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center text-xs">
+                    <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20">First Snippet</span>
+                    <span className="px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">Contest Participant</span>
+                    <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Verified Developer</span>
+                </div>
             </div>
         )
     }
@@ -93,6 +105,17 @@ export function BadgeTab({ username }: BadgeTabProps) {
             )}
 
             {/* Locked (Optional to show all available?) - For MVP maybe hide or show a few */}
+
+            {/* How to earn badges link */}
+            <div className="pt-4 border-t border-border/50">
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Trophy className="h-4 w-4" />
+                    <span>Want to earn more badges?</span>
+                    <Link to="/help/badges" className="text-primary hover:underline font-medium">
+                        Learn how →
+                    </Link>
+                </div>
+            </div>
         </div>
     );
 }
@@ -109,18 +132,38 @@ function BadgeCard({ userBadge, status }: { userBadge: UserBadge; status: 'unloc
                             {/* Dynamic Icon Mapping would go here. Fallback to Trophy */}
                             {status === 'locked' ? <Lock className="h-5 w-5" /> : <Trophy className="h-6 w-6" />}
                         </div>
-                        <div>
+                        <div className="w-full">
                             <div className="text-sm font-bold leading-tight">{userBadge.badge.name}</div>
-                            {!isUnlocked && <div className="text-[10px] text-muted-foreground mt-1">Progress: {userBadge.progress} / {userBadge.badge.threshold}</div>}
+                            {!isUnlocked && (
+                                <div className="mt-2 space-y-1">
+                                    <Progress value={(userBadge.progress / userBadge.badge.threshold) * 100} className="h-1.5" />
+                                    <div className="text-[10px] text-muted-foreground">
+                                        {userBadge.progress} / {userBadge.badge.threshold}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </Card>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-xs bg-popover text-popover-foreground border-border">
-                    <div className="space-y-1">
+                <TooltipContent className="max-w-xs bg-popover text-popover-foreground border-border p-3">
+                    <div className="space-y-2">
                         <p className="font-bold text-sm">{userBadge.badge.name}</p>
                         <p className="text-xs text-muted-foreground/90">{userBadge.badge.description}</p>
-                        <div className="pt-2 border-t border-white/10 mt-2 flex justify-between items-center text-[10px] uppercase font-mono text-muted-foreground">
-                            <span>{status}</span>
+
+                        {/* How to earn */}
+                        <div className="pt-2 border-t border-white/10">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">How to earn:</p>
+                            <p className="text-xs text-foreground/80">
+                                {userBadge.badge.category === 'SKILL' && `Complete ${userBadge.badge.threshold} related activities`}
+                                {userBadge.badge.category === 'SYSTEM' && `Reach ${userBadge.badge.threshold} system milestones`}
+                                {userBadge.badge.category === 'TRUST' && `Maintain ${userBadge.badge.threshold} trust score`}
+                            </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-white/10 flex justify-between items-center text-[10px] uppercase font-mono text-muted-foreground">
+                            <span className={isUnlocked ? 'text-emerald-400' : 'text-yellow-500'}>
+                                {isUnlocked ? '✓ Unlocked' : `${Math.round((userBadge.progress / userBadge.badge.threshold) * 100)}% Complete`}
+                            </span>
                             {isUnlocked && <span>{new Date(userBadge.unlockedAt!).toLocaleDateString()}</span>}
                         </div>
                     </div>

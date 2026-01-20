@@ -1,128 +1,57 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-    Code, Users, Settings, Shield, Terminal, Trophy
-} from "lucide-react";
+// PublicProfile.tsx - Unified with Profile.tsx layout
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { usersAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Seo } from "@/components/Seo";
-import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { usersAPI, authAPI } from "@/lib/api";
-import { SnippetCard } from "@/components/SnippetCard";
-import { useAuth } from "@/context/AuthContext";
-import { format } from "date-fns";
-import { ProfileSettings } from "@/components/profile/ProfileSettings";
-import { useTheme } from "@/context/ThemeContext";
-import { BadgeTab } from "@/components/profile/BadgeTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Github, Instagram, Share2, Trophy, Terminal, Code, Shield, Copy } from "lucide-react";
+import { format } from "date-fns";
+import { QRCodeSVG } from "qrcode.react";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { SnippetCard } from "@/components/SnippetCard";
+import { BadgeTab } from "@/components/profile/BadgeTab";
+import { Seo } from "@/components/Seo";
 
-export default function Profile() {
+export default function PublicProfile() {
     const { username } = useParams<{ username: string }>();
-    const { user: currentUser, signOut, updateUser } = useAuth();
-    const { theme, setTheme } = useTheme();
+    const navigate = useNavigate();
     const { toast } = useToast();
 
-    // Settings State
-    const [isLoadingSettings, setIsLoadingSettings] = useState(false);
-    const [name, setName] = useState("");
-    const [editedUsername, setEditedUsername] = useState("");
-    const [bio, setBio] = useState("");
-    const [visibility, setVisibility] = useState("PUBLIC");
-    const [profileImage, setProfileImage] = useState("");
-    const [githubUrl, setGithubUrl] = useState("");
-    const [instagramUrl, setInstagramUrl] = useState("");
-
-    const queryClient = useQueryClient();
-
-    // 1. Fetch User
-    const { data: userResponse, isLoading: userLoading } = useQuery({
-        queryKey: ['user', username],
-        queryFn: () => {
-            if (username === 'me') {
-                return authAPI.me();
-            }
-            return usersAPI.getById(username!);
-        },
+    // Fetch Public Profile
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['public-profile', username],
+        queryFn: () => usersAPI.getPublicProfile(username!),
+        enabled: !!username,
         retry: false
     });
 
-    const profileUser = userResponse?.user ? { ...userResponse.user, isFollowing: userResponse.isFollowing } : null;
+    // Fetch Summary Data
+    const { data: summaryData } = useQuery({
+        queryKey: ['summary', username],
+        queryFn: () => usersAPI.getProfileSummary(username),
+        enabled: !!username,
+        retry: false,
+        staleTime: 5 * 60 * 1000,
+    });
 
-    // 2. Fetch Snippets
-    const userId = profileUser?.id;
-
+    // Fetch Snippets
     const { data: snippetsData } = useQuery({
-        queryKey: ['user-snippets', userId],
-        queryFn: () => usersAPI.getSnippets(userId),
-        enabled: !!userId, // strictly dependent on resolved user ID
+        queryKey: ['user-snippets', data?.user?.id],
+        queryFn: () => usersAPI.getSnippets(data?.user?.id),
+        enabled: !!data?.user?.id,
         retry: false,
         staleTime: 5 * 60 * 1000
     });
+
     const snippets = snippetsData?.snippets || [];
-
-    // 3. Settings Handler
-    const handleSaveSettings = async () => {
-        setIsLoadingSettings(true);
-        try {
-            const response = await usersAPI.update({
-                name,
-                username: editedUsername,
-                bio,
-                visibility,
-                image: profileImage,
-                githubUrl,
-                instagramUrl
-            });
-            updateUser(response.user);
-            toast({ title: "Configuration synced successfully" });
-            queryClient.invalidateQueries({ queryKey: ['user', username] });
-        } catch (error) {
-            toast({ title: "Sync failed", variant: "destructive" });
-        } finally {
-            setIsLoadingSettings(false);
-        }
-    };
-
-    // 4. Initialize Settings State
-    useEffect(() => {
-        if (currentUser && currentUser.id === profileUser?.id) {
-            setName(currentUser.name || "");
-            setEditedUsername(currentUser.username || "");
-            setBio(currentUser.bio || "");
-            setVisibility(currentUser.visibility || "PUBLIC");
-        }
-    }, [currentUser, profileUser]);
-
-    // Sync image and social links
-    useEffect(() => {
-        if (profileUser) {
-            setProfileImage(profileUser.image || "");
-            setGithubUrl(profileUser.githubUrl || "");
-            setInstagramUrl(profileUser.instagramUrl || "");
-        }
-    }, [profileUser]);
-
-    // 4. Fetch Summary (MVP)
-    const { data: summaryData } = useQuery({
-        queryKey: ['summary', username],
-        queryFn: () => usersAPI.getProfileSummary(username === 'me' ? undefined : username),
-        retry: false,
-        staleTime: 5 * 60 * 1000,
-        enabled: !!username && (username !== 'me' || !!currentUser) // Don't fetch 'me' if logged out
-    });
-
-    // MVP Defaults (0 if missing)
     const snippetCount = summaryData?.snippets?.total || 0;
-    const langStats = summaryData?.snippets?.byLanguage || { typescript: 0, python: 0, go: 0 };
     const contestCount = summaryData?.arena?.contestsJoined || 0;
-
-    // Calculate percentages for the bar
+    const langStats = summaryData?.snippets?.byLanguage || { typescript: 0, python: 0, go: 0 };
     const totalSpecific = (langStats.typescript || 0) + (langStats.python || 0) + (langStats.go || 0);
 
-    // Initial Loading State
-    if (userLoading && !profileUser) {
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
                 <div className="h-4 w-4 rounded-sm bg-primary animate-ping" />
@@ -130,107 +59,133 @@ export default function Profile() {
         );
     }
 
-    // User Not Found State
-    if (!profileUser) {
+    if (error || !data) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-                <Users className="h-12 w-12 text-muted-foreground/30" />
+                <Shield className="h-12 w-12 text-muted-foreground/30" />
                 <h3 className="text-xl font-bold font-mono">USER_NOT_FOUND</h3>
-                <Button onClick={() => window.history.back()} variant="outline">RETURN_</Button>
+                <p className="text-muted-foreground">This user's profile is private or does not exist.</p>
+                <Button onClick={() => navigate('/')} variant="outline">Go Home</Button>
             </div>
         );
     }
 
+    const user = data.user;
+    const profileUrl = window.location.href;
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(profileUrl);
+        toast({ title: "Link copied", description: "Profile URL copied to clipboard" });
+    };
+
     return (
         <div className="space-y-8 max-w-5xl mx-auto p-6 pb-20 fade-in">
-            {profileUser && (
+            {user && (
                 <Seo
-                    title={`${profileUser.name || profileUser.username} (@${profileUser.username}) | CodeStudio`}
-                    description={profileUser.bio || `Check out ${profileUser.name}'s developer profile on CodeStudio.`}
+                    title={`${user.name || user.username} (@${user.username}) | CodeStudio`}
+                    description={user.bio || `Check out ${user.name}'s developer profile on CodeStudio.`}
                     type="profile"
-                    image={profileUser.image}
+                    image={user.image}
                     url={window.location.href}
-                    schema={JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "Person",
-                        "name": profileUser.name || profileUser.username,
-                        "alternateName": profileUser.username,
-                        "description": profileUser.bio,
-                        "image": profileUser.image,
-                        "url": window.location.href,
-                        "sameAs": [
-                            profileUser.githubUrl,
-                            profileUser.instagramUrl
-                        ].filter(Boolean)
-                    })}
                 />
             )}
 
-            {profileUser && (
-                <BreadcrumbSchema items={[
-                    { name: 'Home', item: window.location.origin },
-                    { name: 'Developers', item: `${window.location.origin}/developers` }, // Or similar listing
-                    { name: profileUser.username, item: window.location.href }
-                ]} />
-            )}
-
-            {/* 1. Identity Header */}
+            {/* 1. Identity Header - Same as Profile.tsx */}
             <div className="flex flex-col md:flex-row gap-6 items-start md:items-center bg-surface border border-border p-6 rounded-2xl">
                 <Avatar className="h-24 w-24 border-4 border-canvas shadow-lg">
-                    <AvatarImage src={profileUser.image} className="object-cover" />
+                    <AvatarImage src={user.image} className="object-cover" />
                     <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                        {profileUser.username[0].toUpperCase()}
+                        {user.username?.[0]?.toUpperCase()}
                     </AvatarFallback>
                 </Avatar>
 
                 <div className="flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-3">
                         <h1 className="text-3xl font-bold font-headline text-foreground">
-                            {profileUser.name || profileUser.username}
+                            {user.name || user.username}
                         </h1>
                         <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase font-bold tracking-wider border border-primary/20">
-                            {profileUser.role || "Developer"}
+                            {user.role || "Developer"}
                         </span>
+                        {/* Trust Badge */}
+                        {user.trustScore >= 90 && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] uppercase font-bold tracking-wider border border-emerald-500/20">
+                                High Trust
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground uppercase tracking-wider">
                         <span className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            @{profileUser.username}
+                            @{user.username}
                         </span>
                         <span>•</span>
-                        <span>Joined {format(new Date(profileUser.createdAt), 'MMM yyyy')}</span>
+                        <span>Joined {format(new Date(user.createdAt), 'MMM yyyy')}</span>
                     </div>
 
-                    {profileUser.bio && (
+                    {user.bio && (
                         <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-                            {profileUser.bio}
+                            {user.bio}
                         </p>
                     )}
+
+                    {/* Social Links */}
+                    <div className="flex gap-2 pt-2">
+                        {user.githubUrl && (
+                            <Button size="sm" variant="outline" className="gap-2" onClick={() => window.open(user.githubUrl, '_blank')}>
+                                <Github className="h-3.5 w-3.5" />
+                            </Button>
+                        )}
+                        {user.instagramUrl && (
+                            <Button size="sm" variant="outline" className="gap-2" onClick={() => window.open(user.instagramUrl, '_blank')}>
+                                <Instagram className="h-3.5 w-3.5" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
-                {currentUser?.id === profileUser.id && (
-                    <Link to="/settings">
+                {/* Share Button */}
+                <Dialog>
+                    <DialogTrigger asChild>
                         <Button variant="outline" size="sm" className="gap-2 font-mono text-xs uppercase tracking-wider">
-                            <Settings className="h-3.5 w-3.5" /> Configure
+                            <Share2 className="h-3.5 w-3.5" /> Share
                         </Button>
-                    </Link>
-                )}
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Share Profile</DialogTitle>
+                            <DialogDescription>
+                                Scan to visit {user.name}'s profile directly.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex items-center justify-center py-6 bg-white rounded-lg border">
+                            <QRCodeSVG value={profileUrl} size={200} />
+                        </div>
+                        <Button type="button" variant="secondary" onClick={copyToClipboard} className="w-full">
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy Link
+                        </Button>
+                    </DialogContent>
+                </Dialog>
             </div>
 
-            {/* TABS NAVIGATION */}
+            {/* TABS NAVIGATION - Same structure as Profile.tsx */}
             <Tabs defaultValue="overview" className="space-y-6">
                 <TabsList className="bg-surface border border-border">
                     <TabsTrigger value="overview" className="gap-2">
                         <Terminal className="h-4 w-4" /> Overview
                     </TabsTrigger>
+                    <TabsTrigger value="snippets" className="gap-2">
+                        <Code className="h-4 w-4" /> Snippets
+                    </TabsTrigger>
                     <TabsTrigger value="badges" className="gap-2">
-                        <Trophy className="h-4 w-4" /> Badges & Progress
+                        <Trophy className="h-4 w-4" /> Badges
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    {/* 2. Stats Grid */}
+                    {/* Stats Grid - Same as Profile.tsx */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Snippet Summary */}
                         <div className="bg-surface border border-border resize-none p-6 rounded-xl space-y-4">
@@ -281,7 +236,7 @@ export default function Profile() {
                         </div>
                     </div>
 
-                    {/* 3. Work Showcase */}
+                    {/* Work Showcase */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between border-b border-border pb-4">
                             <h2 className="text-lg font-bold font-headline flex items-center gap-2">
@@ -302,53 +257,45 @@ export default function Profile() {
                                     <div className="h-12 w-12 rounded-full bg-muted/20 flex items-center justify-center mb-4">
                                         <Terminal className="h-6 w-6 text-muted-foreground" />
                                     </div>
-                                    <h4 className="text-base font-bold text-foreground mb-2">No Public Snippets Yet</h4>
+                                    <h4 className="text-base font-bold text-foreground mb-2">No Public Snippets</h4>
                                     <p className="text-sm text-muted-foreground mb-3 max-w-md">
-                                        {currentUser?.id === profileUser.id
-                                            ? "You haven't published any public snippets. Share your code with the community!"
-                                            : "This developer hasn't shared any public snippets yet."
-                                        }
+                                        This developer hasn't shared any public snippets yet.
                                     </p>
-                                    <p className="text-xs text-muted-foreground/60 mb-4 max-w-sm">
-                                        <strong>What happens next?</strong> Published snippets appear here with their output previews, engagement metrics, and language tags.
+                                    <p className="text-xs text-muted-foreground/60 max-w-sm">
+                                        <strong>What happens next?</strong> When they publish snippets, you'll see their code previews, outputs, and engagement stats here.
                                     </p>
-                                    {currentUser?.id === profileUser.id && (
-                                        <Link to="/create">
-                                            <Button variant="secondary" size="sm" className="gap-2">
-                                                <Terminal className="h-3.5 w-3.5" />
-                                                Create Your First Snippet
-                                            </Button>
-                                        </Link>
-                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
                 </TabsContent>
 
+                <TabsContent value="snippets" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {snippets.map((snippet: any) => (
+                            <SnippetCard key={snippet.id} snippet={snippet} />
+                        ))}
+                        {snippets.length === 0 && (
+                            <div className="col-span-full py-12 border border-dashed border-white/10 rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center px-6">
+                                <div className="h-12 w-12 rounded-full bg-muted/20 flex items-center justify-center mb-4">
+                                    <Terminal className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                                <h4 className="text-base font-bold text-foreground mb-2">No Snippets Yet</h4>
+                                <p className="text-sm text-muted-foreground mb-3 max-w-md">
+                                    This developer hasn't published any snippets.
+                                </p>
+                                <p className="text-xs text-muted-foreground/60 max-w-sm">
+                                    <strong>What happens next?</strong> Snippets they create will appear here as interactive code cards.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </TabsContent>
+
                 <TabsContent value="badges" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <BadgeTab username={profileUser.username} />
+                    <BadgeTab username={user.username} />
                 </TabsContent>
             </Tabs>
-
-            {
-                currentUser?.id === profileUser.id && (
-                    <div className="hidden">
-                        {/* Hidden Components for future features or settings only accessible via route */}
-                        <ProfileSettings
-                            name={name} setName={setName}
-                            username={editedUsername} setUsername={setEditedUsername}
-                            bio={bio} setBio={setBio}
-                            visibility={visibility} setVisibility={setVisibility}
-                            onSave={handleSaveSettings} isLoading={isLoadingSettings}
-                            signOut={signOut!} theme={theme} setTheme={setTheme}
-                            currentImage={profileImage} onImageUpdate={setProfileImage}
-                            githubUrl={githubUrl} setGithubUrl={setGithubUrl}
-                            instagramUrl={instagramUrl} setInstagramUrl={setInstagramUrl}
-                        />
-                    </div>
-                )
-            }
-        </div >
+        </div>
     );
 }

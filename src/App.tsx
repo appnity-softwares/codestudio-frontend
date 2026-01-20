@@ -13,10 +13,13 @@ import EventDetail from "./pages/arena/EventDetail"
 import ContestEnvironment from "./pages/arena/Environment"
 import OfficialContest from "./pages/arena/OfficialContest"
 import ContestLeaderboard from "./pages/arena/Leaderboard"
+import FeedbackWall from "./pages/FeedbackWall"
 
 import Convert from "./pages/Convert"
 import Dashboard from "./pages/Dashboard"
 import Profile from "./pages/Profile"
+import PublicProfile from "./pages/PublicProfile"
+import Community from "./pages/Community"
 import { ContestHistory } from "./pages/profile/ContestHistory"
 import Settings from "./pages/Settings"
 import SignIn from '@/pages/auth/SignIn';
@@ -190,6 +193,11 @@ function AppRoutes() {
                 <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="changelog" element={<Changelog />} />
+
+                {/* Community & Public Profile */}
+                <Route path="community" element={<Community />} />
+                <Route path="feedback" element={<FeedbackWall />} />
+                <Route path="u/:username" element={<PublicProfile />} />
 
                 <Route path="snippets/:id" element={<SnippetDetail />} />
                 <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />

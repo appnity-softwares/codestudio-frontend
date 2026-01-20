@@ -277,8 +277,34 @@ export const usersAPI = {
             body: JSON.stringify(data),
         }),
     getBadges: (username: string) => apiRequest<{ badges: any[] }>(`/users/${username}/badges`),
+
+    // New Public/Community Methods
+    getPublicProfile: (username: string) => apiRequest<{ user: any }>(`/public/users/${username}`),
 };
 
+export const communityAPI = {
+    getUsers: (params: { search?: string; sort?: string; page?: number }) => {
+        const query = new URLSearchParams(params as any).toString();
+        return apiRequest<{ users: any[]; page: number }>(`/community/users?${query}`);
+    }
+};
+
+// Open Feedback Message API
+export const feedbackAPI = {
+    getAll: (sort: string = 'latest') =>
+        apiRequest<{ data: any[] }>(`/feedback?sort=${sort}`),
+
+    create: (data: { content: string; category: string }) =>
+        apiRequest<{ id: string }>('/feedback', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    react: (id: string) =>
+        apiRequest<{ status: string }>(`/feedback/${id}/react`, {
+            method: 'POST'
+        }),
+};
 
 // Bugs API (Stubbed)
 export const bugsAPI = {

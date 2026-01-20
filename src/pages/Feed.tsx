@@ -6,7 +6,6 @@ import { snippetsAPI, feedAPI } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Flame, Clock, Star } from "lucide-react";
-import { SystemSignals } from "@/components/SystemSignals";
 import { cn } from "@/lib/utils";
 
 type FeedBucket = 'trending' | 'new' | 'editor';
@@ -48,10 +47,10 @@ export default function Feed() {
     ];
 
     return (
-        <div className="min-h-full bg-canvas container max-w-[1600px] mx-auto py-8 px-4">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Main Feed Column - Widened */}
-                <div className="lg:col-span-9 space-y-6">
+        <div className="min-h-full bg-canvas container max-w-[1800px] mx-auto py-8 px-4">
+            <div className="space-y-6">
+                {/* Main Feed Column - Full Width */}
+                <div className="space-y-6">
                     {/* v1.2: Feed Bucket Tabs */}
                     <div className="flex items-center gap-2 p-1 bg-surface/50 rounded-xl border border-border/50 w-fit">
                         {tabs.map((tab) => (
@@ -128,30 +127,24 @@ export default function Feed() {
                     {/* Feed Content */}
                     <div className="pb-20">
                         {snippets.length === 0 && !loading ? (
-                            <div className="text-center py-20 opacity-50">
-                                <p className="text-lg">Nothing here yet — be the first to share.</p>
+                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                                    <Flame className="h-8 w-8 text-primary/50" />
+                                </div>
+                                <h3 className="text-xl font-bold text-foreground mb-2">No snippets yet</h3>
+                                <p className="text-sm text-muted-foreground max-w-md mb-4">
+                                    The feed is empty right now. Be the first to share a code snippet!
+                                </p>
+                                <p className="text-xs text-muted-foreground/60 max-w-sm mb-6">
+                                    <strong>What happens next?</strong> When developers publish snippets, they'll appear here sorted by trending, new, or editor picks.
+                                </p>
+                                <a href="/create" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                                    Create your first snippet →
+                                </a>
                             </div>
                         ) : (
                             <StreamFeed snippets={snippets} loading={loading} />
                         )}
-                    </div>
-                </div>
-
-                {/* Right Sidebar - System Density (Reduced Width) */}
-                {/* Collapsed by default unless interacted - Visual simplified here */}
-                <div className="hidden lg:block lg:col-span-3">
-                    <div className="sticky top-24 space-y-4">
-                        <div className="p-4 rounded-xl bg-card border border-white/5">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">System Status</h3>
-                            <div className="flex items-center gap-2 text-sm text-emerald-400">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                </span>
-                                All Systems Operational
-                            </div>
-                        </div>
-                        <SystemSignals snippets={snippets} />
                     </div>
                 </div>
             </div>
