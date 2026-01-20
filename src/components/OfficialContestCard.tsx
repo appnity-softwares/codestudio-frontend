@@ -150,8 +150,13 @@ export function OfficialContestCard({ event }: OfficialContestCardProps) {
                             <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     ) : (
-                        <Button variant="outline" className="w-full" onClick={() => navigate(`/arena/official/${event.id}`)}>
-                            View Results
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            disabled={!isRegistered}
+                            onClick={() => isRegistered && navigate(`/arena/official/${event.id}`)}
+                        >
+                            {isRegistered ? "View Results" : "Ended"}
                         </Button>
                     )}
 
