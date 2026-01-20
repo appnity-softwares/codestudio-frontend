@@ -219,8 +219,13 @@ export const practiceAPI = {
         apiRequest<{ problem: any; isSolved: boolean }>(`/practice/problems/${id}`),
     getDailyProblem: () =>
         apiRequest<{ problem: any }>('/practice/daily'),
+    run: (data: { problemId: string; code: string; language: string }) =>
+        apiRequest<{ status: string; verdict: string; output: string; stderr: string }>('/practice/run', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
     submit: (data: { problemId: string; code: string; language: string }) =>
-        apiRequest<{ submission: any; output: string; stderr: string }>('/practice/submit', {
+        apiRequest<{ submission: any; output: string; stderr: string; newBadges?: any[] }>('/practice/submit', {
             method: 'POST',
             body: JSON.stringify(data),
         }),

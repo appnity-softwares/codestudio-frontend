@@ -3,7 +3,22 @@ import React, { createContext, useContext, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
+import { API_URL } from '@/lib/api';
+
+const getSocketUrl = () => {
+    if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
+
+    // Fallback: Derive from API_URL
+    // If API_URL is "https://api.appnity.cloud/api", Socket URL should be "https://api.appnity.cloud"
+    try {
+        const url = new URL(API_URL);
+        return url.origin;
+    } catch (e) {
+        return 'http://localhost:8080';
+    }
+};
+
+const SOCKET_URL = getSocketUrl();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SocketType = any;

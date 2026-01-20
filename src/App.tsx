@@ -43,7 +43,8 @@ import AdminSubmissions from "./pages/admin/AdminSubmissions"
 import AdminSystem from "./pages/admin/AdminSystem"
 import AdminChangelog from "./pages/admin/AdminChangelog"
 import Changelog from "./pages/Changelog"
-import Practice from "./pages/Practice" // v1.2: Practice Arena
+import PracticeList from "./pages/PracticeList"
+import PracticeWorkspace from "./pages/PracticeWorkspace"
 import NotFound from "./pages/NotFound"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -160,7 +161,11 @@ function AppRoutes() {
                 {/* v1.2: Practice Arena (casual, no auth required to view) */}
                 <Route
                     path="practice"
-                    element={<Practice />}
+                    element={<PracticeList />}
+                />
+                <Route
+                    path="practice/:id"
+                    element={<PracticeWorkspace />}
                 />
                 <Route
                     path="feed"
