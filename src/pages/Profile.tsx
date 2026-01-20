@@ -17,12 +17,16 @@ import { useTheme } from "@/context/ThemeContext";
 import { BadgeTab } from "@/components/profile/BadgeTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/useMediaQuery";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function Profile() {
     const { username } = useParams<{ username: string }>();
     const { user: currentUser, signOut, updateUser } = useAuth();
     const { theme, setTheme } = useTheme();
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     // Settings State
     const [isLoadingSettings, setIsLoadingSettings] = useState(false);
@@ -56,7 +60,7 @@ export default function Profile() {
     const { data: snippetsData } = useQuery({
         queryKey: ['user-snippets', userId],
         queryFn: () => usersAPI.getSnippets(userId),
-        enabled: !!userId, // strictly dependent on resolved user ID
+        enabled: !!userId,
         retry: false,
         staleTime: 5 * 60 * 1000
     });
@@ -110,7 +114,7 @@ export default function Profile() {
         queryFn: () => usersAPI.getProfileSummary(username === 'me' ? undefined : username),
         retry: false,
         staleTime: 5 * 60 * 1000,
-        enabled: !!username && (username !== 'me' || !!currentUser) // Don't fetch 'me' if logged out
+        enabled: !!username && (username !== 'me' || !!currentUser)
     });
 
     // MVP Defaults (0 if missing)
@@ -124,8 +128,43 @@ export default function Profile() {
     // Initial Loading State
     if (userLoading && !profileUser) {
         return (
-            <div className="flex items-center justify-center min-h-[50vh]">
-                <div className="h-4 w-4 rounded-sm bg-primary animate-ping" />
+            <div className={cn(
+                "space-y-8 mx-auto pb-20 fade-in",
+                isMobile ? "px-4 py-6" : "max-w-5xl p-6"
+            )}>
+                {/* Header Skeleton */}
+                <div className={cn(
+                    "flex gap-6",
+                    isMobile ? "flex-col items-center text-center space-y-4" : "flex-row items-center border border-border p-6 rounded-2xl bg-surface"
+                )}>
+                    <Skeleton className={cn("rounded-full", isMobile ? "h-24 w-24" : "h-24 w-24 border-4 border-canvas")} />
+                    <div className={cn("space-y-3", isMobile ? "items-center flex flex-col w-full" : "flex-1")}>
+                        <div className="space-y-2">
+                            <Skeleton className="h-8 w-48" />
+                            <Skeleton className="h-4 w-32" />
+                        </div>
+                        <Skeleton className="h-4 w-full max-w-md" />
+                    </div>
+                </div>
+
+                {/* Stats Skeleton */}
+                <div className={cn(
+                    "grid gap-4",
+                    isMobile ? "grid-cols-3 bg-surface border border-border rounded-xl p-4" : "grid-cols-2"
+                )}>
+                    {isMobile ? (
+                        <>
+                            <div className="space-y-1 flex flex-col items-center"><Skeleton className="h-6 w-8" /><Skeleton className="h-2 w-12" /></div>
+                            <div className="space-y-1 flex flex-col items-center border-x border-border"><Skeleton className="h-6 w-8" /><Skeleton className="h-2 w-12" /></div>
+                            <div className="space-y-1 flex flex-col items-center"><Skeleton className="h-6 w-8" /><Skeleton className="h-2 w-12" /></div>
+                        </>
+                    ) : (
+                        <>
+                            <Skeleton className="h-48 w-full rounded-xl" />
+                            <Skeleton className="h-48 w-full rounded-xl" />
+                        </>
+                    )}
+                </div>
             </div>
         );
     }
@@ -141,6 +180,118 @@ export default function Profile() {
         );
     }
 
+    // ============ MOBILE LAYOUT (Instagram-style) ============
+    if (isMobile) {
+        return (
+            <div className="space-y-6 px-4 py-6 pb-20 fade-in">
+                {/* SEO */}
+                {profileUser && (
+                    <Seo
+                        title={`${profileUser.name || profileUser.username} (@${profileUser.username}) | CodeStudio`}
+                        description={profileUser.bio || `Check out ${profileUser.name}'s developer profile on CodeStudio.`}
+                        type="profile"
+                        image={profileUser.image}
+                        url={window.location.href}
+                    />
+                )}
+
+                {/* Instagram-style Header - Centered Avatar */}
+                <div className="text-center space-y-4">
+                    <Avatar className="h-24 w-24 mx-auto border-4 border-primary/20 shadow-lg">
+                        <AvatarImage src={profileUser.image} className="object-cover" />
+                        <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                            {profileUser.username[0].toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+
+                    <div className="space-y-1">
+                        <h1 className="text-xl font-bold font-headline text-foreground">
+                            {profileUser.name || profileUser.username}
+                        </h1>
+                        <p className="text-sm text-muted-foreground">@{profileUser.username}</p>
+                        <span className="inline-block px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase font-bold tracking-wider border border-primary/20">
+                            {profileUser.role || "Developer"}
+                        </span>
+                    </div>
+
+                    {profileUser.bio && (
+                        <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                            {profileUser.bio}
+                        </p>
+                    )}
+
+                    {/* Settings Button (Own Profile) */}
+                    {currentUser?.id === profileUser.id && (
+                        <Link to="/settings">
+                            <Button variant="outline" size="sm" className="gap-2 touch-target">
+                                <Settings className="h-4 w-4" /> Edit Profile
+                            </Button>
+                        </Link>
+                    )}
+                </div>
+
+                {/* Stats Row (Instagram-style) */}
+                <div className="grid grid-cols-3 gap-2 bg-surface border border-border rounded-xl p-4">
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-foreground">{snippetCount}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Snippets</div>
+                    </div>
+                    <div className="text-center border-x border-border">
+                        <div className="text-2xl font-bold text-foreground">{contestCount}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Contests</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-foreground">0</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Badges</div>
+                    </div>
+                </div>
+
+                {/* Tabs */}
+                <Tabs defaultValue="snippets" className="space-y-4">
+                    <TabsList className="w-full grid grid-cols-2 bg-surface border border-border">
+                        <TabsTrigger value="snippets" className="gap-2 touch-target">
+                            <Code className="h-4 w-4" /> Snippets
+                        </TabsTrigger>
+                        <TabsTrigger value="badges" className="gap-2 touch-target">
+                            <Trophy className="h-4 w-4" /> Badges
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="snippets" className="space-y-4">
+                        {snippets.length > 0 ? (
+                            <div className="space-y-4">
+                                {snippets.slice(0, 6).map((snippet: any) => (
+                                    <SnippetCard key={snippet.id} snippet={snippet} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="py-12 border border-dashed border-white/10 rounded-xl bg-surface/30 text-center px-6">
+                                <Terminal className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                                <h4 className="text-base font-bold text-foreground mb-2">No Snippets Yet</h4>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    {currentUser?.id === profileUser.id
+                                        ? "Create your first snippet!"
+                                        : "This developer hasn't shared any snippets yet."
+                                    }
+                                </p>
+                                {currentUser?.id === profileUser.id && (
+                                    <Link to="/create">
+                                        <Button size="sm" className="touch-target">Create Snippet</Button>
+                                    </Link>
+                                )}
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="badges">
+                        <BadgeTab username={profileUser.username} />
+                    </TabsContent>
+                </Tabs>
+            </div>
+        );
+    }
+
+    // ============ DESKTOP LAYOUT ============
     return (
         <div className="space-y-8 max-w-5xl mx-auto p-6 pb-20 fade-in">
             {profileUser && (
@@ -169,7 +320,7 @@ export default function Profile() {
             {profileUser && (
                 <BreadcrumbSchema items={[
                     { name: 'Home', item: window.location.origin },
-                    { name: 'Developers', item: `${window.location.origin}/developers` }, // Or similar listing
+                    { name: 'Developers', item: `${window.location.origin}/developers` },
                     { name: profileUser.username, item: window.location.href }
                 ]} />
             )}
@@ -349,6 +500,7 @@ export default function Profile() {
                     </div>
                 )
             }
-        </div >
+        </div>
     );
 }
+

@@ -309,6 +309,11 @@ export const feedbackAPI = {
         apiRequest<{ status: string }>(`/feedback/${id}/react`, {
             method: 'POST'
         }),
+
+    disagree: (id: string) =>
+        apiRequest<{ status: string }>(`/feedback/${id}/disagree`, {
+            method: 'POST'
+        }),
 };
 
 // Bugs API (Stubbed)

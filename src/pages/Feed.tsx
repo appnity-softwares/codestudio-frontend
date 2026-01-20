@@ -8,9 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Flame, Clock, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { useIsMobile } from "@/hooks/useMediaQuery";
+
 type FeedBucket = 'trending' | 'new' | 'editor';
 
 export default function Feed() {
+    const isMobile = useIsMobile();
     const [bucket, setBucket] = useState<FeedBucket>('trending');
     const [search, setSearch] = useState("");
     const [language, setLanguage] = useState("all");
@@ -47,7 +50,10 @@ export default function Feed() {
     ];
 
     return (
-        <div className="min-h-full bg-canvas container max-w-[1800px] mx-auto py-8 px-4">
+        <div className={cn(
+            "min-h-full bg-canvas container max-w-[1800px] mx-auto",
+            isMobile ? "py-4 px-0" : "py-8 px-4"
+        )}>
             <div className="space-y-6">
                 {/* Main Feed Column - Full Width */}
                 <div className="space-y-6">
@@ -71,7 +77,10 @@ export default function Feed() {
                     </div>
 
                     {/* Filter Bar */}
-                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-surface p-4 rounded-xl border border-border shadow-sm">
+                    <div className={cn(
+                        "flex flex-col gap-4 bg-surface rounded-xl border border-border shadow-sm",
+                        isMobile ? "p-3 mx-4" : "p-4 md:flex-row items-center justify-between"
+                    )}>
                         <div className="relative w-full md:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input

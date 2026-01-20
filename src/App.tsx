@@ -46,6 +46,7 @@ import Changelog from "./pages/Changelog"
 import PracticeList from "./pages/PracticeList"
 import PracticeWorkspace from "./pages/PracticeWorkspace"
 import NotFound from "./pages/NotFound"
+import { DesktopOnlyGuard } from "./components/DesktopOnlyGuard"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthError } from "./lib/api";
@@ -138,7 +139,9 @@ function AppRoutes() {
                     path="arena/env/:id"
                     element={
                         <ProtectedRoute>
-                            <ContestEnvironment />
+                            <DesktopOnlyGuard featureName="Contest Environment">
+                                <ContestEnvironment />
+                            </DesktopOnlyGuard>
                         </ProtectedRoute>
                     }
                 />
@@ -154,7 +157,9 @@ function AppRoutes() {
                     path="contest/:id/*"
                     element={
                         <ProtectedRoute>
-                            <ContestEnvironment />
+                            <DesktopOnlyGuard featureName="Live Contest">
+                                <ContestEnvironment />
+                            </DesktopOnlyGuard>
                         </ProtectedRoute>
                     }
                 />
@@ -165,7 +170,11 @@ function AppRoutes() {
                 />
                 <Route
                     path="practice/:id"
-                    element={<PracticeWorkspace />}
+                    element={
+                        <DesktopOnlyGuard featureName="Practice Arena">
+                            <PracticeWorkspace />
+                        </DesktopOnlyGuard>
+                    }
                 />
                 <Route
                     path="feed"

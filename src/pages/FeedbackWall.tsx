@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Send, ThumbsUp, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown } from "lucide-react";
+import { Send, ThumbsUp, ThumbsDown, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown, Info, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { feedbackAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -10,14 +10,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 
 interface FeedbackMessage {
     id: string;
+    userId: string;
     content: string;
     category: "BUG" | "UX" | "FEATURE" | "PERFORMANCE" | "OTHER";
     upvotes: number;
+    downvotes: number;
     isAck: boolean;
     createdAt: string;
     user: {
@@ -25,35 +30,58 @@ interface FeedbackMessage {
         image: string;
     };
     hasReacted: boolean;
+    hasDisagreed: boolean;
+    isOptimistic?: boolean;
 }
 
-const CATEGORY_ICONS = {
-    BUG: <Bug className="h-3 w-3" />,
-    UX: <Layout className="h-3 w-3" />,
-    FEATURE: <Sparkles className="h-3 w-3" />,
-    PERFORMANCE: <Zap className="h-3 w-3" />,
-    OTHER: <MessageCircleCode className="h-3 w-3" />
+const CATEGORY_CONFIG = {
+    BUG: {
+        icon: Bug,
+        label: "Bug Report",
+        color: "text-red-400/80 bg-red-500/10 border-red-500/20",
+        tooltip: "Something is broken or not working as expected"
+    },
+    UX: {
+        icon: Layout,
+        label: "UX Issue",
+        color: "text-pink-400/80 bg-pink-500/10 border-pink-500/20",
+        tooltip: "Usability, design, or experience feedback"
+    },
+    FEATURE: {
+        icon: Sparkles,
+        label: "Feature Request",
+        color: "text-emerald-400/80 bg-emerald-500/10 border-emerald-500/20",
+        tooltip: "New functionality or improvement request"
+    },
+    PERFORMANCE: {
+        icon: Zap,
+        label: "Performance",
+        color: "text-amber-400/80 bg-amber-500/10 border-amber-500/20",
+        tooltip: "Speed, latency, or optimization issues"
+    },
+    OTHER: {
+        icon: MessageCircleCode,
+        label: "General",
+        color: "text-blue-400/80 bg-blue-500/10 border-blue-500/20",
+        tooltip: "General feedback or suggestions"
+    }
 };
 
-const CATEGORY_COLORS = {
-    BUG: "text-red-400 border-red-500/30 bg-red-500/10",
-    UX: "text-pink-400 border-pink-500/30 bg-pink-500/10",
-    FEATURE: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
-    PERFORMANCE: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-    OTHER: "text-blue-400 border-blue-500/30 bg-blue-500/10"
-};
+const MAX_CHARS = 500;
 
 export default function FeedbackWall() {
     const { toast } = useToast();
+    const { user } = useAuth();
     const queryClient = useQueryClient();
     const [category, setCategory] = useState<string>("FEATURE");
     const [content, setContent] = useState("");
     const [showWelcome, setShowWelcome] = useState(false);
+    const [showInfoModal, setShowInfoModal] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+    const isMobile = useIsMobile();
 
-    // Initial Welcome Check
     useEffect(() => {
         const hasVisited = localStorage.getItem("hasVisitedFeedbackWall");
         if (!hasVisited) {
@@ -62,18 +90,15 @@ export default function FeedbackWall() {
         }
     }, []);
 
-    // Fetch Feedback (Polled frequently for chat feel)
     const { data: messages = [], isLoading } = useQuery({
         queryKey: ['feedback', 'latest'],
         queryFn: async () => {
             const res = await feedbackAPI.getAll("latest");
-            // Reverse to show oldest at top, newest at bottom (Chat style)
             return (res.data as FeedbackMessage[]).reverse();
         },
         refetchInterval: 3000,
     });
 
-    // Auto-scroll effect
     useEffect(() => {
         if (shouldAutoScroll && bottomRef.current) {
             bottomRef.current.scrollIntoView({ behavior: "smooth" });
@@ -83,23 +108,19 @@ export default function FeedbackWall() {
     const handleScroll = () => {
         if (scrollContainerRef.current) {
             const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-            // Detect if user is near bottom
             const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
             setShouldAutoScroll(isNearBottom);
         }
     };
 
-    // Post Feedback Mutation
     const postMutation = useMutation({
         mutationFn: async (newFeedback: { content: string; category: string }) => {
             return feedbackAPI.create(newFeedback);
         },
         onMutate: async (newFeedback) => {
-            // Optimistic Update
             await queryClient.cancelQueries({ queryKey: ['feedback'] });
             const previousMessages = queryClient.getQueryData(['feedback', 'latest']);
 
-            // Mock new message
             const optimisticMsg = {
                 id: Math.random().toString(),
                 content: newFeedback.content,
@@ -107,7 +128,7 @@ export default function FeedbackWall() {
                 upvotes: 0,
                 isAck: false,
                 createdAt: new Date().toISOString(),
-                user: { username: "You", image: "" }, // Placeholder
+                user: { username: user?.username || "You", image: user?.image || "" },
                 hasReacted: false,
                 isOptimistic: true
             };
@@ -121,7 +142,7 @@ export default function FeedbackWall() {
             queryClient.setQueryData(['feedback', 'latest'], context?.previousMessages);
             toast({
                 title: "Failed to send",
-                description: err.message || "Could not connect to chat",
+                description: err.message || "Could not submit feedback",
                 variant: "destructive"
             });
         },
@@ -130,7 +151,6 @@ export default function FeedbackWall() {
         }
     });
 
-    // Reaction Mutation
     const reactMutation = useMutation({
         mutationFn: async (id: string) => {
             return feedbackAPI.react(id);
@@ -162,164 +182,312 @@ export default function FeedbackWall() {
         }
     });
 
+    const disagreeMutation = useMutation({
+        mutationFn: async (id: string) => {
+            return feedbackAPI.disagree(id);
+        },
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['feedback'] });
+            const previousData = queryClient.getQueryData(['feedback', 'latest']);
+
+            queryClient.setQueryData(['feedback', 'latest'], (old: FeedbackMessage[] | undefined) => {
+                return old?.map(msg => {
+                    if (msg.id === id) {
+                        return {
+                            ...msg,
+                            downvotes: msg.hasDisagreed ? Math.max(0, msg.downvotes - 1) : msg.downvotes + 1,
+                            hasDisagreed: !msg.hasDisagreed
+                        };
+                    }
+                    return msg;
+                });
+            });
+
+            return { previousData };
+        },
+        onError: (_err, _id, context) => {
+            queryClient.setQueryData(['feedback', 'latest'], context?.previousData);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['feedback'] });
+        }
+    });
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!content.trim() || postMutation.isPending) return;
+        if (!content.trim() || postMutation.isPending || content.length > MAX_CHARS) return;
         postMutation.mutate({ content, category });
     };
 
+    const charCount = content.length;
+    const isOverLimit = charCount > MAX_CHARS;
+
     return (
-        <div className="flex flex-col h-screen bg-[#0a0a0c] lg:pl-[240px] overflow-hidden relative">
+        <TooltipProvider delayDuration={200}>
+            <div className="flex flex-col h-full bg-gradient-to-b from-[#0c0c0e] to-[#0a0a0c] overflow-hidden">
 
-            {/* Header */}
-            <header className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-[#0a0a0c]/80 backdrop-blur-md z-20 flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                        Community Chat
-                        <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5">LIVE</Badge>
-                    </h1>
-                    <p className="text-xs text-muted-foreground/60">Real-time discussions & feedback</p>
-                </div>
-            </header>
+                {/* Header */}
+                <header className="flex-shrink-0 px-8 py-5 border-b border-white/[0.04] bg-[#0c0c0e]/90 backdrop-blur-xl">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center gap-2.5">
+                                    <h1 className="text-lg font-semibold text-white/90 tracking-tight">
+                                        Feedback Wall
+                                    </h1>
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400/70 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                        Live
+                                    </span>
 
-            {/* Chat Area */}
-            <div
-                ref={scrollContainerRef}
-                onScroll={handleScroll}
-                className="flex-1 overflow-y-auto custom-scrollbar p-0 space-y-0"
-            >
-                <div className="max-w-4xl mx-auto w-full min-h-full flex flex-col justify-end p-4 md:p-6 gap-2">
-                    {/* Welcome message if empty */}
-                    {!isLoading && messages.length === 0 && (
-                        <div className="text-center py-20 opacity-50">
-                            <MessageCircleCode className="h-12 w-12 mx-auto mb-4 text-white/20" />
-                            <h3 className="text-lg font-medium text-white/40">Quiet room...</h3>
-                            <p className="text-sm text-white/20">Be the first to say hello!</p>
+                                    {/* Info Icon */}
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                onClick={() => setShowInfoModal(true)}
+                                                className="p-1 rounded-full hover:bg-white/5 transition-colors"
+                                            >
+                                                <Info className="h-4 w-4 text-white/30 hover:text-white/50" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" className="bg-[#1a1a1e] border-white/10 text-white/80">
+                                            <p>Learn about the Feedback Wall</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+
+                                {/* Subtitle Microcopy */}
+                                <p className="text-xs text-white/30 mt-1 max-w-md">
+                                    Share ideas, suggest features, and help shape CodeStudio.
+                                    <span className="text-white/20"> Community votes guide our roadmap.</span>
+                                </p>
+                            </div>
+                            <div className="text-[11px] text-white/20 font-mono">
+                                {messages.length} entries
+                            </div>
                         </div>
-                    )}
+                    </div>
+                </header>
 
-                    {/* Messages */}
-                    {messages.map((msg, index) => {
-                        const isContinuation = index > 0 && messages[index - 1].user.username === msg.user.username &&
-                            (new Date(msg.createdAt).getTime() - new Date(messages[index - 1].createdAt).getTime() < 60000);
+                {/* Chat Stream */}
+                <div
+                    ref={scrollContainerRef}
+                    onScroll={handleScroll}
+                    className="flex-1 overflow-y-auto"
+                >
+                    <div className="max-w-4xl mx-auto w-full min-h-full flex flex-col justify-end px-6 py-6 gap-4">
 
-                        return (
-                            <motion.div
-                                key={msg.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={cn(
-                                    "group flex gap-4 w-full px-4 py-2 hover:bg-white/[0.02] rounded-lg transition-colors",
-                                    (msg as any).isOptimistic && "opacity-70"
-                                )}
-                            >
-                                {/* Avatar Column */}
-                                <div className="flex-shrink-0 w-10 pt-1">
-                                    {!isContinuation ? (
-                                        <Avatar className="h-10 w-10 rounded-xl border border-white/5 bg-white/5">
-                                            <AvatarImage src={msg.user.image} />
-                                            <AvatarFallback className="text-[10px] font-bold bg-[#1a1a1e] text-muted-foreground">
-                                                {msg.user.username[0]?.toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                    ) : (
-                                        <div className="w-10 text-[10px] text-muted-foreground/20 text-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: false }).replace('about ', '').replace(' minutes', 'm')}
-                                        </div>
-                                    )}
+                        {/* Empty State with CTA */}
+                        {!isLoading && messages.length === 0 && (
+                            <div className="text-center py-24">
+                                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-center">
+                                    <MessageCircleCode className="h-7 w-7 text-white/10" />
                                 </div>
+                                <h3 className="text-base font-medium text-white/30 mb-1">No feedback yet.</h3>
+                                <p className="text-sm text-white/15 mb-4">Be the first to help improve CodeStudio.</p>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs border-white/10 text-white/50 hover:text-white hover:bg-white/5"
+                                    onClick={() => document.querySelector('textarea')?.focus()}
+                                >
+                                    Share your first idea →
+                                </Button>
+                            </div>
+                        )}
 
-                                {/* Content Column */}
-                                <div className="flex-1 min-w-0">
-                                    {!isContinuation && (
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-sm font-bold text-white hover:underline cursor-pointer">
-                                                {msg.user.username}
-                                            </span>
-                                            <span className="text-[10px] text-muted-foreground/50">
-                                                {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
-                                            </span>
-                                            {msg.isAck && (
-                                                <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-1 border-emerald-500/20 text-emerald-400 bg-emerald-500/5">
-                                                    <CheckCircle2 className="h-2.5 w-2.5" /> Dev Replied
-                                                </Badge>
-                                            )}
-                                        </div>
+                        {/* Messages */}
+                        {messages.map((msg) => {
+                            const isMe = user?.id === msg.userId;
+                            const CategoryIcon = CATEGORY_CONFIG[msg.category].icon;
+                            const categoryConfig = CATEGORY_CONFIG[msg.category];
+
+                            return (
+                                <motion.div
+                                    key={msg.id}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className={cn(
+                                        "flex w-full",
+                                        isMe ? "justify-end" : "justify-start",
+                                        msg.isOptimistic && "opacity-60"
                                     )}
+                                >
+                                    <div className={cn(
+                                        isMobile
+                                            ? "w-full" // Full width on mobile
+                                            : "w-[65%] max-w-[560px] min-w-[320px]", // Constrained on desktop
+                                        isMe ? "ml-auto" : "mr-auto"
+                                    )}>
+                                        <div className={cn(
+                                            "border transition-all",
+                                            isMe
+                                                ? "rounded-xl rounded-tr-sm bg-gradient-to-br from-primary/[0.12] to-primary/[0.05] border-primary/20"
+                                                : "rounded-xl rounded-tl-sm bg-gradient-to-br from-white/[0.04] to-white/[0.01] border-white/[0.06]"
+                                        )}>
+                                            {/* Card Header */}
+                                            <div className="px-4 py-3 border-b border-white/[0.04]">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <Avatar className="h-6 w-6 rounded-full border border-white/[0.08] flex-shrink-0">
+                                                            <AvatarImage src={msg.user.image} />
+                                                            <AvatarFallback className="text-[9px] font-semibold bg-white/[0.04] text-white/40">
+                                                                {msg.user.username[0]?.toUpperCase()}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="text-xs font-medium text-white/50 truncate">
+                                                            {isMe ? "You" : msg.user.username}
+                                                        </span>
+                                                        <span className="text-[10px] text-white/20 font-mono">
+                                                            {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
+                                                        </span>
+                                                    </div>
 
-                                    <div className="text-[15px] leading-6 text-white/90 whitespace-pre-wrap break-words">
-                                        {msg.content}
+                                                    {/* Category Badge with Tooltip */}
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <div>
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className={cn(
+                                                                        "text-[10px] h-5 px-2 border gap-1.5 rounded-md font-medium shrink-0 cursor-help",
+                                                                        categoryConfig.color
+                                                                    )}
+                                                                >
+                                                                    <CategoryIcon className="h-3 w-3" />
+                                                                    {categoryConfig.label}
+                                                                </Badge>
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80 max-w-[200px]">
+                                                            <p className="text-xs">{categoryConfig.tooltip}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </div>
+                                            </div>
+
+                                            {/* Card Body */}
+                                            <div className="px-4 py-4">
+                                                <p className="text-[14px] leading-relaxed text-white/80 whitespace-pre-wrap break-words">
+                                                    {msg.content}
+                                                </p>
+
+                                                {msg.isAck && (
+                                                    <div className="mt-3 pt-3 border-t border-white/[0.04] flex items-center gap-1.5">
+                                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/70" />
+                                                        <span className="text-[10px] font-semibold text-emerald-400/70 uppercase tracking-wider">
+                                                            Acknowledged by team
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Card Footer - Actions */}
+                                            <div className="px-4 py-2.5 border-t border-white/[0.04] flex items-center gap-1">
+                                                {/* Upvote */}
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            onClick={() => reactMutation.mutate(msg.id)}
+                                                            className={cn(
+                                                                "flex items-center gap-1.5 font-medium rounded-lg transition-all touch-target",
+                                                                isMobile ? "text-xs h-10 px-4" : "text-[11px] h-7 px-2.5",
+                                                                msg.hasReacted
+                                                                    ? "bg-primary/15 text-primary border border-primary/20"
+                                                                    : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60"
+                                                            )}
+                                                        >
+                                                            <ThumbsUp className={cn(isMobile ? "h-4 w-4" : "h-3.5 w-3.5", msg.hasReacted && "fill-current")} />
+                                                            <span>{msg.upvotes}</span>
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80">
+                                                        <p className="text-xs">Support this idea</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+
+                                                {/* Downvote */}
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            onClick={() => disagreeMutation.mutate(msg.id)}
+                                                            className={cn(
+                                                                "flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg transition-all",
+                                                                msg.hasDisagreed
+                                                                    ? "bg-red-500/15 text-red-400 border border-red-500/20"
+                                                                    : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60"
+                                                            )}
+                                                        >
+                                                            <ThumbsDown className={cn("h-3.5 w-3.5", msg.hasDisagreed && "fill-current")} />
+                                                            {msg.downvotes > 0 && <span>{msg.downvotes}</span>}
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80">
+                                                        <p className="text-xs">Disagree or not relevant</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+
+                                                {/* Discuss (Disabled - Coming Soon) */}
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            disabled
+                                                            className="flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg bg-white/[0.02] text-white/20 border border-transparent ml-auto cursor-not-allowed"
+                                                        >
+                                                            <Clock className="h-3 w-3" />
+                                                            <span>Discuss</span>
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80 max-w-[220px]">
+                                                        <p className="text-xs font-medium mb-1">Discussions coming soon</p>
+                                                        <p className="text-[10px] text-white/50">This will allow threaded conversations on feedback.</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </div>
+                                        </div>
                                     </div>
-
-                                    {/* Footer Actions */}
-                                    <div className="flex items-center gap-3 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Badge variant="outline" className={cn("text-[9px] py-0 h-5 px-1.5 border gap-1 rounded-full", CATEGORY_COLORS[msg.category])}>
-                                            {CATEGORY_ICONS[msg.category]}
-                                            {msg.category}
-                                        </Badge>
-
-                                        <button
-                                            onClick={() => reactMutation.mutate(msg.id)}
-                                            className={cn(
-                                                "flex items-center gap-1 text-[10px] font-medium px-2 h-5 rounded-full transition-colors border",
-                                                msg.hasReacted
-                                                    ? "bg-primary/10 text-primary border-primary/20"
-                                                    : "bg-transparent text-muted-foreground border-transparent hover:bg-white/5"
-                                            )}
-                                        >
-                                            <ThumbsUp className="h-3 w-3" />
-                                            {msg.upvotes > 0 && <span>{msg.upvotes}</span>}
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        );
-                    })}
-                    <div ref={bottomRef} />
+                                </motion.div>
+                            );
+                        })}
+                        <div ref={bottomRef} />
+                    </div>
                 </div>
-            </div>
 
-            {/* Scroll to Bottom Button */}
-            {!shouldAutoScroll && (
-                <div className="absolute bottom-24 right-8 z-40">
-                    <Button
-                        size="icon"
-                        variant="secondary"
-                        className="h-8 w-8 rounded-full shadow-lg bg-primary text-black hover:bg-primary/90 transition-all"
-                        onClick={() => {
-                            setShouldAutoScroll(true);
-                            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-                        }}
-                    >
-                        <ArrowDown className="h-4 w-4" />
-                    </Button>
-                </div>
-            )}
+                {/* Scroll to Bottom */}
+                {!shouldAutoScroll && (
+                    <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-40">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-3 rounded-full bg-[#1a1a1e]/90 border-white/10 text-white/60 backdrop-blur-md shadow-xl hover:bg-[#1a1a1e] hover:text-white"
+                            onClick={() => {
+                                setShouldAutoScroll(true);
+                                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+                            }}
+                        >
+                            <ArrowDown className="h-3.5 w-3.5 mr-1.5" />
+                            New feedback
+                        </Button>
+                    </div>
+                )}
 
-            {/* Input Area */}
-            <div className="p-4 md:p-6 bg-[#0a0a0c] border-t border-white/5 z-30">
-                <div className="max-w-4xl mx-auto w-full relative">
-                    <div className="bg-[#151518] rounded-2xl border border-white/5 p-3 shadow-2xl focus-within:ring-1 focus-within:ring-white/10 transition-all">
-                        <div className="flex gap-3">
-                            <Select value={category} onValueChange={setCategory}>
-                                <SelectTrigger className="w-[140px] h-10 border-0 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-medium focus:ring-0">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-[#1a1a1e] border-white/10 text-white">
-                                    {Object.keys(CATEGORY_ICONS).map(cat => (
-                                        <SelectItem key={cat} value={cat} className="text-xs">
-                                            {cat}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            <div className="flex-1">
+                {/* Input Area - Modern Professional Design */}
+                <div className="border-t border-white/[0.06] bg-gradient-to-t from-[#0a0a0c] to-[#0c0c0e] backdrop-blur-xl">
+                    <div className="max-w-4xl mx-auto px-6 py-5">
+                        <form onSubmit={handleSubmit}>
+                            {/* Main Input Card */}
+                            <div className="bg-[#151518] border border-white/[0.06] rounded-2xl p-4 shadow-xl shadow-black/20">
+                                {/* Textarea */}
                                 <Textarea
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
-                                    placeholder="Type a message..."
-                                    className="min-h-[40px] max-h-[200px] py-2 bg-transparent border-0 focus-visible:ring-0 resize-none text-sm text-white placeholder:text-muted-foreground/50"
+                                    placeholder="Describe a bug, request a feature, or share feedback…"
+                                    className={cn(
+                                        "min-h-[80px] max-h-[160px] p-0 bg-transparent border-0 resize-none",
+                                        "text-sm text-white/90 placeholder:text-white/30 leading-relaxed",
+                                        "focus-visible:ring-0 focus-visible:outline-none",
+                                    )}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' && !e.shiftKey) {
                                             e.preventDefault();
@@ -327,45 +495,147 @@ export default function FeedbackWall() {
                                         }
                                     }}
                                 />
+
+                                {/* Bottom Bar */}
+                                <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/[0.06]">
+                                    {/* Left: Category + Character Count */}
+                                    <div className="flex items-center gap-3">
+                                        <Select value={category} onValueChange={setCategory}>
+                                            <SelectTrigger className="h-9 px-3 border-white/[0.08] bg-white/[0.03] rounded-lg text-xs font-medium text-white/60 hover:bg-white/[0.06] hover:text-white/80 transition-colors focus:ring-1 focus:ring-primary/30 gap-2 min-w-[130px]">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-[#1a1a1e] border-white/10 text-white">
+                                                {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
+                                                    <SelectItem key={key} value={key} className="text-xs">
+                                                        <div className="flex items-center gap-2">
+                                                            <config.icon className="h-3.5 w-3.5" />
+                                                            <span>{config.label}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
+                                        <div className="h-4 w-px bg-white/[0.06]" />
+
+                                        <span className={cn(
+                                            "text-[11px] font-mono tabular-nums",
+                                            isOverLimit ? "text-red-400" : charCount > MAX_CHARS * 0.8 ? "text-amber-400/70" : "text-white/25"
+                                        )}>
+                                            {charCount}/{MAX_CHARS}
+                                        </span>
+                                    </div>
+
+                                    {/* Right: Submit Button */}
+                                    <Button
+                                        type="submit"
+                                        disabled={!content.trim() || postMutation.isPending || isOverLimit}
+                                        className={cn(
+                                            "h-9 px-4 rounded-lg font-medium text-sm transition-all active:scale-[0.98]",
+                                            content.trim() && !isOverLimit
+                                                ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+                                                : "bg-white/[0.05] text-white/30 cursor-not-allowed"
+                                        )}
+                                    >
+                                        {postMutation.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <>
+                                                <Send className="h-3.5 w-3.5 mr-2" />
+                                                Submit
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
                             </div>
 
-                            <Button
-                                onClick={handleSubmit}
-                                disabled={!content.trim() || postMutation.isPending}
-                                size="icon"
-                                className="h-10 w-10 rounded-xl bg-primary hover:bg-primary/90 text-black shadow-lg shadow-primary/20 shrink-0"
-                            >
-                                {postMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="text-[10px] text-muted-foreground/40 text-center mt-2 font-mono">
-                        Markdown supported • Shift+Enter for new line
+                            {/* Helper Text - Desktop only */}
+                            {!isMobile && (
+                                <div className="flex items-center justify-center gap-1.5 mt-3">
+                                    <span className="text-[10px] text-white/20">
+                                        <kbd className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] font-mono text-[9px] mx-0.5">Enter</kbd>
+                                        to submit
+                                        <span className="mx-1.5">•</span>
+                                        <kbd className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] font-mono text-[9px] mx-0.5">Shift+Enter</kbd>
+                                        for new line
+                                    </span>
+                                </div>
+                            )}
+                        </form>
                     </div>
                 </div>
-            </div>
 
-            {/* Welcome Dialog */}
-            <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
-                <DialogContent className="bg-[#121214] border-white/10 text-white sm:max-w-md rounded-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Welcome to Community Chat</DialogTitle>
-                        <DialogDescription className="text-muted-foreground">
-                            This is a live space to discuss features, bugs, and ideas with fellow developers.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="text-sm space-y-2 py-4">
-                        <p>• Be respectful and constructive.</p>
-                        <p>• Use categories to help us filter feedback.</p>
-                        <p>• Rate limited to 1 message every 30 seconds.</p>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={() => setShowWelcome(false)} className="w-full">
-                            Join Chat
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
+                {/* Footer Transparency Note */}
+                <div className="border-t border-white/[0.03] bg-[#08080a] px-6 py-2">
+                    <p className="text-[9px] text-white/15 text-center max-w-4xl mx-auto tracking-wide">
+                        Feedback visibility is influenced by community votes and trust score
+                    </p>
+                </div>
+
+                {/* Info Modal */}
+                <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
+                    <DialogContent className="bg-[#14141a] border-white/[0.08] text-white sm:max-w-md rounded-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="text-lg">What is the Feedback Wall?</DialogTitle>
+                        </DialogHeader>
+                        <div className="text-sm text-white/60 space-y-4 py-4">
+                            <p>
+                                This is a public space to share ideas, report issues, and suggest improvements for CodeStudio.
+                            </p>
+                            <p>
+                                Feedback here helps us prioritize features and improve the platform based on real developer needs.
+                            </p>
+                            <div className="pt-3 border-t border-white/[0.06]">
+                                <p className="text-[11px] text-white/30 italic">
+                                    Be constructive. Votes matter. Repeated spam may reduce trust score.
+                                </p>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={() => setShowInfoModal(false)} variant="outline" className="w-full rounded-xl h-9 border-white/10 text-white/70">
+                                Got it
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Welcome Dialog */}
+                <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+                    <DialogContent className="bg-[#14141a] border-white/[0.08] text-white sm:max-w-md rounded-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="text-lg">Welcome to Feedback Wall</DialogTitle>
+                            <DialogDescription className="text-white/40">
+                                Help shape the future of CodeStudio.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="text-sm text-white/60 space-y-3 py-4">
+                            <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                    <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                                </div>
+                                <p><span className="text-white/80 font-medium">Request features</span> that would make your workflow better</p>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                    <Bug className="h-3.5 w-3.5 text-red-400" />
+                                </div>
+                                <p><span className="text-white/80 font-medium">Report bugs</span> so we can fix them quickly</p>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                    <ThumbsUp className="h-3.5 w-3.5 text-blue-400" />
+                                </div>
+                                <p><span className="text-white/80 font-medium">Upvote ideas</span> to help us prioritize the roadmap</p>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={() => setShowWelcome(false)} className="w-full rounded-xl h-10">
+                                Start Contributing
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        </TooltipProvider>
     );
 }

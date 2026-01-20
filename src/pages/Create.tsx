@@ -8,12 +8,14 @@ import { Label } from "@/components/ui/label";
 import { snippetsAPI } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Play } from "lucide-react";
+import { Loader2, Play, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 
 export default function Create() {
     const navigate = useNavigate();
     const { toast } = useToast();
+    const isMobile = useIsMobile();
     const [loading, setLoading] = useState(false);
 
     // Snippet State
@@ -46,6 +48,8 @@ export default function Create() {
         }
     };
 
+
+
     const handleCreateSnippet = async () => {
         if (!snippetTitle || !snippetCode) {
             toast({ title: "Error", description: "Title and Code are required", variant: "destructive" });
@@ -60,9 +64,6 @@ export default function Create() {
 
         // MVP Rule: Valid Output Required
         if (!executionResult.stdout && !executionResult.stderr) {
-            // For React/HTML, we might skip this if they don't produce stdout but render. 
-            // backend piston.go mocks stdout for them.
-            // If manual piston run returns empty, block.
             if (snippetLang !== 'html' && snippetLang !== 'react') {
                 toast({ title: "Invalid Output", description: "Snippet must produce output to be published.", variant: "destructive" });
                 return;
@@ -101,6 +102,146 @@ export default function Create() {
         }
     };
 
+    if (isMobile) {
+        return (
+            <div className="container max-w-lg mx-auto px-4 py-6 animate-in fade-in duration-500 pb-24">
+                <h1 className="text-2xl font-headline font-bold mb-6">Create Snippet</h1>
+
+                <Card className="border-border/50 bg-black/40 backdrop-blur-sm">
+                    <CardHeader>
+                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            Snippet Details
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                            <Label className="text-base">Title *</Label>
+                            <Input
+                                placeholder="My Awesome Component"
+                                value={snippetTitle}
+                                onChange={e => setSnippetTitle(e.target.value)}
+                                className="h-12 touch-target text-base"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-base">Code</Label>
+                            <Textarea
+                                className="font-mono text-sm leading-relaxed min-h-[300px] bg-black/50 border-white/10 resize-none"
+                                value={snippetCode}
+                                onChange={e => setSnippetCode(e.target.value)}
+                                placeholder="// Write your code here..."
+                                spellCheck={false}
+                            />
+                        </div>
+
+                        {/* Execution Output (Mobile) */}
+                        {executionResult && (
+                            <div className="p-4 bg-black/90 rounded-xl border border-white/10 font-mono text-xs overflow-x-auto">
+                                <div className="mb-2 text-muted-foreground uppercase text-[10px] font-bold tracking-wider">Console Output</div>
+                                <pre className="whitespace-pre-wrap text-emerald-400">
+                                    {executionResult.stdout || executionResult.stderr || "No output"}
+                                </pre>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <Button
+                                className="h-12 touch-target w-full"
+                                variant="secondary"
+                                onClick={handleRunCode}
+                                disabled={executing || !snippetCode}
+                            >
+                                {executing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                                Run
+                            </Button>
+                            <Button
+                                className="h-12 touch-target w-full"
+                                onClick={handleCreateSnippet}
+                                disabled={loading || !executionResult}
+                            >
+                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Post
+                            </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-base">Description</Label>
+                            <Textarea
+                                className="min-h-[100px] text-base"
+                                placeholder="What does this code do?"
+                                value={snippetDesc}
+                                onChange={e => setSnippetDesc(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-base">Language</Label>
+                            <Select value={snippetLang} onValueChange={setSnippetLang}>
+                                <SelectTrigger className="h-12 touch-target text-base">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="python">Python</SelectItem>
+                                    <SelectItem value="javascript">JavaScript</SelectItem>
+                                    <SelectItem value="typescript">TypeScript</SelectItem>
+                                    <SelectItem value="go">Go</SelectItem>
+                                    <SelectItem value="cpp">C++</SelectItem>
+                                    <SelectItem value="java">Java</SelectItem>
+                                    <SelectItem value="rust">Rust</SelectItem>
+                                    <SelectItem value="html">HTML + Tailwind</SelectItem>
+                                    <SelectItem value="react">React</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-base">Type</Label>
+                                <Select value={snippetType} onValueChange={setSnippetType}>
+                                    <SelectTrigger className="h-12 touch-target text-base">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ALGORITHM">Algo</SelectItem>
+                                        <SelectItem value="UTILITY">Utility</SelectItem>
+                                        <SelectItem value="EXAMPLE">Example</SelectItem>
+                                        <SelectItem value="VISUAL">Visual</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-base">Difficulty</Label>
+                                <Select value={snippetDifficulty} onValueChange={setSnippetDifficulty}>
+                                    <SelectTrigger className="h-12 touch-target text-base">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="EASY">Easy</SelectItem>
+                                        <SelectItem value="MEDIUM">Medium</SelectItem>
+                                        <SelectItem value="HARD">Hard</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-base">Tags</Label>
+                            <Input
+                                placeholder="react, ui, hooks"
+                                value={snippetTags}
+                                onChange={e => setSnippetTags(e.target.value)}
+                                className="h-12 touch-target text-base"
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    // ============ DESKTOP FULL MODE ============
     return (
         <div className="container max-w-6xl mx-auto py-10 animate-in fade-in duration-500">
             <h1 className="text-3xl font-headline font-bold mb-8">Create New Content</h1>
@@ -258,3 +399,4 @@ export default function Create() {
         </div>
     );
 }
+
