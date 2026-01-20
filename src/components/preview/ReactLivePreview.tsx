@@ -29,6 +29,29 @@ const reactLiveScope = {
 export function ReactLivePreview({ code }: ReactLivePreviewProps) {
     const { theme } = useTheme();
 
+    // Suppress benign warnings from react-live/react-dom
+    React.useEffect(() => {
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.error = (...args) => {
+            // Suppress "outdated JSX transform" warning from react-live's internal compiler
+            if (typeof args[0] === 'string' && args[0].includes('outdated JSX transform')) return;
+            originalError(...args);
+        };
+
+        console.warn = (...args) => {
+            // Suppress React DevTools download suggestion
+            if (typeof args[0] === 'string' && args[0].includes('React DevTools')) return;
+            originalWarn(...args);
+        };
+
+        return () => {
+            console.error = originalError;
+            console.warn = originalWarn;
+        };
+    }, []);
+
     // Simplify code for live preview if it's a full component definition
     // react-live expects either an expression or a component body
     const processedCode = React.useMemo(() => {

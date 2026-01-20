@@ -583,6 +583,13 @@ export const adminAPI = {
     getSuspiciousActivity: () =>
         apiRequest<{ highCopySnippets: any[]; highForkSnippets: any[] }>('/admin/analytics/suspicious'),
 
+    // Feedback Moderation
+    updateFeedbackStatus: (id: string, status: string) => apiRequest<{ message: string; feedback: any }>(`/admin/feedback/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+    lockFeedback: (id: string, isLocked: boolean) => apiRequest<{ message: string; feedback: any }>(`/admin/feedback/${id}/lock`, { method: 'PUT', body: JSON.stringify({ isLocked }) }),
+    hideFeedback: (id: string, isHidden: boolean) => apiRequest<{ message: string; feedback: any }>(`/admin/feedback/${id}/hide`, { method: 'PUT', body: JSON.stringify({ isHidden }) }),
+    pinFeedback: (id: string, isPinned: boolean) => apiRequest<{ message: string; feedback: any }>(`/admin/feedback/${id}/pin`, { method: 'PUT', body: JSON.stringify({ isPinned }) }),
+    convertToChangelog: (id: string, changelogId: string) => apiRequest<{ message: string; feedback: any }>(`/admin/feedback/${id}/convert-changelog`, { method: 'POST', body: JSON.stringify({ changelogId }) }),
+
     // Changelog
     getChangelogs: () => apiRequest<{ entries: any[] }>('/admin/changelog'),
     createChangelog: (data: any) => apiRequest<{ entry: any; message: string }>('/admin/changelog', { method: 'POST', body: JSON.stringify(data) }),

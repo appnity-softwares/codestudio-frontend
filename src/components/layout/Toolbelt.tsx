@@ -39,24 +39,24 @@ export function Toolbelt() {
                         <span>Quick Actions</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                        <a href="/" className="block">
-                            <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer">
-                                <TerminalIcon className="w-5 h-5 mx-auto mb-1 text-primary" />
-                                <Link to="/create" className="text-[10px] font-mono">Create Snippet</Link>
+                        <Link to="/create" className="block">
+                            <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer h-full flex flex-col items-center justify-center">
+                                <TerminalIcon className="w-5 h-5 mb-1 text-primary" />
+                                <span className="text-[10px] font-mono">Create Snippet</span>
                             </div>
-                        </a>
-                        <a href="/arena" className="block">
-                            <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer">
-                                <Users className="w-5 h-5 mx-auto mb-1 text-orange-400" />
+                        </Link>
+                        <Link to="/arena" className="block">
+                            <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer h-full flex flex-col items-center justify-center">
+                                <Users className="w-5 h-5 mb-1 text-orange-400" />
                                 <span className="text-[10px] font-mono">Arena</span>
                             </div>
-                        </a>
-                        <a href="/changelog" className="block col-span-2">
+                        </Link>
+                        <Link to="/changelog" className="block col-span-2">
                             <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer flex items-center justify-center gap-2">
                                 <Activity className="w-4 h-4 text-emerald-400" />
                                 <span className="text-[10px] font-mono">View Changelog</span>
                             </div>
-                        </a>
+                        </Link>
                     </div>
                 </div>
 

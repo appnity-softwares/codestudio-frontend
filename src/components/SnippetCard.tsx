@@ -12,7 +12,6 @@ import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { snippetsAPI } from "@/lib/api";
 import { useNavigate, Link } from "react-router-dom";
-import { useIsMobile } from "@/hooks/useMediaQuery";
 
 // Helper Colors
 const typeColors: Record<string, string> = {
@@ -30,7 +29,6 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
     const { isAuthenticated } = useAuth();
     const { toast } = useToast();
     const navigate = useNavigate();
-    const isMobile = useIsMobile();
     const [copied, setCopied] = useState(false);
     const [forking, setForking] = useState(false);
 
@@ -87,171 +85,7 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
         return code;
     };
 
-    // ============ MOBILE INSTAGRAM LAYOUT ============
-    if (isMobile) {
-        return (
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-10%" }}
-                transition={{ duration: 0.6 }}
-                className="mb-0 bg-black border-b border-white/10 pb-4"
-            >
-                {/* 1. Static Header */}
-                <div className="flex items-center justify-between p-3">
-                    <div className="flex items-center gap-3">
-                        <Link to={`/profile/${snippet.author?.username || snippet.author?.id}`} className="block relative group">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 p-[1.5px]">
-                                <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
-                                    {snippet.author?.avatar ? (
-                                        <img src={snippet.author.avatar} alt={snippet.author.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <span className="text-xs font-bold text-white">{snippet.author?.name?.charAt(0) || 'U'}</span>
-                                    )}
-                                </div>
-                            </div>
-                        </Link>
-                        <div className="flex flex-col">
-                            <Link to={`/profile/${snippet.author?.username || snippet.author?.id}`} className="w-fit">
-                                <span className="text-sm font-semibold text-white leading-none hover:text-primary transition-colors">
-                                    {snippet.author?.name || 'User'}
-                                    {snippet.verified && <span className="ml-1 text-[10px] text-blue-400">✓</span>}
-                                </span>
-                            </Link>
-                            <span className="text-xs text-muted-foreground mt-0.5">
-                                {snippet.language} • {snippet.createdAt ? formatDistanceToNow(new Date(snippet.createdAt), { addSuffix: true }) : 'Just now'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 2. Content (Full Bleed) */}
-                <div className="relative w-full aspect-square bg-[#0c0c0e]">
-                    {viewMode === 'preview' ? (
-                        isReact ? (
-                            <div className={cn("absolute inset-0 overflow-auto flex p-4", alignment === 'center' ? "items-center justify-center" : "items-start justify-start")}>
-                                <ReactLivePreview code={snippet.code} />
-                            </div>
-                        ) : (
-                            <iframe srcDoc={getIframeSrc(snippet.code)} title="Preview" className="w-full h-full border-0 bg-white" sandbox="allow-scripts" />
-                        )
-                    ) : viewMode === 'output' ? (
-                        <div className="absolute inset-0 bg-[#09090b] p-4 font-mono text-xs overflow-auto text-emerald-400 whitespace-pre-wrap">
-                            {snippet.outputSnapshot || snippet.output || "// No output"}
-                        </div>
-                    ) : (
-                        <div className="absolute inset-0 bg-[#0c0c0e]">
-                            <CodeBlock code={snippet.code} language={snippet.language} className="h-full w-full bg-transparent p-4 text-xs font-mono" />
-                        </div>
-                    )}
-
-                    {/* View Mode Toggle - Floating Glass Pill */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-                        <div className="flex bg-black/60 backdrop-blur-xl rounded-full p-1 shadow-2xl border border-white/10 gap-1">
-                            {hasPreview && (
-                                <button
-                                    onClick={() => setViewMode('preview')}
-                                    className={cn(
-                                        "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all",
-                                        viewMode === 'preview' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white"
-                                    )}
-                                >
-                                    Preview
-                                </button>
-                            )}
-                            <button
-                                onClick={() => setViewMode('code')}
-                                className={cn(
-                                    "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all",
-                                    viewMode === 'code' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white"
-                                )}
-                            >
-                                Code
-                            </button>
-                            {(snippet.outputSnapshot || snippet.output) && (
-                                <button
-                                    onClick={() => setViewMode('output')}
-                                    className={cn(
-                                        "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all",
-                                        viewMode === 'output' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white"
-                                    )}
-                                >
-                                    Output
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. Action Bar - Brand Touch */}
-                <div className="px-3 pt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                        {/* Fork Action */}
-                        <button
-                            className="group flex items-center gap-1.5 disabled:opacity-50"
-                            disabled={forking}
-                            onClick={async () => {
-                                if (!isAuthenticated) return toast({ variant: "destructive", title: "Login required" });
-                                setForking(true);
-                                try {
-                                    const res = await snippetsAPI.fork(snippet.id);
-                                    toast({ title: "Forked!", description: "Opening editor..." });
-                                    navigate(`/create?fork=${res.snippet.id}`);
-                                } finally { setForking(false); }
-                            }}
-                        >
-                            <GitFork className="w-6 h-6 text-white group-hover:text-purple-400 transition-colors" />
-                            <span className="text-sm font-medium text-white/70 group-hover:text-white transition-colors">
-                                {snippet.forkCount || 0}
-                            </span>
-                        </button>
-
-                        {/* Copy Action */}
-                        <button
-                            className="group flex items-center gap-1.5"
-                            onClick={() => {
-                                navigator.clipboard.writeText(snippet.code);
-                                setCopied(true);
-                                toast({ title: "Copied!" });
-                                setTimeout(() => setCopied(false), 2000);
-                            }}
-                        >
-                            {copied ? <Check className="w-6 h-6 text-emerald-500" /> : <Clipboard className="w-6 h-6 text-white group-hover:text-purple-400 transition-colors" />}
-                            <span className="text-sm font-medium text-white/70 group-hover:text-white transition-colors">
-                                {snippet.copyCount || 0}
-                            </span>
-                        </button>
-                    </div>
-
-                    {/* Views Counter (Right Aligned) */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                        <Eye className="w-3 h-3 text-white/50" />
-                        <span className="text-[10px] font-medium text-white/80">{snippet.viewsCount || 0}</span>
-                    </div>
-                </div>
-
-                {/* 4. Caption / Description */}
-                <div className="px-3 space-y-2">
-                    <div className="text-sm text-white">
-                        <span className="font-bold mr-2">{snippet.author?.name || 'User'}</span>
-                        <span className="font-semibold">{snippet.title}</span>
-                    </div>
-                    {snippet.description && (
-                        <p className="text-sm text-white/80 leading-relaxed font-normal">
-                            {snippet.description}
-                        </p>
-                    )}
-                    {snippet.tags && snippet.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                            {snippet.tags.map((tag: string) => (
-                                <span key={tag} className="text-blue-400 text-sm">#{tag}</span>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </motion.div>
-        );
-    }
+    // ============ UNIFIED GLASS LAYOUT (Responsive) ============
 
     // ============ DESKTOP GLASS LAYOUT ============
     return (
@@ -361,14 +195,16 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                 <div className="absolute bottom-5 left-5 right-5 z-20 pointer-events-none">
                     <div className="bg-black/60 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex items-center justify-between pointer-events-auto">
                         <div className="flex items-center gap-3">
-                            {snippet.author?.avatar && <img src={snippet.author.avatar} alt="Author" className="w-6 h-6 rounded-full border border-white/10" />}
-                            <span className="text-xs font-semibold text-white/90">{snippet.author?.name || 'User'}</span>
+                            <Link to={`/profile/${snippet.author?.username || snippet.author?.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                {snippet.author?.avatar && <img src={snippet.author.avatar} alt="Author" className="w-6 h-6 rounded-full border border-white/10" />}
+                                <span className="text-xs font-semibold text-white/90">{snippet.author?.name || 'User'}</span>
+                            </Link>
                             <span className="text-muted-foreground text-xs">•</span>
                             <span className="text-xs text-muted-foreground font-medium">{snippet.createdAt ? formatDistanceToNow(new Date(snippet.createdAt), { addSuffix: true }) : 'Just now'}</span>
                         </div>
                         <div className="flex items-center gap-4 text-xs font-medium text-white/70">
                             <div className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-white/40" /><span>{snippet.viewsCount || 0}</span></div>
-                            <button className="flex items-center gap-1.5 hover:text-white transition-colors" onClick={async () => { if (!isAuthenticated) return toast({ variant: "destructive", title: "Login required" }); setForking(true); try { const res = await snippetsAPI.fork(snippet.id); toast({ title: "Forked!", description: "Opening editor..." }); navigate(`/create?fork=${res.snippet.id}`); } catch (e: any) { toast({ variant: "destructive", title: "Fork failed", description: e.message }); } finally { setForking(false); } }}><GitFork className="h-3.5 w-3.5 text-white/40" /><span>{snippet.forkCount || 0}</span></button>
+                            <button disabled={forking} className="flex items-center gap-1.5 hover:text-white transition-colors disabled:opacity-50" onClick={async () => { if (!isAuthenticated) return toast({ variant: "destructive", title: "Login required" }); setForking(true); try { const res = await snippetsAPI.fork(snippet.id); toast({ title: "Forked!", description: "Opening editor..." }); navigate(`/create?fork=${res.snippet.id}`); } catch (e: any) { toast({ variant: "destructive", title: "Fork failed", description: e.message }); } finally { setForking(false); } }}><GitFork className="h-3.5 w-3.5 text-white/40" /><span>{snippet.forkCount || 0}</span></button>
                             <div className="flex items-center gap-1.5"><Clipboard className="h-3.5 w-3.5 text-white/40" /><span>{snippet.copyCount || 0}</span></div>
                         </div>
                     </div>

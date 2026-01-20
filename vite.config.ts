@@ -13,4 +13,25 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  build: {
+    // Code splitting for better caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['lucide-react'],
+        },
+      },
+    },
+    // Disable source maps in production for security
+    sourcemap: false,
+    // Minify output
+    minify: 'esbuild',
+    // Target modern browsers
+    target: 'es2020',
+  },
+  esbuild: {
+    // Remove console.log and debugger in production
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+  },
 });

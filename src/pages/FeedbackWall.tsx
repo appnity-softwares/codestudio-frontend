@@ -1,9 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Send, ThumbsUp, ThumbsDown, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown, Info, Clock } from "lucide-react";
+import { Send, ThumbsUp, ThumbsDown, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown, Info, Clock, Lock, Pin, FileText, MoreHorizontal, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
-import { feedbackAPI } from "@/lib/api";
+import { feedbackAPI, adminAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,9 +34,14 @@ interface FeedbackMessage {
     userId: string;
     content: string;
     category: "BUG" | "UX" | "FEATURE" | "PERFORMANCE" | "OTHER";
+    status: "OPEN" | "REVIEWING" | "PLANNED" | "SHIPPED" | "CLOSED";
     upvotes: number;
     downvotes: number;
     isAck: boolean;
+    isLocked: boolean;
+    isPinned: boolean;
+    isHidden: boolean;
+    changelogId?: string;
     createdAt: string;
     user: {
         username: string;
@@ -65,6 +83,14 @@ const CATEGORY_CONFIG = {
         color: "text-blue-400/80 bg-blue-500/10 border-blue-500/20",
         tooltip: "General feedback or suggestions"
     }
+};
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon?: any }> = {
+    OPEN: { label: "Open", color: "bg-white/5 text-white/50 border-white/10" },
+    REVIEWING: { label: "Under Review", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+    PLANNED: { label: "Planned", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+    SHIPPED: { label: "Shipped", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: CheckCircle2 },
+    CLOSED: { label: "Closed", color: "bg-white/5 text-white/30 border-white/5" }
 };
 
 const MAX_CHARS = 500;
@@ -179,6 +205,38 @@ export default function FeedbackWall() {
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['feedback'] });
+        }
+    });
+
+    const updateStatusMutation = useMutation({
+        mutationFn: ({ id, status }: { id: string; status: string }) => adminAPI.updateFeedbackStatus(id, status),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["feedback"] });
+            toast({ title: "Status updated" });
+        }
+    });
+
+    const lockMutation = useMutation({
+        mutationFn: ({ id, isLocked }: { id: string; isLocked: boolean }) => adminAPI.lockFeedback(id, isLocked),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["feedback"] });
+            toast({ title: "Lock status updated" });
+        }
+    });
+
+    const pinMutation = useMutation({
+        mutationFn: ({ id, isPinned }: { id: string; isPinned: boolean }) => adminAPI.pinFeedback(id, isPinned),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["feedback"] });
+            toast({ title: "Pin status updated" });
+        }
+    });
+
+    const hideMutation = useMutation({
+        mutationFn: ({ id, isHidden }: { id: string; isHidden: boolean }) => adminAPI.hideFeedback(id, isHidden),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["feedback"] });
+            toast({ title: "Visibility updated" });
         }
     });
 
@@ -297,10 +355,11 @@ export default function FeedbackWall() {
                         )}
 
                         {/* Messages */}
-                        {messages.map((msg) => {
+                        {messages.filter(m => !m.isHidden).map((msg) => {
                             const isMe = user?.id === msg.userId;
                             const CategoryIcon = CATEGORY_CONFIG[msg.category].icon;
                             const categoryConfig = CATEGORY_CONFIG[msg.category];
+                            const StatusIcon = STATUS_CONFIG[msg.status].icon;
 
                             return (
                                 <motion.div
@@ -324,7 +383,10 @@ export default function FeedbackWall() {
                                             "border transition-all",
                                             isMe
                                                 ? "rounded-xl rounded-tr-sm bg-gradient-to-br from-primary/[0.12] to-primary/[0.05] border-primary/20"
-                                                : "rounded-xl rounded-tl-sm bg-gradient-to-br from-white/[0.04] to-white/[0.01] border-white/[0.06]"
+                                                : cn(
+                                                    "rounded-xl rounded-tl-sm bg-gradient-to-br from-white/[0.04] to-white/[0.01] border-white/[0.06]",
+                                                    msg.status === "SHIPPED" && "border-emerald-500/30 bg-emerald-500/[0.02]"
+                                                )
                                         )}>
                                             {/* Card Header */}
                                             <div className="px-4 py-3 border-b border-white/[0.04]">
@@ -342,12 +404,79 @@ export default function FeedbackWall() {
                                                         <span className="text-[10px] text-white/20 font-mono">
                                                             {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                                                         </span>
+                                                        {user?.role === "ADMIN" && (
+                                                            <div className="ml-auto relative">
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white/20 hover:text-white hover:bg-white/10 rounded-full">
+                                                                            <MoreHorizontal className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end" className="w-48 bg-[#1a1a1e] border-white/10 text-white">
+                                                                        <DropdownMenuLabel className="text-xs text-white/50">Admin Controls</DropdownMenuLabel>
+
+                                                                        <DropdownMenuSub>
+                                                                            <DropdownMenuSubTrigger className="text-xs">
+                                                                                <span>Change Status</span>
+                                                                            </DropdownMenuSubTrigger>
+                                                                            <DropdownMenuSubContent className="bg-[#1a1a1e] border-white/10 text-white">
+                                                                                <DropdownMenuRadioGroup value={msg.status} onValueChange={(val) => updateStatusMutation.mutate({ id: msg.id, status: val })}>
+                                                                                    {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                                                                                        <DropdownMenuRadioItem key={key} value={key} className="text-xs">
+                                                                                            {config.label}
+                                                                                        </DropdownMenuRadioItem>
+                                                                                    ))}
+                                                                                </DropdownMenuRadioGroup>
+                                                                            </DropdownMenuSubContent>
+                                                                        </DropdownMenuSub>
+
+                                                                        <DropdownMenuSeparator className="bg-white/10" />
+
+                                                                        <DropdownMenuItem onClick={() => lockMutation.mutate({ id: msg.id, isLocked: !msg.isLocked })} className="text-xs">
+                                                                            {msg.isLocked ? <Lock className="h-3.5 w-3.5 mr-2 text-white/50" /> : <Lock className="h-3.5 w-3.5 mr-2" />}
+                                                                            {msg.isLocked ? "Unlock Thread" : "Lock Thread"}
+                                                                        </DropdownMenuItem>
+
+                                                                        <DropdownMenuItem onClick={() => pinMutation.mutate({ id: msg.id, isPinned: !msg.isPinned })} className="text-xs">
+                                                                            <Pin className={cn("h-3.5 w-3.5 mr-2", msg.isPinned ? "fill-current" : "")} />
+                                                                            {msg.isPinned ? "Unpin Feedback" : "Pin Feedback"}
+                                                                        </DropdownMenuItem>
+
+                                                                        <DropdownMenuItem onClick={() => hideMutation.mutate({ id: msg.id, isHidden: !msg.isHidden })} className="text-xs text-red-400 focus:text-red-400">
+                                                                            {msg.isHidden ? <Eye className="h-3.5 w-3.5 mr-2" /> : <EyeOff className="h-3.5 w-3.5 mr-2" />}
+                                                                            {msg.isHidden ? "Unhide Feedback" : "Hide Feedback"}
+                                                                        </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </div>
+                                                        )}
                                                     </div>
 
-                                                    {/* Category Badge with Tooltip */}
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <div>
+
+                                                    {/* Status & Category Badges */}
+                                                    <div className="flex items-center gap-2">
+                                                        {msg.isPinned && (
+                                                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded text-[10px] font-medium text-amber-500/80">
+                                                                <Pin className="h-3 w-3 rotate-45" />
+                                                                <span>Pinned</span>
+                                                            </div>
+                                                        )}
+
+                                                        {msg.status !== "OPEN" && (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={cn(
+                                                                    "text-[10px] h-5 px-2 border gap-1.5 rounded-md font-medium shrink-0",
+                                                                    STATUS_CONFIG[msg.status].color
+                                                                )}
+                                                            >
+                                                                {StatusIcon && <StatusIcon className="h-3 w-3" />}
+                                                                {STATUS_CONFIG[msg.status].label}
+                                                            </Badge>
+                                                        )}
+
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
                                                                 <Badge
                                                                     variant="outline"
                                                                     className={cn(
@@ -358,92 +487,115 @@ export default function FeedbackWall() {
                                                                     <CategoryIcon className="h-3 w-3" />
                                                                     {categoryConfig.label}
                                                                 </Badge>
-                                                            </div>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80 max-w-[200px]">
-                                                            <p className="text-xs">{categoryConfig.tooltip}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </div>
-                                            </div>
-
-                                            {/* Card Body */}
-                                            <div className="px-4 py-4">
-                                                <p className="text-[14px] leading-relaxed text-white/80 whitespace-pre-wrap break-words">
-                                                    {msg.content}
-                                                </p>
-
-                                                {msg.isAck && (
-                                                    <div className="mt-3 pt-3 border-t border-white/[0.04] flex items-center gap-1.5">
-                                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/70" />
-                                                        <span className="text-[10px] font-semibold text-emerald-400/70 uppercase tracking-wider">
-                                                            Acknowledged by team
-                                                        </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80 max-w-[200px]">
+                                                                <p className="text-xs">{categoryConfig.tooltip}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
                                                     </div>
-                                                )}
+                                                    {msg.isAck && (
+                                                        <div className="mt-3 pt-3 border-t border-white/[0.04] flex items-center gap-1.5">
+                                                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/70" />
+                                                            <span className="text-[10px] font-semibold text-emerald-400/70 uppercase tracking-wider">
+                                                                Acknowledged by team
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {/* Shipped Logic - Special Styling */}
+                                                    {msg.status === "SHIPPED" && msg.changelogId ? (
+                                                        <a href={`/changelog#${msg.changelogId}`} className="block mt-4">
+                                                            <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 transition-colors group">
+                                                                <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                                                                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="text-xs font-medium text-emerald-400/90 mb-0.5">Shipped in Production</div>
+                                                                    <div className="text-[10px] text-emerald-400/50 flex items-center gap-1">
+                                                                        View Changelog <FileText className="h-3 w-3" />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </a>
+                                                    ) : msg.isLocked && msg.status === "SHIPPED" ? (
+                                                        <div className="mt-3 pt-2 text-[10px] text-emerald-400/60 flex items-center gap-1.5 font-medium border-t border-emerald-500/10">
+                                                            <CheckCircle2 className="h-3 w-3" />
+                                                            This feature has been shipped!
+                                                        </div>
+                                                    ) : null}
+                                                </div>
                                             </div>
 
                                             {/* Card Footer - Actions */}
                                             <div className="px-4 py-2.5 border-t border-white/[0.04] flex items-center gap-1">
-                                                {/* Upvote */}
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <button
-                                                            onClick={() => reactMutation.mutate(msg.id)}
-                                                            className={cn(
-                                                                "flex items-center gap-1.5 font-medium rounded-lg transition-all touch-target",
-                                                                isMobile ? "text-xs h-10 px-4" : "text-[11px] h-7 px-2.5",
-                                                                msg.hasReacted
-                                                                    ? "bg-primary/15 text-primary border border-primary/20"
-                                                                    : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60"
-                                                            )}
-                                                        >
-                                                            <ThumbsUp className={cn(isMobile ? "h-4 w-4" : "h-3.5 w-3.5", msg.hasReacted && "fill-current")} />
-                                                            <span>{msg.upvotes}</span>
-                                                        </button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80">
-                                                        <p className="text-xs">Support this idea</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
+                                                {/* Locked State */}
+                                                {msg.isLocked ? (
+                                                    <div className="flex items-center gap-2 text-[10px] text-white/20 font-medium px-2 py-1">
+                                                        <Lock className="h-3 w-3" />
+                                                        Thread Locked
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        {/* Upvote */}
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button
+                                                                    onClick={() => reactMutation.mutate(msg.id)}
+                                                                    className={cn(
+                                                                        "flex items-center gap-1.5 font-medium rounded-lg transition-all touch-target",
+                                                                        isMobile ? "text-xs h-10 px-4" : "text-[11px] h-7 px-2.5",
+                                                                        msg.hasReacted
+                                                                            ? "bg-primary/15 text-primary border border-primary/20"
+                                                                            : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60"
+                                                                    )}
+                                                                >
+                                                                    <ThumbsUp className={cn(isMobile ? "h-4 w-4" : "h-3.5 w-3.5", msg.hasReacted && "fill-current")} />
+                                                                    <span>{msg.upvotes}</span>
+                                                                </button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80">
+                                                                <p className="text-xs">Support this idea</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
 
-                                                {/* Downvote */}
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <button
-                                                            onClick={() => disagreeMutation.mutate(msg.id)}
-                                                            className={cn(
-                                                                "flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg transition-all",
-                                                                msg.hasDisagreed
-                                                                    ? "bg-red-500/15 text-red-400 border border-red-500/20"
-                                                                    : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60"
-                                                            )}
-                                                        >
-                                                            <ThumbsDown className={cn("h-3.5 w-3.5", msg.hasDisagreed && "fill-current")} />
-                                                            {msg.downvotes > 0 && <span>{msg.downvotes}</span>}
-                                                        </button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80">
-                                                        <p className="text-xs">Disagree or not relevant</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
+                                                        {/* Downvote */}
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button
+                                                                    onClick={() => disagreeMutation.mutate(msg.id)}
+                                                                    className={cn(
+                                                                        "flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg transition-all",
+                                                                        msg.hasDisagreed
+                                                                            ? "bg-red-500/15 text-red-400 border border-red-500/20"
+                                                                            : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60"
+                                                                    )}
+                                                                >
+                                                                    <ThumbsDown className={cn("h-3.5 w-3.5", msg.hasDisagreed && "fill-current")} />
+                                                                    {msg.downvotes > 0 && <span>{msg.downvotes}</span>}
+                                                                </button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80">
+                                                                <p className="text-xs">Disagree or not relevant</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
 
-                                                {/* Discuss (Disabled - Coming Soon) */}
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <button
-                                                            disabled
-                                                            className="flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg bg-white/[0.02] text-white/20 border border-transparent ml-auto cursor-not-allowed"
-                                                        >
-                                                            <Clock className="h-3 w-3" />
-                                                            <span>Discuss</span>
-                                                        </button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80 max-w-[220px]">
-                                                        <p className="text-xs font-medium mb-1">Discussions coming soon</p>
-                                                        <p className="text-[10px] text-white/50">This will allow threaded conversations on feedback.</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
+                                                        {/* Discuss (Disabled - Coming Soon) */}
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button
+                                                                    disabled
+                                                                    className="flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg bg-white/[0.02] text-white/20 border border-transparent ml-auto cursor-not-allowed"
+                                                                >
+                                                                    <Clock className="h-3 w-3" />
+                                                                    <span>Discuss</span>
+                                                                </button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80 max-w-[220px]">
+                                                                <p className="text-xs font-medium mb-1">Discussions coming soon</p>
+                                                                <p className="text-[10px] text-white/50">This will allow threaded conversations on feedback.</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -455,22 +607,24 @@ export default function FeedbackWall() {
                 </div>
 
                 {/* Scroll to Bottom */}
-                {!shouldAutoScroll && (
-                    <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-40">
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 px-3 rounded-full bg-[#1a1a1e]/90 border-white/10 text-white/60 backdrop-blur-md shadow-xl hover:bg-[#1a1a1e] hover:text-white"
-                            onClick={() => {
-                                setShouldAutoScroll(true);
-                                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-                            }}
-                        >
-                            <ArrowDown className="h-3.5 w-3.5 mr-1.5" />
-                            New feedback
-                        </Button>
-                    </div>
-                )}
+                {
+                    !shouldAutoScroll && (
+                        <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-40">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-3 rounded-full bg-[#1a1a1e]/90 border-white/10 text-white/60 backdrop-blur-md shadow-xl hover:bg-[#1a1a1e] hover:text-white"
+                                onClick={() => {
+                                    setShouldAutoScroll(true);
+                                    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+                                }}
+                            >
+                                <ArrowDown className="h-3.5 w-3.5 mr-1.5" />
+                                New feedback
+                            </Button>
+                        </div>
+                    )
+                }
 
                 {/* Input Area - Modern Professional Design */}
                 <div className="border-t border-white/[0.06] bg-gradient-to-t from-[#0a0a0c] to-[#0c0c0e] backdrop-blur-xl">
@@ -564,78 +718,78 @@ export default function FeedbackWall() {
                         </form>
                     </div>
                 </div>
-
-                {/* Footer Transparency Note */}
-                <div className="border-t border-white/[0.03] bg-[#08080a] px-6 py-2">
-                    <p className="text-[9px] text-white/15 text-center max-w-4xl mx-auto tracking-wide">
-                        Feedback visibility is influenced by community votes and trust score
-                    </p>
-                </div>
-
-                {/* Info Modal */}
-                <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
-                    <DialogContent className="bg-[#14141a] border-white/[0.08] text-white sm:max-w-md rounded-2xl">
-                        <DialogHeader>
-                            <DialogTitle className="text-lg">What is the Feedback Wall?</DialogTitle>
-                        </DialogHeader>
-                        <div className="text-sm text-white/60 space-y-4 py-4">
-                            <p>
-                                This is a public space to share ideas, report issues, and suggest improvements for CodeStudio.
-                            </p>
-                            <p>
-                                Feedback here helps us prioritize features and improve the platform based on real developer needs.
-                            </p>
-                            <div className="pt-3 border-t border-white/[0.06]">
-                                <p className="text-[11px] text-white/30 italic">
-                                    Be constructive. Votes matter. Repeated spam may reduce trust score.
-                                </p>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button onClick={() => setShowInfoModal(false)} variant="outline" className="w-full rounded-xl h-9 border-white/10 text-white/70">
-                                Got it
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Welcome Dialog */}
-                <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
-                    <DialogContent className="bg-[#14141a] border-white/[0.08] text-white sm:max-w-md rounded-2xl">
-                        <DialogHeader>
-                            <DialogTitle className="text-lg">Welcome to Feedback Wall</DialogTitle>
-                            <DialogDescription className="text-white/40">
-                                Help shape the future of CodeStudio.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="text-sm text-white/60 space-y-3 py-4">
-                            <div className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                    <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-                                </div>
-                                <p><span className="text-white/80 font-medium">Request features</span> that would make your workflow better</p>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                    <Bug className="h-3.5 w-3.5 text-red-400" />
-                                </div>
-                                <p><span className="text-white/80 font-medium">Report bugs</span> so we can fix them quickly</p>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                    <ThumbsUp className="h-3.5 w-3.5 text-blue-400" />
-                                </div>
-                                <p><span className="text-white/80 font-medium">Upvote ideas</span> to help us prioritize the roadmap</p>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button onClick={() => setShowWelcome(false)} className="w-full rounded-xl h-10">
-                                Start Contributing
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
             </div>
+
+            {/* Footer Transparency Note */}
+            <div className="border-t border-white/[0.03] bg-[#08080a] px-6 py-2">
+                <p className="text-[9px] text-white/15 text-center max-w-4xl mx-auto tracking-wide">
+                    Feedback visibility is influenced by community votes and trust score
+                </p>
+            </div>
+
+            {/* Info Modal */}
+            <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
+                <DialogContent className="bg-[#14141a] border-white/[0.08] text-white sm:max-w-md rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg">What is the Feedback Wall?</DialogTitle>
+                    </DialogHeader>
+                    <div className="text-sm text-white/60 space-y-4 py-4">
+                        <p>
+                            This is a public space to share ideas, report issues, and suggest improvements for CodeStudio.
+                        </p>
+                        <p>
+                            Feedback here helps us prioritize features and improve the platform based on real developer needs.
+                        </p>
+                        <div className="pt-3 border-t border-white/[0.06]">
+                            <p className="text-[11px] text-white/30 italic">
+                                Be constructive. Votes matter. Repeated spam may reduce trust score.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={() => setShowInfoModal(false)} variant="outline" className="w-full rounded-xl h-9 border-white/10 text-white/70">
+                            Got it
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Welcome Dialog */}
+            <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+                <DialogContent className="bg-[#14141a] border-white/[0.08] text-white sm:max-w-md rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg">Welcome to Feedback Wall</DialogTitle>
+                        <DialogDescription className="text-white/40">
+                            Help shape the future of CodeStudio.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="text-sm text-white/60 space-y-3 py-4">
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                            </div>
+                            <p><span className="text-white/80 font-medium">Request features</span> that would make your workflow better</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                <Bug className="h-3.5 w-3.5 text-red-400" />
+                            </div>
+                            <p><span className="text-white/80 font-medium">Report bugs</span> so we can fix them quickly</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                <ThumbsUp className="h-3.5 w-3.5 text-blue-400" />
+                            </div>
+                            <p><span className="text-white/80 font-medium">Upvote ideas</span> to help us prioritize the roadmap</p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={() => setShowWelcome(false)} className="w-full rounded-xl h-10">
+                            Start Contributing
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </TooltipProvider>
     );
 }

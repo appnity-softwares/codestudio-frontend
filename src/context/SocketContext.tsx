@@ -36,7 +36,13 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const socketRef = useRef<SocketType | null>(null);
 
     useEffect(() => {
-        if (user?.id && !socketRef.current) {
+        if (!user?.id) return;
+
+        // Debounce connection to handle React Strict Mode double-mounting in dev
+        // This prevents "WebSocket is closed before the connection is established" errors
+        const timerId = setTimeout(() => {
+            if (socketRef.current) return; // Already connected
+
             socketRef.current = io(SOCKET_URL, {
                 query: {
                     userId: user.id,
@@ -47,11 +53,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 },
                 transports: ['websocket'], // Force WebSocket
                 upgrade: false,
-                reconnection: true, // Allow reconnection for stability
+                reconnection: true,
                 autoConnect: false,
             });
 
-            // Manual connect since autoConnect is false
             socketRef.current.connect();
 
             socketRef.current.on('connect', () => {
@@ -65,9 +70,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             socketRef.current.on('connect_error', (err: Error) => {
                 console.error('Socket connection error:', err);
             });
-        }
+        }, 300); // 300ms delay allows strict mode to mount/unmount without triggering connection
 
         return () => {
+            clearTimeout(timerId); // Cancel connection if unmounted immediately (Strict Mode)
+
             if (socketRef.current) {
                 socketRef.current.disconnect();
                 socketRef.current = null;
