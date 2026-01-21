@@ -19,7 +19,11 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['lucide-react'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-slot', 'lucide-react', 'clsx', 'tailwind-merge'],
+          framer: ['framer-motion'],
+          query: ['@tanstack/react-query'],
+          monaco: ['@monaco-editor/react'],
+          charts: ['recharts'],
         },
       },
     },
