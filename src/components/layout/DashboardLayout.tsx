@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Dock } from "./Dock";
 import { Toolbelt } from "./Toolbelt";
 import { FloatingActionButton } from "../FloatingActionButton";
@@ -9,6 +9,19 @@ import { ExperienceModal } from "../ExperienceModal";
 
 export function DashboardLayout() {
     const isMobile = useIsMobile();
+    const location = useLocation();
+
+    // Routes where we should hide sidebars to maximize space
+    const isArenaRoom = location.pathname.includes('/arena/env/') ||
+        location.pathname.includes('/arena/official/') ||
+        location.pathname.includes('/contest/') ||
+        location.pathname.includes('/practice/');
+
+    const isCreatePage = location.pathname === '/create';
+
+    const hideDock = isArenaRoom && !isMobile;
+    const hideToolbelt = (isArenaRoom || isCreatePage) && !isMobile;
+    const hideFloatingButtons = (isArenaRoom || isCreatePage) && !isMobile;
 
     return (
         <div className="relative h-screen w-screen bg-canvas overflow-hidden selection:bg-primary/20 text-primary font-sans">
@@ -18,7 +31,7 @@ export function DashboardLayout() {
             {/* Main Layout Flexbox */}
             <div className="relative z-10 h-full w-full flex overflow-hidden">
                 {/* Column 1: Navigation Dock (Desktop Only) */}
-                {!isMobile && <Dock />}
+                {!isMobile && !hideDock && <Dock />}
 
                 {/* Column 2: Main Content Area (Scrollable) */}
                 <main className={cn(
@@ -35,7 +48,7 @@ export function DashboardLayout() {
                 </main>
 
                 {/* Column 3: Context Toolbelt (Desktop Only) */}
-                {!isMobile && (
+                {!isMobile && !hideToolbelt && (
                     <div className="hidden lg:block w-[300px] flex-shrink-0 border-l border-border bg-canvas/50">
                         <Toolbelt />
                     </div>
@@ -43,10 +56,10 @@ export function DashboardLayout() {
             </div>
 
             {/* Floating Action Button */}
-            <FloatingActionButton />
+            {!hideFloatingButtons && <FloatingActionButton />}
 
             {/* Mobile Bottom Tab Navigation */}
-            {isMobile && <MobileTabBar />}
+            {isMobile && !hideFloatingButtons && <MobileTabBar />}
 
             <ExperienceModal />
         </div>

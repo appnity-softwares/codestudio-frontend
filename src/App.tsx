@@ -155,6 +155,7 @@ function AppRoutes() {
                 <Route path="/oauth-callback" element={<OAuthCallback />} />
 
                 <Route path="/" element={<Landing />} />
+                <Route path="/changelog" element={<Changelog />} />
 
                 <Route element={<DashboardLayout />}>
                     <Route
@@ -257,7 +258,7 @@ function AppRoutes() {
                     <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
                     <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                     <Route path="settings/avatars" element={<ProtectedRoute><AvatarPicker /></ProtectedRoute>} />
-                    <Route path="changelog" element={<Changelog />} />
+
 
                     {/* Community & Public Profile - Now Protected */}
                     <Route path="community" element={<ProtectedRoute><Community /></ProtectedRoute>} />

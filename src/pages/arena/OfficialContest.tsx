@@ -93,13 +93,60 @@ export default function OfficialContest() {
 
     const problem = problemData?.problem;
 
+    // Load saved code from localStorage
+    useEffect(() => {
+        if (selectedProblemId && eventId) {
+            const savedCode = localStorage.getItem(`contest_${eventId}_${selectedProblemId}`);
+            if (savedCode) {
+                setCode(savedCode);
+            } else {
+                setCode(BOILERPLATES[language as keyof typeof BOILERPLATES] || "");
+            }
+        }
+    }, [selectedProblemId, eventId, language]);
+
+    // Save code to localStorage
+    useEffect(() => {
+        if (selectedProblemId && eventId && code && isDirty) {
+            localStorage.setItem(`contest_${eventId}_${selectedProblemId}`, code);
+        }
+    }, [code, isDirty, selectedProblemId, eventId]);
+
     const handleLanguageChange = (newLang: string) => {
         if (isDirty) {
             if (!confirm("Switching language will reset your code. Continue?")) return;
         }
         setLanguage(newLang);
-        setCode(BOILERPLATES[newLang as keyof typeof BOILERPLATES] || "");
+        const savedCode = localStorage.getItem(`contest_${eventId}_${selectedProblemId}`);
+        if (!savedCode) {
+            setCode(BOILERPLATES[newLang as keyof typeof BOILERPLATES] || "");
+        }
         setIsDirty(false);
+    };
+
+    // Prevent accidental exit
+    useEffect(() => {
+        if (isLocked || showLanding) return;
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isDirty, isLocked, showLanding]);
+
+    const handleExit = () => {
+        if (isDirty) {
+            if (confirm("You have unsaved changes. If you leave now, you might lose progress. Are you sure you want to exit the contest room?")) {
+                navigate('/arena');
+            }
+        } else {
+            navigate('/arena');
+        }
     };
 
     // Anti-Cheating Listeners (Only active if unlocked)
@@ -316,7 +363,7 @@ export default function OfficialContest() {
             {/* Header */}
             <header className="h-14 border-b flex items-center justify-between px-4 bg-muted/5 shrink-0">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/arena`)}>
+                    <Button variant="ghost" size="sm" onClick={handleExit}>
                         <ChevronLeft className="h-4 w-4 mr-2" />
                         Exit
                     </Button>

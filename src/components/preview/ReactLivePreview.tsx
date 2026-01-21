@@ -58,8 +58,8 @@ export function ReactLivePreview({ code }: ReactLivePreviewProps) {
         let cleanCode = code.trim();
 
         // 1. Remove imports (robust multiline handling)
-        cleanCode = cleanCode.replace(/^import\s+[\s\S]+?from\s+['"].+['"];?/gm, '');
-        cleanCode = cleanCode.replace(/^import\s+['"].+['"];?/gm, '');
+        cleanCode = cleanCode.replace(/^\s*import\s+[\s\S]+?from\s+['"].+?['"];?\s*/gm, '');
+        cleanCode = cleanCode.replace(/^\s*import\s+['"].+?['"];?\s*/gm, '');
 
         // 2. Handle "export default function ComponentName"
         const exportDefaultFuncMatch = cleanCode.match(/export\s+default\s+function\s+([A-Z][a-zA-Z0-9]*)/);

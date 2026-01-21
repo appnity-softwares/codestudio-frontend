@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { practiceAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -44,12 +44,49 @@ export default function PracticeWorkspace() {
 
     const problem = data?.problem;
 
+    const [isDirty, setIsDirty] = useState(false);
+
+    // Load saved code from localStorage
     useEffect(() => {
-        if (problem) {
-            setCode(problem.starterCode || "");
-            setLanguage(problem.language || "python");
+        if (id) {
+            const savedCode = localStorage.getItem(`practice_${id}`);
+            if (savedCode) {
+                setCode(savedCode);
+            } else if (problem) {
+                setCode(problem.starterCode || "");
+                setLanguage(problem.language || "python");
+            }
         }
-    }, [problem]);
+    }, [id, problem]);
+
+    // Save code to localStorage
+    useEffect(() => {
+        if (id && code && isDirty) {
+            localStorage.setItem(`practice_${id}`, code);
+        }
+    }, [code, isDirty, id]);
+
+    // Prevent accidental exit
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isDirty]);
+
+    const handleExit = () => {
+        if (isDirty) {
+            if (confirm("You have unsaved code changes. Are you sure you want to leave the workspace?")) {
+                navigate('/practice');
+            }
+        } else {
+            navigate('/practice');
+        }
+    };
 
     // Run Code Mutation
     const runMutation = useMutation({
@@ -120,9 +157,9 @@ export default function PracticeWorkspace() {
             {/* Top Bar */}
             <header className="h-14 border-b border-white/5 bg-background flex items-center justify-between px-4 shrink-0">
                 <div className="flex items-center gap-4">
-                    <Link to="/practice" className="text-muted-foreground hover:text-foreground transition-colors">
+                    <button onClick={handleExit} className="text-muted-foreground hover:text-foreground transition-colors outline-none">
                         <ArrowLeft className="h-5 w-5" />
-                    </Link>
+                    </button>
                     <div className="h-6 w-px bg-white/10" />
                     <h1 className="font-bold text-foreground truncate max-w-[200px] md:max-w-md">{problem.title}</h1>
                     <Badge variant="outline" className={cn("hidden md:flex",
@@ -216,7 +253,10 @@ export default function PracticeWorkspace() {
                             height="100%"
                             language={language}
                             value={code}
-                            onChange={(val) => setCode(val || "")}
+                            onChange={(val) => {
+                                setCode(val || "");
+                                setIsDirty(true);
+                            }}
                             theme="vs-dark"
                             options={{
                                 minimap: { enabled: false },

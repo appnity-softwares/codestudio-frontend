@@ -73,7 +73,7 @@ export function StreamFeed({ snippets, loading }: StreamFeedProps) {
 
                         {/* Fake Card Body */}
                         <Skeleton className={cn(
-                            "w-full aspect-square",
+                            "w-full h-[400px]",
                             isMobile ? "rounded-[1.5rem]" : "rounded-[2rem]"
                         )} />
                     </div>

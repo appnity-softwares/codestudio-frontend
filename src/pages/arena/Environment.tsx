@@ -26,6 +26,47 @@ export default function ContestEnvironment() {
     const [executing, setExecuting] = useState(false);
     const [executionResult, setExecutionResult] = useState<any>(null);
     const [activeTab, setActiveTab] = useState("description");
+    const [isDirty, setIsDirty] = useState(false);
+
+    // Load saved code from localStorage
+    useEffect(() => {
+        if (selectedProblemId && eventId) {
+            const savedCode = localStorage.getItem(`contest_${eventId}_${selectedProblemId}`);
+            if (savedCode) {
+                setCode(savedCode);
+            }
+        }
+    }, [selectedProblemId, eventId]);
+
+    // Save code to localStorage
+    useEffect(() => {
+        if (selectedProblemId && eventId && code && isDirty) {
+            localStorage.setItem(`contest_${eventId}_${selectedProblemId}`, code);
+        }
+    }, [code, isDirty, selectedProblemId, eventId]);
+
+    // Prevent accidental exit
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isDirty]);
+
+    const handleExit = () => {
+        if (isDirty) {
+            if (confirm("You have unsaved changes. Are you sure you want to exit the contest room?")) {
+                navigate('/arena');
+            }
+        } else {
+            navigate('/arena');
+        }
+    };
 
     // Fetch Event Details (for timer)
     const { data: eventData } = useQuery({
@@ -177,7 +218,7 @@ export default function ContestEnvironment() {
             {/* Header */}
             <header className="h-14 border-b flex items-center justify-between px-4 shrink-0">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/arena`)}>
+                    <Button variant="ghost" size="sm" onClick={handleExit}>
                         <ChevronLeft className="h-4 w-4 mr-2" />
                         Exit
                     </Button>
@@ -298,7 +339,10 @@ export default function ContestEnvironment() {
                         <div className="flex-1 relative">
                             <Textarea
                                 value={code}
-                                onChange={(e) => setCode(e.target.value)}
+                                onChange={(e) => {
+                                    setCode(e.target.value);
+                                    setIsDirty(true);
+                                }}
                                 className="absolute inset-0 w-full h-full resize-none rounded-none border-0 font-mono text-sm p-4 focus-visible:ring-0"
                                 placeholder="Write your solution here..."
                                 spellCheck={false}
