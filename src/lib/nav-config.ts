@@ -1,5 +1,6 @@
 import {
     Home,
+    Sparkles,
 
     Settings,
     Bookmark,
@@ -18,6 +19,7 @@ export const navSections = [
         title: 'Discover',
         items: [
             { label: 'Feed', href: '/feed', icon: Home },
+            { label: 'Challenges', href: '/practice', icon: Sparkles },
         ],
     },
     {

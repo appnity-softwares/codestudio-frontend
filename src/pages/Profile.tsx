@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -117,12 +117,25 @@ export default function Profile() {
         enabled: !!username && (username !== 'me' || !!currentUser)
     });
 
-    // MVP Defaults (0 if missing)
-    const snippetCount = summaryData?.snippets?.total || 0;
-    const langStats = summaryData?.snippets?.byLanguage || { typescript: 0, python: 0, go: 0 };
+    // Calculate stats from snippets data strictly for real-time updates
+    const snippetCount = snippets.length > 0 ? snippets.length : (summaryData?.snippets?.total || 0);
     const contestCount = summaryData?.arena?.contestsJoined || 0;
 
-    // Calculate percentages for the bar
+    const langStats = useMemo(() => {
+        const stats = { typescript: 0, python: 0, go: 0 };
+        if (snippets.length > 0) {
+            snippets.forEach((s: any) => {
+                const lang = s.language.toLowerCase();
+                if (stats.hasOwnProperty(lang)) {
+                    // @ts-ignore
+                    stats[lang]++;
+                }
+            });
+            return stats;
+        }
+        return summaryData?.snippets?.byLanguage || stats;
+    }, [snippets, summaryData]);
+
     const totalSpecific = (langStats.typescript || 0) + (langStats.python || 0) + (langStats.go || 0);
 
     // Initial Loading State
@@ -375,6 +388,9 @@ export default function Profile() {
                     <TabsTrigger value="overview" className="gap-2">
                         <Terminal className="h-4 w-4" /> Overview
                     </TabsTrigger>
+                    <TabsTrigger value="snippets" className="gap-2">
+                        <Code className="h-4 w-4" /> Snippets
+                    </TabsTrigger>
                     <TabsTrigger value="badges" className="gap-2">
                         <Trophy className="h-4 w-4" /> Badges & Progress
                     </TabsTrigger>
@@ -475,6 +491,43 @@ export default function Profile() {
                             )}
                         </div>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="snippets" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold font-headline flex items-center gap-2">
+                            <Code className="h-5 w-5 text-primary" />
+                            All Snippets ({snippets.length})
+                        </h2>
+                    </div>
+                    {snippets.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-6">
+                            {snippets.map((snippet: any) => (
+                                <SnippetCard key={snippet.id} snippet={snippet} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-20 border border-dashed border-white/10 rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center px-6">
+                            <div className="h-16 w-16 rounded-full bg-muted/20 flex items-center justify-center mb-6">
+                                <Code className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                            <h4 className="text-lg font-bold text-foreground mb-2">No Snippets Found</h4>
+                            <p className="text-muted-foreground mb-6 max-w-md">
+                                {currentUser?.id === profileUser.id
+                                    ? "You haven't published any snippets yet. Start coding and share your work!"
+                                    : "This developer hasn't posted any snippets."
+                                }
+                            </p>
+                            {currentUser?.id === profileUser.id && (
+                                <Link to="/create">
+                                    <Button className="gap-2">
+                                        <Terminal className="h-4 w-4" />
+                                        Create New Snippet
+                                    </Button>
+                                </Link>
+                            )}
+                        </div>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="badges" className="animate-in fade-in slide-in-from-bottom-2 duration-500">

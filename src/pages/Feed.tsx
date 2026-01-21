@@ -78,22 +78,22 @@ export default function Feed() {
 
                     {/* Filter Bar */}
                     <div className={cn(
-                        "flex flex-col gap-4 bg-surface rounded-xl border border-border shadow-sm",
+                        "flex flex-col gap-4 bg-surface/50 rounded-xl border border-border/50 shadow-sm backdrop-blur-sm",
                         isMobile ? "p-3 mx-4" : "p-4 md:flex-row items-center justify-between"
                     )}>
-                        <div className="relative w-full md:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <div className="relative w-full md:w-72">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
                             <Input
                                 placeholder="Search snippets..."
-                                className="pl-9 h-9 text-sm bg-background/50 border-white/10 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50"
+                                className="pl-10 h-10 text-sm bg-black/20 border-white/10 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50 rounded-lg text-white"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
                         </div>
 
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
+                        <div className="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
                             <Select value={type} onValueChange={setType}>
-                                <SelectTrigger className="w-[100px] h-9 text-xs uppercase font-bold tracking-wider">
+                                <SelectTrigger className="w-[110px] h-10 text-xs uppercase font-extrabold tracking-wider bg-black/20 border-white/10 text-white hover:border-primary/50 transition-colors">
                                     <SelectValue placeholder="Type" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -106,7 +106,7 @@ export default function Feed() {
                             </Select>
 
                             <Select value={difficulty} onValueChange={setDifficulty}>
-                                <SelectTrigger className="w-[100px] h-9 text-xs uppercase font-bold tracking-wider">
+                                <SelectTrigger className="w-[110px] h-10 text-xs uppercase font-extrabold tracking-wider bg-black/20 border-white/10 text-white hover:border-primary/50 transition-colors">
                                     <SelectValue placeholder="Diff" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -118,7 +118,7 @@ export default function Feed() {
                             </Select>
 
                             <Select value={language} onValueChange={setLanguage}>
-                                <SelectTrigger className="w-[110px] h-9 text-xs uppercase font-bold tracking-wider">
+                                <SelectTrigger className="w-[120px] h-10 text-xs uppercase font-extrabold tracking-wider bg-black/20 border-white/10 text-white hover:border-primary/50 transition-colors">
                                     <SelectValue placeholder="Language" />
                                 </SelectTrigger>
                                 <SelectContent>

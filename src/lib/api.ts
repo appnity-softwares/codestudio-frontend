@@ -175,10 +175,10 @@ export const snippetsAPI = {
             body: JSON.stringify({ output }),
         }),
 
-    execute: (language: string, code: string) =>
+    execute: (data: { language: string; code: string; stdin?: string }) =>
         apiRequest<{ run: { stdout: string; stderr: string; code: number; signal: string } }>('/snippets/execute', {
             method: 'POST',
-            body: JSON.stringify({ language, code }),
+            body: JSON.stringify(data),
         }),
 
     // v1.2: Fork & Copy
@@ -212,7 +212,10 @@ export const feedAPI = {
 // v1.2: Practice Arena API
 export const practiceAPI = {
     getProblems: (params?: { difficulty?: string; category?: string }) => {
-        const query = new URLSearchParams(params as any).toString();
+        const cleanParams = Object.fromEntries(
+            Object.entries(params || {}).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+        );
+        const query = new URLSearchParams(cleanParams as any).toString();
         return apiRequest<{ problems: any[] }>(`/practice/problems${query ? `?${query}` : ''}`);
     },
     getProblem: (id: string) =>
@@ -225,7 +228,7 @@ export const practiceAPI = {
             body: JSON.stringify(data),
         }),
     submit: (data: { problemId: string; code: string; language: string }) =>
-        apiRequest<{ submission: any; output: string; stderr: string; newBadges?: any[] }>('/practice/submit', {
+        apiRequest<{ submission: any; output: string; stderr: string; newBadges?: any[]; nextProblemId?: string }>('/practice/submit', {
             method: 'POST',
             body: JSON.stringify(data),
         }),
@@ -281,7 +284,7 @@ export const usersAPI = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
-    getBadges: (username: string) => apiRequest<{ badges: any[] }>(`/users/${username}/badges`),
+    getBadges: (username: string) => apiRequest<{ badges: any[]; influence: any }>(`/users/${username}/badges`),
 
     // New Public/Community Methods
     getPublicProfile: (username: string) => apiRequest<{ user: any }>(`/public/users/${username}`),
@@ -522,6 +525,13 @@ export const adminAPI = {
     updateProblem: (id: string, data: any) => apiRequest<{ message: string }>('/admin/problems/' + id, { method: 'PUT', body: JSON.stringify(data) }),
     deleteProblem: (id: string) => apiRequest<{ message: string }>('/admin/problems/' + id, { method: 'DELETE' }),
     reorderProblems: (eventId: string, problemIds: string[]) => apiRequest<{ message: string }>('/admin/problems/reorder', { method: 'POST', body: JSON.stringify({ eventId, problemIds }) }),
+
+    // Practice Problems (v1.2)
+    getPracticeProblems: () => apiRequest<{ problems: any[] }>('/admin/practice-problems'),
+    getPracticeProblem: (id: string) => apiRequest<{ problem: any }>('/admin/practice-problems/' + id),
+    createPracticeProblem: (data: any) => apiRequest<{ problem: any }>('/admin/practice-problems', { method: 'POST', body: JSON.stringify(data) }),
+    updatePracticeProblem: (id: string, data: any) => apiRequest<{ message: string }>('/admin/practice-problems/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+    deletePracticeProblem: (id: string) => apiRequest<{ message: string }>('/admin/practice-problems/' + id, { method: 'DELETE' }),
 
     // Test Cases
     createTestCase: (problemId: string, data: any) => apiRequest<{ testCase: any }>(`/admin/problems/${problemId}/testcases`, { method: 'POST', body: JSON.stringify(data) }),

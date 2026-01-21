@@ -31,6 +31,7 @@ import OAuthCallback from "./pages/auth/OAuthCallback"
 import Create from "./pages/Create"
 import SnippetDetail from "./pages/SnippetDetail"
 import Chat from "./pages/Chat"
+import Badges from "./pages/Badges"
 import AdminLayout from "./pages/admin/AdminLayout"
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import ContestManager from "./pages/admin/ContestManager"
@@ -42,6 +43,7 @@ import AdminUsers from "./pages/admin/AdminUsers"
 import AdminSubmissions from "./pages/admin/AdminSubmissions"
 import AdminSystem from "./pages/admin/AdminSystem"
 import AdminChangelog from "./pages/admin/AdminChangelog"
+import AdminPractice from "./pages/admin/AdminPractice"
 import Changelog from "./pages/Changelog"
 import PracticeList from "./pages/PracticeList"
 import PracticeWorkspace from "./pages/PracticeWorkspace"
@@ -215,6 +217,7 @@ function AppRoutes() {
 
                 <Route path="snippets/:id" element={<SnippetDetail />} />
                 <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
+                <Route path="badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
                 {/* Admin Routes */}
                 <Route path="admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                     <Route index element={<AdminDashboard />} />
@@ -227,6 +230,7 @@ function AppRoutes() {
                     <Route path="system" element={<AdminSystem />} />
                     <Route path="audit-logs" element={<AuditLogs />} />
                     <Route path="changelog" element={<AdminChangelog />} />
+                    <Route path="practice-problems" element={<AdminPractice />} />
                 </Route>
 
                 {/* 404 Catch-all */}

@@ -142,6 +142,39 @@ export default function PracticeList() {
 
                     {/* Right Sidebar: Filters */}
                     <div className="space-y-8">
+                        {/* Gamification Widget */}
+                        <div className="bg-gradient-to-br from-primary/20 to-purple-500/10 border border-primary/20 rounded-xl p-6 relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative z-10">
+                                <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
+                                    <Trophy className="h-5 w-5 text-yellow-400" />
+                                    Your Progress
+                                </h3>
+                                <p className="text-xs text-muted-foreground mb-4">
+                                    Solve challenges to unlock exclusive badges and climb the leaderboard!
+                                </p>
+
+                                <div className="space-y-2 mb-4">
+                                    <div className="flex justify-between text-xs font-medium">
+                                        <span className="text-white/70">Next Badge: Problem Solver</span>
+                                        <span className="text-primary">{problems.filter((p: any) => p.isSolved).length} / {problems.length}</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)] transition-all duration-500"
+                                            style={{ width: `${(problems.filter((p: any) => p.isSolved).length / Math.max(problems.length, 1)) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <Link to="/badges">
+                                    <Button size="sm" className="w-full bg-white/10 hover:bg-white/20 border-white/5 text-xs h-8">
+                                        View Achievements
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+
                         {/* Status */}
                         <div className="bg-surface border border-white/5 rounded-xl p-6">
                             <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">

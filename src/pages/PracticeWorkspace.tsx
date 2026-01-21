@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { practiceAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -59,6 +59,7 @@ function BadgeAwardModal({ badges, onClose }: { badges: any[], onClose: () => vo
 export default function PracticeWorkspace() {
     const { id } = useParams();
     const { toast } = useToast();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
 
     const [language, setLanguage] = useState("python");
@@ -110,6 +111,28 @@ export default function PracticeWorkspace() {
                 if (res.newBadges && res.newBadges.length > 0) {
                     setNewBadges(res.newBadges);
                 }
+
+                if (res.nextProblemId) {
+                    toast({
+                        title: "Challenge Complete! 🎉",
+                        description: "Ready for the next one?",
+                        action: (
+                            <Button
+                                size="sm"
+                                className="bg-white text-black hover:bg-white/90"
+                                onClick={() => {
+                                    navigate(`/practice/${res.nextProblemId}`);
+                                    queryClient.invalidateQueries({ queryKey: ['practice-problem', res.nextProblemId] });
+                                    window.location.reload(); // Force reload to ensure clean state if needed, or rely on key change
+                                }}
+                            >
+                                Next Challenge
+                            </Button>
+                        ),
+                        duration: 10000,
+                    });
+                }
+
                 queryClient.invalidateQueries({ queryKey: ['practice-problem', id] });
             } else {
                 toast({ variant: "destructive", title: "❌ Failed", description: res.submission.verdict });

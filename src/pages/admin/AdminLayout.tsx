@@ -1,7 +1,7 @@
 
 
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Trophy, Flag, ShieldAlert, FileText, LogOut, Users, Code, Settings, Megaphone } from "lucide-react";
+import { LayoutDashboard, Trophy, Flag, ShieldAlert, FileText, LogOut, Users, Code, Settings, Megaphone, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { removeToken } from "@/lib/api";
 
@@ -16,12 +16,19 @@ export default function AdminLayout() {
     const navItems = [
         { to: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
         { to: "/admin/users", icon: Users, label: "Users" },
+        { to: "/admin/practice-problems", icon: Code, label: "Practice Problems" },
         { to: "/admin/contests", icon: Trophy, label: "Contests" },
-        { to: "/admin/submissions", icon: Code, label: "Submissions" },
+        { to: "/admin/submissions", icon: FileText, label: "Submissions" },
         { to: "/admin/flags", icon: Flag, label: "Flag Review" },
         { to: "/admin/system", icon: Settings, label: "System" },
         { to: "/admin/changelog", icon: Megaphone, label: "Changelog" },
         { to: "/admin/audit-logs", icon: FileText, label: "Audit Logs" },
+    ];
+
+    const quickLinks = [
+        { to: "/feed", icon: Zap, label: "Live Feed" },
+        { to: "/practice", icon: Code, label: "Practice Arena" },
+        { to: "/badges", icon: Trophy, label: "Badges System" },
     ];
 
     return (
@@ -51,6 +58,20 @@ export default function AdminLayout() {
                         </NavLink>
                     ))}
                 </nav>
+
+                <div className="px-4 py-2">
+                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">Quick Links</div>
+                    {quickLinks.map((item) => (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            className="flex items-center px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100 rounded-md transition-colors"
+                        >
+                            <item.icon className="mr-3 h-4 w-4 opacity-70" />
+                            {item.label}
+                        </NavLink>
+                    ))}
+                </div>
 
                 <div className="p-4 border-t border-slate-200 dark:border-slate-800">
                     <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10" onClick={handleLogout}>

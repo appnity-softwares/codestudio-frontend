@@ -33,58 +33,59 @@ export function Toolbelt() {
 
             <div className="p-4 space-y-6 overflow-y-auto flex-1">
                 {/* 2. Quick Links */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                        <Activity className="w-3 h-3" />
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-extrabold text-white uppercase tracking-widest">
+                        <Activity className="w-4 h-4 text-primary" />
                         <span>Quick Actions</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                         <Link to="/create" className="block">
-                            <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer h-full flex flex-col items-center justify-center">
-                                <TerminalIcon className="w-5 h-5 mb-1 text-primary" />
-                                <span className="text-[10px] font-mono">Create Snippet</span>
+                            <div className="p-4 rounded-xl bg-surface border border-white/10 hover:border-primary hover:bg-white/5 transition-all text-center cursor-pointer h-full flex flex-col items-center justify-center group shadow-sm">
+                                <TerminalIcon className="w-6 h-6 mb-2 text-primary group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold text-white group-hover:text-primary transition-colors">Create Snippet</span>
                             </div>
                         </Link>
                         <Link to="/arena" className="block">
-                            <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer h-full flex flex-col items-center justify-center">
-                                <Users className="w-5 h-5 mb-1 text-orange-400" />
-                                <span className="text-[10px] font-mono">Arena</span>
+                            <div className="p-4 rounded-xl bg-surface border border-white/10 hover:border-orange-500 hover:bg-white/5 transition-all text-center cursor-pointer h-full flex flex-col items-center justify-center group shadow-sm">
+                                <Users className="w-6 h-6 mb-2 text-orange-400 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold text-white group-hover:text-orange-400 transition-colors">Arena</span>
                             </div>
                         </Link>
                         <Link to="/changelog" className="block col-span-2">
-                            <div className="p-3 rounded bg-surface border border-border hover:border-primary/50 transition-colors text-center cursor-pointer flex items-center justify-center gap-2">
-                                <Activity className="w-4 h-4 text-emerald-400" />
-                                <span className="text-[10px] font-mono">View Changelog</span>
+                            <div className="p-3 rounded-lg bg-surface border border-white/10 hover:border-emerald-500 hover:bg-white/5 transition-all text-center cursor-pointer flex items-center justify-center gap-2 group shadow-sm">
+                                <Activity className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">View Changelog</span>
                             </div>
                         </Link>
                     </div>
                 </div>
 
                 {/* 3. Execution Environment Info */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                        <Cpu className="w-3 h-3" />
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-extrabold text-white uppercase tracking-widest">
+                        <Cpu className="w-4 h-4 text-purple-400" />
                         <span>Execution Runtime</span>
                     </div>
-                    <div className="p-4 bg-surface rounded-sm border border-border space-y-2">
-                        <div className="flex justify-between items-center text-xs font-mono">
+                    <div className="p-5 bg-surface/50 rounded-xl border border-white/10 space-y-3 shadow-inner">
+                        <div className="flex justify-between items-center text-xs font-medium">
                             <span className="text-muted-foreground">Engine</span>
-                            <span className="text-primary">Piston v2 (Sandboxed)</span>
+                            <span className="text-white font-bold tracking-wide">Piston v2</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs font-mono">
+                        <div className="w-full h-px bg-white/5" />
+                        <div className="flex justify-between items-center text-xs font-medium">
                             <span className="text-muted-foreground">Python</span>
-                            <span className="text-foreground">v3.10</span>
+                            <span className="text-white font-mono">v3.10</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs font-mono">
+                        <div className="flex justify-between items-center text-xs font-medium">
                             <span className="text-muted-foreground">Node.js</span>
-                            <span className="text-foreground">v18.x</span>
+                            <span className="text-white font-mono">v18.x</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs font-mono">
+                        <div className="flex justify-between items-center text-xs font-medium">
                             <span className="text-muted-foreground">Go</span>
-                            <span className="text-foreground">v1.20</span>
+                            <span className="text-white font-mono">v1.20</span>
                         </div>
-                        <div className="mt-2 pt-2 border-t border-border text-[10px] text-muted-foreground/50 text-center italic">
-                            Strict memory/time limits active.
+                        <div className="mt-3 pt-3 border-t border-white/10 text-[10px] text-white/40 text-center uppercase tracking-wider font-bold">
+                            Sandboxed Environment
                         </div>
                     </div>
                 </div>

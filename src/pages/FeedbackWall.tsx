@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Send, ThumbsUp, ThumbsDown, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown, Info, Clock, Lock, Pin, FileText, MoreHorizontal, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { feedbackAPI, adminAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
@@ -120,7 +122,8 @@ export default function FeedbackWall() {
         queryKey: ['feedback', 'latest'],
         queryFn: async () => {
             const res = await feedbackAPI.getAll("latest");
-            return (res.data as FeedbackMessage[]).reverse();
+            // Sort strictly by date (Oldest -> Newest) for Chat style (WhatsApp like)
+            return (res.data as FeedbackMessage[]).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         },
         refetchInterval: 3000,
     });
@@ -357,9 +360,11 @@ export default function FeedbackWall() {
                         {/* Messages */}
                         {messages.filter(m => !m.isHidden).map((msg) => {
                             const isMe = user?.id === msg.userId;
-                            const CategoryIcon = CATEGORY_CONFIG[msg.category].icon;
-                            const categoryConfig = CATEGORY_CONFIG[msg.category];
-                            const StatusIcon = STATUS_CONFIG[msg.status].icon;
+                            const categoryConfig = CATEGORY_CONFIG[msg.category] || CATEGORY_CONFIG.OTHER;
+                            const CategoryIcon = categoryConfig.icon;
+                            // Safe status access
+                            const statusConfig = STATUS_CONFIG[msg.status] || STATUS_CONFIG.OPEN;
+                            const StatusIcon = statusConfig.icon;
 
                             return (
                                 <motion.div
@@ -467,11 +472,11 @@ export default function FeedbackWall() {
                                                                 variant="outline"
                                                                 className={cn(
                                                                     "text-[10px] h-5 px-2 border gap-1.5 rounded-md font-medium shrink-0",
-                                                                    STATUS_CONFIG[msg.status].color
+                                                                    statusConfig.color
                                                                 )}
                                                             >
                                                                 {StatusIcon && <StatusIcon className="h-3 w-3" />}
-                                                                {STATUS_CONFIG[msg.status].label}
+                                                                {statusConfig.label}
                                                             </Badge>
                                                         )}
 
@@ -522,6 +527,17 @@ export default function FeedbackWall() {
                                                             This feature has been shipped!
                                                         </div>
                                                     ) : null}
+                                                </div>
+                                            </div>
+
+                                            {/* Feedback Content */}
+                                            <div className="px-4 py-3 text-sm text-white/80 leading-relaxed font-light break-words">
+                                                <div className="prose prose-invert prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10">
+                                                    <ReactMarkdown
+                                                        remarkPlugins={[remarkGfm]}
+                                                    >
+                                                        {msg.content}
+                                                    </ReactMarkdown>
                                                 </div>
                                             </div>
 

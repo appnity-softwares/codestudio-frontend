@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { snippetsAPI } from "@/lib/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Play, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,15 +27,24 @@ export default function Create() {
     const [snippetDifficulty, setSnippetDifficulty] = useState("MEDIUM");
     const [snippetCode, setSnippetCode] = useState("");
     const [snippetTags, setSnippetTags] = useState("");
+    const [stdIn, setStdIn] = useState("");
     const [executing, setExecuting] = useState(false);
     const [executionResult, setExecutionResult] = useState<{ stdout: string; stderr: string; code: number } | null>(null);
     const [previewAlignment, setPreviewAlignment] = useState<'center' | 'top'>('center');
+
+    const [searchParams] = useSearchParams();
+    const editId = searchParams.get('edit');
+    const forkId = searchParams.get('fork');
 
     const handleRunCode = async () => {
         setExecuting(true);
         setExecutionResult(null); // Clear previous
         try {
-            const res = await snippetsAPI.execute(snippetLang, snippetCode);
+            const res = await snippetsAPI.execute({
+                language: snippetLang,
+                code: snippetCode,
+                stdin: stdIn
+            });
             setExecutionResult(res.run);
             if (res.run.code !== 0) {
                 toast({ title: "Execution Failed", description: "Check your code errors.", variant: "destructive" });
@@ -48,9 +58,32 @@ export default function Create() {
         }
     };
 
+    // Fetch for Edit/Fork
+    useEffect(() => {
+        const loadSnippet = async (id: string, mode: 'edit' | 'fork') => {
+            setLoading(true);
+            try {
+                // FIX: Destructure snippet from response
+                const { snippet } = await snippetsAPI.getById(id);
+                setSnippetTitle(mode === 'fork' ? `${snippet.title} (Fork)` : snippet.title);
+                setSnippetDesc(snippet.description);
+                setSnippetLang(snippet.language);
+                setSnippetType(snippet.type || "ALGORITHM");
+                setSnippetDifficulty(snippet.difficulty || "MEDIUM");
+                setSnippetCode(snippet.code);
+                setSnippetTags(snippet.tags?.join(", ") || "");
+            } catch (error) {
+                toast({ variant: "destructive", title: "Error", description: "Failed to load snippet." });
+            } finally {
+                setLoading(false);
+            }
+        };
 
+        if (editId) loadSnippet(editId, 'edit');
+        else if (forkId) loadSnippet(forkId, 'fork');
+    }, [editId, forkId]);
 
-    const handleCreateSnippet = async () => {
+    const handleSubmit = async () => {
         if (!snippetTitle || !snippetCode) {
             toast({ title: "Error", description: "Title and Code are required", variant: "destructive" });
             return;
@@ -58,7 +91,7 @@ export default function Create() {
 
         // MVP Rule: Execution Success Required
         if (!executionResult || executionResult.code !== 0) {
-            toast({ title: "Verification Failed", description: "You must successfully RUN your code before posting.", variant: "destructive" });
+            toast({ title: "Verification Failed", description: "You must successfully RUN your code before posting/updating.", variant: "destructive" });
             return;
         }
 
@@ -80,7 +113,7 @@ export default function Create() {
 
         setLoading(true);
         try {
-            await snippetsAPI.create({
+            const payload = {
                 title: snippetTitle,
                 description: snippetDesc,
                 language: snippetLang,
@@ -92,11 +125,18 @@ export default function Create() {
                 previewType: (snippetLang === 'html' || snippetLang === 'react')
                     ? (previewAlignment === 'center' ? "WEB_PREVIEW_CENTER" : "WEB_PREVIEW_TOP")
                     : "TERMINAL",
-            });
-            toast({ title: "Success", description: "Snippet created successfully!" });
+            };
+
+            if (editId) {
+                await snippetsAPI.update(editId, payload);
+                toast({ title: "Updated", description: "Snippet updated successfully!" });
+            } else {
+                await snippetsAPI.create(payload);
+                toast({ title: "Created", description: "Snippet created successfully!" });
+            }
             navigate("/feed");
         } catch (error) {
-            toast({ title: "Error", description: "Failed to create snippet", variant: "destructive" });
+            toast({ title: "Error", description: "Action failed", variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -136,6 +176,30 @@ export default function Create() {
                             />
                         </div>
 
+                        {/* Stdin Input */}
+                        <div className="space-y-2">
+                            <Label className="text-base">Standard Input (stdin)</Label>
+                            <Textarea
+                                className="font-mono text-sm min-h-[80px] bg-black/50 border-white/10 resize-none"
+                                value={stdIn}
+                                onChange={e => setStdIn(e.target.value)}
+                                placeholder="Enter input for your program here (e.g. for input()...)"
+                                spellCheck={false}
+                            />
+                        </div>
+
+                        {/* Stdin Input */}
+                        <div className="space-y-2">
+                            <Label className="text-base">Standard Input (stdin)</Label>
+                            <Textarea
+                                className="font-mono text-sm min-h-[80px] bg-black/50 border-white/10 resize-none"
+                                value={stdIn}
+                                onChange={e => setStdIn(e.target.value)}
+                                placeholder="Enter input for your program here..."
+                                spellCheck={false}
+                            />
+                        </div>
+
                         {/* Execution Output (Mobile) */}
                         {executionResult && (
                             <div className="p-4 bg-black/90 rounded-xl border border-white/10 font-mono text-xs overflow-x-auto">
@@ -158,7 +222,7 @@ export default function Create() {
                             </Button>
                             <Button
                                 className="h-12 touch-target w-full"
-                                onClick={handleCreateSnippet}
+                                onClick={handleSubmit}
                                 disabled={loading || !executionResult}
                             >
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -192,6 +256,8 @@ export default function Create() {
                                     <SelectItem value="rust">Rust</SelectItem>
                                     <SelectItem value="html">HTML + Tailwind</SelectItem>
                                     <SelectItem value="react">React</SelectItem>
+                                    <SelectItem value="markdown">Markdown</SelectItem>
+                                    <SelectItem value="mermaid">Mermaid</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -268,6 +334,8 @@ export default function Create() {
                                         <SelectItem value="rust">Rust</SelectItem>
                                         <SelectItem value="html">HTML + Tailwind</SelectItem>
                                         <SelectItem value="react">React + Tailwind</SelectItem>
+                                        <SelectItem value="markdown">Markdown</SelectItem>
+                                        <SelectItem value="mermaid">Mermaid</SelectItem>
                                         <SelectItem value="c">C</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -331,7 +399,7 @@ export default function Create() {
                                 </Button>
                                 <Button
                                     className="w-2/3"
-                                    onClick={handleCreateSnippet}
+                                    onClick={handleSubmit}
                                     disabled={loading || !executionResult}
                                 >
                                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -399,4 +467,3 @@ export default function Create() {
         </div>
     );
 }
-
