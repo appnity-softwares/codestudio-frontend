@@ -28,15 +28,29 @@ export default function PracticeList() {
     const [difficulty, setDifficulty] = useState<string | undefined>(undefined);
     const [category, setCategory] = useState<string | undefined>(undefined);
     const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<'ALL' | 'SOLVED' | 'UNSOLVED'>('ALL');
 
     const { data, isLoading } = useQuery({
         queryKey: ['practice-problems', difficulty, category],
         queryFn: () => practiceAPI.getProblems({ difficulty, category }),
     });
 
-    const problems = data?.problems.filter(p =>
-        p.title.toLowerCase().includes(search.toLowerCase())
-    ) || [];
+    const allProblems = data?.problems || [];
+
+    // Filter Logic
+    const filteredProblems = allProblems.filter((p: any) => {
+        const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase());
+        const matchesStatus =
+            statusFilter === 'ALL' ? true :
+                statusFilter === 'SOLVED' ? p.isSolved :
+                    !p.isSolved;
+        return matchesSearch && matchesStatus;
+    });
+
+    // Stats Calculation (based on ALL problems to refer to global progress)
+    const totalProblems = allProblems.length || 1;
+    const totalSolved = allProblems.filter((p: any) => p.isSolved).length;
+    const progressPercent = (totalSolved / totalProblems) * 100;
 
     return (
         <div className="min-h-screen bg-canvas pb-20">
@@ -59,7 +73,7 @@ export default function PracticeList() {
                     <div className="lg:col-span-3 space-y-4">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-bold text-foreground">
-                                {problems.length} Challenges
+                                {filteredProblems.length} Challenges
                             </h2>
                             <div className="relative w-64">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -78,13 +92,13 @@ export default function PracticeList() {
                                     <div key={i} className="h-32 bg-surface/50 rounded-xl animate-pulse" />
                                 ))}
                             </div>
-                        ) : problems.length === 0 ? (
+                        ) : filteredProblems.length === 0 ? (
                             <div className="text-center py-20 bg-surface/30 rounded-xl border border-dashed border-white/10">
                                 <Code2 className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
                                 <p className="text-muted-foreground">No problems found matching your filters.</p>
                             </div>
                         ) : (
-                            problems.map((problem: any) => (
+                            filteredProblems.map((problem: any) => (
                                 <Link key={problem.id} to={`/practice/${problem.id}`}>
                                     <motion.div
                                         initial={{ opacity: 0, y: 10 }}
@@ -158,13 +172,13 @@ export default function PracticeList() {
 
                                 <div className="space-y-2 mb-4">
                                     <div className="flex justify-between text-xs font-medium">
-                                        <span className="text-white/70">Next Badge: Problem Solver</span>
-                                        <span className="text-primary">{problems.filter((p: any) => p.isSolved).length} / {problems.length}</span>
+                                        <span className="text-white/70">Solved Problems</span>
+                                        <span className="text-primary">{totalSolved} / {totalProblems}</span>
                                     </div>
                                     <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)] transition-all duration-500"
-                                            style={{ width: `${(problems.filter((p: any) => p.isSolved).length / Math.max(problems.length, 1)) * 100}%` }}
+                                            style={{ width: `${progressPercent}%` }}
                                         />
                                     </div>
                                 </div>
@@ -185,11 +199,21 @@ export default function PracticeList() {
                             </h3>
                             <div className="space-y-2">
                                 <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground">
-                                    <input type="checkbox" className="rounded border-white/20 bg-black/50" />
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-white/20 bg-black/50"
+                                        checked={statusFilter === 'SOLVED'}
+                                        onChange={() => setStatusFilter(statusFilter === 'SOLVED' ? 'ALL' : 'SOLVED')}
+                                    />
                                     <span>Solved</span>
                                 </label>
                                 <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground">
-                                    <input type="checkbox" className="rounded border-white/20 bg-black/50" />
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-white/20 bg-black/50"
+                                        checked={statusFilter === 'UNSOLVED'}
+                                        onChange={() => setStatusFilter(statusFilter === 'UNSOLVED' ? 'ALL' : 'UNSOLVED')}
+                                    />
                                     <span>Unsolved</span>
                                 </label>
                             </div>

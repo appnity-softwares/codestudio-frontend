@@ -40,6 +40,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CodeEditor } from "@/components/CodeEditor";
 
 export default function AdminPractice() {
     const { toast } = useToast();
@@ -48,6 +49,11 @@ export default function AdminPractice() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingProblem, setEditingProblem] = useState<any>(null);
     const [problemToDelete, setProblemToDelete] = useState<string | null>(null);
+
+    // Code Editor States
+    const [starterCode, setStarterCode] = useState("");
+    const [solutionCode, setSolutionCode] = useState("");
+    const [testCases, setTestCases] = useState("");
 
     // Fetch Problems
     const { data } = useQuery({
@@ -94,9 +100,9 @@ export default function AdminPractice() {
             difficulty: formData.get("difficulty") as string,
             category: formData.get("category") as string,
             description: formData.get("description") as string,
-            starterCode: formData.get("starterCode") as string,
-            solutionCode: formData.get("solutionCode") as string,
-            testCases: formData.get("testCases") as string,
+            starterCode,
+            solutionCode,
+            testCases,
             language: formData.get("language") as string,
         };
 
@@ -126,7 +132,13 @@ export default function AdminPractice() {
                     <h1 className="text-3xl font-bold tracking-tight">Practice Problems</h1>
                     <p className="text-muted-foreground">Manage algorithm challenges for users.</p>
                 </div>
-                <Button onClick={() => { setEditingProblem(null); setIsDialogOpen(true); }}>
+                <Button onClick={() => {
+                    setEditingProblem(null);
+                    setStarterCode("");
+                    setSolutionCode("");
+                    setTestCases("");
+                    setIsDialogOpen(true);
+                }}>
                     <Plus className="mr-2 h-4 w-4" /> New Problem
                 </Button>
             </div>
@@ -194,25 +206,38 @@ export default function AdminPractice() {
                                 <Textarea name="description" className="font-mono min-h-[100px]" defaultValue={editingProblem?.description} required />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-4 h-[300px]">
+                                <div className="space-y-2 flex flex-col h-full">
                                     <Label>Starter Code</Label>
-                                    <Textarea name="starterCode" className="font-mono min-h-[200px]" defaultValue={editingProblem?.starterCode} />
+                                    <div className="flex-1 border border-input rounded-md overflow-hidden">
+                                        <CodeEditor
+                                            code={starterCode}
+                                            language="python" // Defaulting to python for now, ideally tied to language select
+                                            onChange={(val) => setStarterCode(val || "")}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-2 flex flex-col h-full">
                                     <Label>Solution Code (Hidden)</Label>
-                                    <Textarea name="solutionCode" className="font-mono min-h-[200px]" defaultValue={editingProblem?.solutionCode} />
+                                    <div className="flex-1 border border-input rounded-md overflow-hidden">
+                                        <CodeEditor
+                                            code={solutionCode}
+                                            language="python"
+                                            onChange={(val) => setSolutionCode(val || "")}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-2 h-[200px] flex flex-col">
                                 <Label>Test Cases (JSON Array)</Label>
-                                <Textarea
-                                    name="testCases"
-                                    className="font-mono min-h-[100px]"
-                                    placeholder='[{"input": "Start", "expected": "End"}]'
-                                    defaultValue={editingProblem?.testCases}
-                                />
+                                <div className="flex-1 border border-input rounded-md overflow-hidden">
+                                    <CodeEditor
+                                        code={testCases}
+                                        language="json"
+                                        onChange={(val) => setTestCases(val || "")}
+                                    />
+                                </div>
                                 <p className="text-xs text-muted-foreground">JSON format: {`[{"input": "...", "expected": "..."}]`}</p>
                             </div>
 
@@ -276,6 +301,9 @@ export default function AdminPractice() {
                                     <div className="flex justify-end items-center gap-1">
                                         <Button variant="ghost" size="icon" className="hover:bg-primary/20 hover:text-primary transition-all" onClick={() => {
                                             setEditingProblem(problem);
+                                            setStarterCode(problem.starterCode || "");
+                                            setSolutionCode(problem.solutionCode || "");
+                                            setTestCases(problem.testCases || "");
                                             setIsDialogOpen(true);
                                         }}>
                                             <Edit2 className="h-4 w-4" />

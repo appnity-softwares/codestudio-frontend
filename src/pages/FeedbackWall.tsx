@@ -127,8 +127,12 @@ export default function FeedbackWall() {
         queryKey: ['feedback', 'latest'],
         queryFn: async () => {
             const res = await feedbackAPI.getAll("latest");
-            // Sort strictly by date (Oldest -> Newest) for Chat style (WhatsApp like)
-            return (res.data as FeedbackMessage[]).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            // Sort: Pinned first, then by date (Oldest -> Newest)
+            return (res.data as FeedbackMessage[]).sort((a, b) => {
+                if (a.isPinned && !b.isPinned) return -1; // a comes first
+                if (!a.isPinned && b.isPinned) return 1;  // b comes first
+                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            });
         },
         refetchInterval: 3000,
     });
@@ -377,7 +381,7 @@ export default function FeedbackWall() {
                         )}
 
                         {/* Messages */}
-                        {messages.filter(m => !m.isHidden).map((msg) => {
+                        {messages.filter(m => !m.isHidden || user?.role === 'ADMIN').map((msg) => {
                             const isMe = user?.id === msg.userId;
                             const categoryConfig = CATEGORY_CONFIG[msg.category] || CATEGORY_CONFIG.OTHER;
                             const CategoryIcon = categoryConfig.icon;
@@ -574,13 +578,15 @@ export default function FeedbackWall() {
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
                                                                 <button
-                                                                    onClick={() => reactMutation.mutate(msg.id)}
+                                                                    onClick={() => user?.role === 'ADMIN' && reactMutation.mutate(msg.id)}
+                                                                    disabled={user?.role !== 'ADMIN'}
                                                                     className={cn(
                                                                         "flex items-center gap-1.5 font-medium rounded-lg transition-all touch-target",
                                                                         isMobile ? "text-xs h-10 px-4" : "text-[11px] h-7 px-2.5",
                                                                         msg.hasReacted
                                                                             ? "bg-primary/15 text-primary border border-primary/20"
-                                                                            : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60"
+                                                                            : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60",
+                                                                        user?.role !== 'ADMIN' && "opacity-50 cursor-not-allowed"
                                                                     )}
                                                                 >
                                                                     <ThumbsUp className={cn(isMobile ? "h-4 w-4" : "h-3.5 w-3.5", msg.hasReacted && "fill-current")} />
@@ -588,7 +594,7 @@ export default function FeedbackWall() {
                                                                 </button>
                                                             </TooltipTrigger>
                                                             <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80">
-                                                                <p className="text-xs">Support this idea</p>
+                                                                <p className="text-xs">{user?.role === 'ADMIN' ? 'Support this idea' : 'Voting restricted to admins'}</p>
                                                             </TooltipContent>
                                                         </Tooltip>
 
@@ -596,12 +602,14 @@ export default function FeedbackWall() {
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
                                                                 <button
-                                                                    onClick={() => disagreeMutation.mutate(msg.id)}
+                                                                    onClick={() => user?.role === 'ADMIN' && disagreeMutation.mutate(msg.id)}
+                                                                    disabled={user?.role !== 'ADMIN'}
                                                                     className={cn(
                                                                         "flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg transition-all",
                                                                         msg.hasDisagreed
                                                                             ? "bg-red-500/15 text-red-400 border border-red-500/20"
-                                                                            : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60"
+                                                                            : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60",
+                                                                        user?.role !== 'ADMIN' && "opacity-50 cursor-not-allowed"
                                                                     )}
                                                                 >
                                                                     <ThumbsDown className={cn("h-3.5 w-3.5", msg.hasDisagreed && "fill-current")} />
@@ -609,7 +617,7 @@ export default function FeedbackWall() {
                                                                 </button>
                                                             </TooltipTrigger>
                                                             <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80">
-                                                                <p className="text-xs">Disagree or not relevant</p>
+                                                                <p className="text-xs">{user?.role === 'ADMIN' ? 'Disagree or not relevant' : 'Voting restricted to admins'}</p>
                                                             </TooltipContent>
                                                         </Tooltip>
 
