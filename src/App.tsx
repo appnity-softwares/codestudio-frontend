@@ -12,6 +12,7 @@ import { lazy, Suspense } from "react"
 import { PageLoader } from "./components/ui/PageLoader"
 
 // Pages (Lazy Loaded)
+const Landing = lazy(() => import("./pages/Landing"))
 const Feed = lazy(() => import("./pages/Feed"))
 const Arena = lazy(() => import("./pages/arena/Arena"))
 const EventDetail = lazy(() => import("./pages/arena/EventDetail"))
@@ -153,8 +154,17 @@ function AppRoutes() {
                 />
                 <Route path="/oauth-callback" element={<OAuthCallback />} />
 
-                <Route path="/" element={<DashboardLayout />}>
-                    <Route index element={<Navigate to="/feed" replace />} />
+                <Route path="/" element={<Landing />} />
+
+                <Route element={<DashboardLayout />}>
+                    <Route
+                        path="feed"
+                        element={
+                            <ProtectedRoute>
+                                <Feed />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route
                         path="arena"
                         element={

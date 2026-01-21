@@ -4,7 +4,7 @@ import { Clock, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
-import SEO from "@/components/SEO";
+import SEO from "@/components/SeoMeta";
 
 export default function Changelog() {
     const { data, isLoading } = useQuery({

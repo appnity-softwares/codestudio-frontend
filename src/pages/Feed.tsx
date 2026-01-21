@@ -9,7 +9,7 @@ import { Search, Flame, Clock, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useIsMobile } from "@/hooks/useMediaQuery";
-import SEO from "@/components/SEO";
+import SEO from "@/components/SeoMeta";
 
 type FeedBucket = 'trending' | 'new' | 'editor';
 

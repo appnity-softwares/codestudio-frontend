@@ -7,7 +7,7 @@ import {
 import { ShareProfileModal } from "@/components/profile/ShareProfileModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import SEO from "@/components/SEO";
+import SEO from "@/components/SeoMeta";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usersAPI, authAPI } from "@/lib/api";

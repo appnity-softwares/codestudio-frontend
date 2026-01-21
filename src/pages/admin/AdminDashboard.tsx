@@ -4,7 +4,7 @@ import { adminAPI } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Flag, Trophy, Users, Activity, AlertTriangle, FileCode, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
-import SEO from "@/components/SEO";
+import SEO from "@/components/SeoMeta";
 
 export default function AdminDashboard() {
     const { data: dashboardData, isLoading } = useQuery({

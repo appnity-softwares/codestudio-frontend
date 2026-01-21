@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import SEO from "@/components/SEO";
+import SEO from "@/components/SeoMeta";
 
 const difficultyColors: Record<string, string> = {
     EASY: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",

@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Calendar, ShieldCheck, AlertCircle, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
-import SEO from "@/components/SEO";
+import SEO from "@/components/SeoMeta";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { Helmet } from "react-helmet-async";
 

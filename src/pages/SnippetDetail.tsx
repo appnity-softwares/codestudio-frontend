@@ -14,7 +14,7 @@ import { SnippetInteraction } from "@/components/SnippetInteraction";
 import { formatDistanceToNow } from "date-fns";
 import { Copy, Terminal, Code2, Info, ArrowLeft, Loader2, GitFork } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import SEO from "@/components/SEO";
+import SEO from "@/components/SeoMeta";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 
 export default function SnippetDetail() {
