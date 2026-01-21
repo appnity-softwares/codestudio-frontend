@@ -22,7 +22,7 @@ export default function ProblemEditor() {
     const { data, isLoading } = useQuery({
         queryKey: ["admin-problem", id],
         queryFn: () => adminAPI.getProblem(id!),
-        enabled: !!id
+        enabled: !!id && id !== "undefined"
     });
 
     const updateMutation = useMutation({

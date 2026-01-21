@@ -52,7 +52,7 @@ export default function ContestManager() {
         onSuccess: (newContest: any) => {
             toast({ title: "Contest Created", description: "Draft created successfully." });
             queryClient.invalidateQueries({ queryKey: ["admin-contests"] });
-            navigate(`/admin/contests/${newContest.id}`); // Go to editor
+            navigate(`/admin/contests/${newContest.contest.id}`); // Correctly access the nested ID
         },
         onError: (err: any) => {
             toast({ title: "Failed to create", description: err.message, variant: "destructive" });

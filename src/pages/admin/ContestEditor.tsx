@@ -21,13 +21,13 @@ export default function ContestEditor() {
     const { data, isLoading } = useQuery({
         queryKey: ["admin-contest", id],
         queryFn: () => eventsAPI.getById(id!),
-        enabled: !!id
+        enabled: !!id && id !== "undefined"
     });
 
     const { data: problemsData } = useQuery({
         queryKey: ["admin-contest-problems", id],
         queryFn: () => contestsAPI.getProblems(id!),
-        enabled: !!id
+        enabled: !!id && id !== "undefined"
     });
 
     const updateMutation = useMutation({
