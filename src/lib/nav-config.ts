@@ -19,6 +19,7 @@ export const navSections = [
         title: 'Discover',
         items: [
             { label: 'Feed', href: '/feed', icon: Home },
+            { label: 'Community', href: '/community', icon: User },
             { label: 'Challenges', href: '/practice', icon: Sparkles },
         ],
     },

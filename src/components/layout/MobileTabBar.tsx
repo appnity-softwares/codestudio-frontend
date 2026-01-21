@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Trophy, Plus, MessageSquare, User } from "lucide-react";
+import { Home, Trophy, Globe, MessageSquare, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
@@ -14,7 +14,7 @@ interface TabItem {
 const tabs: TabItem[] = [
     { icon: Home, label: "Feed", path: "/feed", requiresAuth: true },
     { icon: Trophy, label: "Arena", path: "/arena", requiresAuth: true },
-    { icon: Plus, label: "Create", path: "/create", requiresAuth: true },
+    { icon: Globe, label: "Community", path: "/community", requiresAuth: false },
     { icon: MessageSquare, label: "Feedback", path: "/feedback", requiresAuth: false },
     { icon: User, label: "Profile", path: "/profile", requiresAuth: true },
 ];

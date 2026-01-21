@@ -1,15 +1,48 @@
+import { useState, useEffect, useRef } from "react";
 import { SnippetCard } from "./SnippetCard";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 
 interface StreamFeedProps {
     snippets: any[];
     loading?: boolean;
 }
 
+const ITEMS_PER_PAGE = 5;
+
 export function StreamFeed({ snippets, loading }: StreamFeedProps) {
     const isMobile = useIsMobile();
+    const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+    const loadMoreRef = useRef<HTMLDivElement>(null);
+
+    // Reset visibility when snippets change (e.g. bucket switch)
+    useEffect(() => {
+        setVisibleCount(ITEMS_PER_PAGE);
+    }, [snippets]);
+
+    // Handle Infinite Scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && !loading) {
+                    setVisibleCount(prev => Math.min(prev + ITEMS_PER_PAGE, snippets.length));
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [snippets, loading]);
+
+    const visibleSnippets = snippets.slice(0, visibleCount);
+    const hasMore = visibleCount < snippets.length;
 
     if (loading) {
         return (
@@ -83,17 +116,34 @@ export function StreamFeed({ snippets, loading }: StreamFeedProps) {
             </div>
 
             {/* List */}
-            {snippets.map((snippet) => (
+            {visibleSnippets.map((snippet) => (
                 <SnippetCard key={snippet.id} snippet={snippet} />
             ))}
 
-            {/* End of Stream */}
-            <div className="py-12 flex flex-col items-center opacity-30">
-                <div className="w-1 h-8 bg-border mb-2" />
-                <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.2em]">
-                    End of Buffer
+            {/* Load More Trigger */}
+            {hasMore && (
+                <div ref={loadMoreRef} className="py-10 flex justify-center">
+                    <Button
+                        variant="ghost"
+                        className="group flex flex-col items-center gap-2 text-muted-foreground hover:text-primary transition-all pb-8"
+                        onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                    >
+                        <span className="text-[10px] font-mono uppercase tracking-[0.3em]">Load More Content</span>
+                        <div className="h-10 w-[1px] bg-border group-hover:bg-primary transition-colors" />
+                        <ChevronDown className="h-4 w-4 animate-bounce" />
+                    </Button>
                 </div>
-            </div>
+            )}
+
+            {/* End of Stream */}
+            {!hasMore && (
+                <div className="py-12 flex flex-col items-center opacity-30">
+                    <div className="w-1 h-8 bg-border mb-2" />
+                    <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.2em]">
+                        End of Buffer
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

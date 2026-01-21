@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "./CodeBlock";
 import { ReactLivePreview } from "./preview/ReactLivePreview";
@@ -16,6 +16,18 @@ import { useNavigate, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidDiagram } from "./preview/MermaidDiagram";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Helper Colors
 const typeColors: Record<string, string> = {
@@ -27,14 +39,28 @@ const typeColors: Record<string, string> = {
 
 interface SnippetCardProps {
     snippet: any;
+    className?: string;
 }
 
-export function SnippetCard({ snippet }: SnippetCardProps) {
+export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
     const { isAuthenticated, user } = useAuth();
     const { toast } = useToast();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [copied, setCopied] = useState(false);
     const [forking, setForking] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Prefetch snippet details on hover
+    const handlePrefetch = () => {
+        if (snippet?.id) {
+            queryClient.prefetchQuery({
+                queryKey: ['snippets', snippet.id],
+                queryFn: () => snippetsAPI.getById(snippet.id),
+                staleTime: 60000,
+            });
+        }
+    };
 
     // Record View on Mount
     useEffect(() => {
@@ -104,7 +130,11 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true, margin: "-5%" }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-xl mx-auto mb-10 px-4 sm:px-0 transition-all duration-500"
+            onMouseEnter={handlePrefetch}
+            className={cn(
+                "w-full max-w-xl mx-auto mb-10 px-4 sm:px-0 transition-all duration-500",
+                className
+            )}
         >
             <div className="relative group bg-gradient-to-br from-[#121214] to-[#0a0a0c] border border-white/10 shadow-2xl rounded-[1.5rem] overflow-hidden flex flex-col">
 
@@ -169,7 +199,29 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                     ) : viewMode === 'output' ? (
                         <div className="absolute inset-0 bg-[#09090b] p-6 font-mono text-xs overflow-auto">
                             <div className="text-emerald-400 whitespace-pre-wrap font-mono leading-relaxed">
-                                {(snippet.lastExecutionOutput || snippet.outputSnapshot || snippet.output || "Success (No output)")}
+                                {(() => {
+                                    const rawOutput = snippet.lastExecutionOutput || snippet.outputSnapshot || snippet.output;
+                                    if (!rawOutput) return "Success (No output)";
+
+                                    try {
+                                        // Try to parse if it's a JSON string (sometimes backend returns full piston result)
+                                        if (rawOutput.startsWith('{')) {
+                                            const parsed = JSON.parse(rawOutput);
+                                            if (parsed.run) {
+                                                return (
+                                                    <div className="space-y-2">
+                                                        {parsed.run.stdout && <div>{parsed.run.stdout}</div>}
+                                                        {parsed.run.stderr && <div className="text-red-400">[STDERR] {parsed.run.stderr}</div>}
+                                                        {!parsed.run.stdout && !parsed.run.stderr && <div>Success (Code: {parsed.run.code})</div>}
+                                                    </div>
+                                                );
+                                            }
+                                        }
+                                    } catch (e) {
+                                        // Not JSON, just render raw
+                                    }
+                                    return rawOutput;
+                                })()}
                             </div>
                         </div>
                     ) : (
@@ -260,24 +312,50 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
                                 >
                                     <Edit className="h-3.5 w-3.5" />
                                 </button>
-                                <button
-                                    onClick={async () => {
-                                        if (confirm("Are you sure you want to delete this snippet? This action cannot be undone.")) {
-                                            try {
-                                                await snippetsAPI.delete(snippet.id);
-                                                toast({ title: "Deleted", description: "Snippet deleted successfully." });
-                                                // Ideally refresh list, but reload works for MVP
-                                                window.location.reload();
-                                            } catch (e) {
-                                                toast({ variant: "destructive", title: "Error", description: "Failed to delete snippet." });
-                                            }
-                                        }
-                                    }}
-                                    className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
-                                    title="Delete Snippet"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <button
+                                            className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
+                                            title="Delete Snippet"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent className="bg-surface border-border">
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle className="text-xl font-bold font-headline">Delete Snippet?</AlertDialogTitle>
+                                            <AlertDialogDescription className="text-muted-foreground">
+                                                This action cannot be undone. This will permanently delete your snippet
+                                                <span className="text-foreground font-bold px-1">"{snippet.title}"</span>
+                                                and remove it from our servers.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel className="bg-transparent border-white/10 hover:bg-white/5">Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                className="bg-red-600 hover:bg-red-700 text-white"
+                                                disabled={isDeleting}
+                                                onClick={async (e) => {
+                                                    e.preventDefault();
+                                                    setIsDeleting(true);
+                                                    try {
+                                                        await snippetsAPI.delete(snippet.id);
+                                                        toast({ title: "Deleted", description: "Snippet deleted successfully." });
+                                                        // Invalidate relevant queries to refresh UI without reload
+                                                        queryClient.invalidateQueries({ queryKey: ['feed'] });
+                                                        queryClient.invalidateQueries({ queryKey: ['snippets'] });
+                                                        queryClient.invalidateQueries({ queryKey: ['users', snippet.authorId, 'snippets'] });
+                                                    } catch (e) {
+                                                        toast({ variant: "destructive", title: "Error", description: "Failed to delete snippet." });
+                                                        setIsDeleting(false);
+                                                    }
+                                                }}
+                                            >
+                                                {isDeleting ? "Deleting..." : "Delete Permanently"}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         )}
                     </div>
@@ -285,4 +363,4 @@ export function SnippetCard({ snippet }: SnippetCardProps) {
             </div>
         </motion.div>
     );
-}
+});

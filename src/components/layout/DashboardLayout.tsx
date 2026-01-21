@@ -41,8 +41,8 @@ export function DashboardLayout() {
                 )}
             </div>
 
-            {/* Floating Action Button (Desktop Only) */}
-            {!isMobile && <FloatingActionButton />}
+            {/* Floating Action Button */}
+            <FloatingActionButton />
 
             {/* Mobile Bottom Tab Navigation */}
             {isMobile && <MobileTabBar />}

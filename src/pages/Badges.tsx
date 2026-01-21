@@ -25,6 +25,7 @@ const ICON_MAP: Record<string, any> = {
     "crown": Crown,
     "flame": Flame,
     "medal": Medal,
+    "lock": Lock,
 };
 
 // Perks Definition
@@ -34,6 +35,74 @@ const INFLUENCE_PERKS = [
     { score: 1000, title: "Rising Star", desc: "Highlight Comments", icon: Zap, color: "text-amber-400" },
     { score: 5000, title: "Architect", desc: "Create Challenges", icon: Crown, color: "text-purple-400" },
 ];
+
+const UNLOCK_GUIDE: Record<string, string[]> = {
+    '1_snippet': [
+        "Visit the 'Create' section in your dashboard",
+        "Develop an original code snippet or useful utility",
+        "Successfully execute and publish your work to the feed"
+    ],
+    '1_practice_solved': [
+        "Head over to the 'Challenges' arena",
+        "Select a problem and write a solution in the workspace",
+        "Pass all hidden test cases to secure the achievement"
+    ],
+    'feedback_given': [
+        "Join the conversation at the 'Feedback Wall'",
+        "Post a meaningful suggestion, bug report, or feature idea",
+        "Help the ecosystem grow with your active participation"
+    ],
+    '1_contest': [
+        "Check the 'Arena' for any upcoming official contests",
+        "Register for an event and join when the timer hits zero",
+        "Submit at least one valid solution during the live event"
+    ],
+    '5_snippets': [
+        "Continue sharing your expertise with the community",
+        "Publish 5 unique snippets to the public feed",
+        "Recognized as an active content creator"
+    ],
+    '25_snippets': [
+        "Reach the elite tier of platform contributors",
+        "Maintain a personal library of 25+ verified snippets",
+        "Awarded to master-level engineers and architects"
+    ],
+    '5_practice_solved': [
+        "Sharpen your skills in the Challenges Arena",
+        "Solve 5 different problems with optimized solutions",
+        "A stepping stone to competitive mastery"
+    ],
+    '25_practice_solved': [
+        "Demonstrate superior algorithmic knowledge",
+        "Acquire 'Accepted' status on 25 different challenges",
+        "Verified as a top-tier problem solver"
+    ],
+    '5_feedback': [
+        "Significantly impact the platform's development",
+        "Submit 5 helpful suggestions or verified reports",
+        "Become a foundation of the community wall"
+    ],
+    '5_contests': [
+        "Become a regular in live competitive events",
+        "Successfully participate in 5 official Arena contests",
+        "Awarded for consistency and competitive spirit"
+    ],
+    'early_adopter': [
+        "Join CodeStudio during the initial launch phase",
+        "Establish an active profile during the Beta window",
+        "Reserved exclusively for our first 1,000 pioneers"
+    ],
+    'contest_winner': [
+        "Participate in any ranked Arena competition",
+        "Outperform all rivals to reach the #1 global position",
+        "Official leaderboard verification of your dominance"
+    ],
+    'competitor': [
+        "Enter at least three separate Arena tournaments",
+        "Maintain high-quality submissions across all events",
+        "Demonstrate consistent competitive drive and skill"
+    ]
+};
 
 export default function Badges() {
     const { user: authUser } = useAuth();
@@ -90,12 +159,12 @@ export default function Badges() {
                         {/* Stats Breakdown */}
                         <div className="grid grid-cols-3 gap-4 pt-2">
                             {[
-                                { label: "Trust", value: influence?.breakdown?.trust || 0, color: "text-white" },
-                                { label: "Snippets", value: `+${influence?.breakdown?.snippets || 0}`, color: "text-emerald-400" },
-                                { label: "Badges", value: `+${influence?.breakdown?.badges || 0}`, color: "text-purple-400" }
+                                { label: "Trust Score", value: influence?.breakdown?.trust || 0, color: "text-white" },
+                                { label: "Snippet Points", value: `+${influence?.breakdown?.snippets || 0}`, color: "text-emerald-400" },
+                                { label: "Badge Points", value: `+${influence?.breakdown?.badges || 0}`, color: "text-purple-400" }
                             ].map((stat, i) => (
                                 <div key={i} className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-center hover:bg-white/10 transition-colors">
-                                    <div className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">{stat.label}</div>
+                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{stat.label}</div>
                                     <div className={cn("text-2xl font-mono font-bold", stat.color)}>{stat.value}</div>
                                 </div>
                             ))}
@@ -215,9 +284,29 @@ export default function Badges() {
                                 <CardTitle className={cn("mb-2 relative z-10", isUnlocked ? "text-foreground" : "text-muted-foreground/60")}>
                                     {badge.name}
                                 </CardTitle>
-                                <p className="text-sm text-muted-foreground mb-6 min-h-[40px] relative z-10">
-                                    {badge.description}
-                                </p>
+                                <div className="text-sm text-muted-foreground mb-6 min-h-[60px] relative z-10 space-y-4">
+                                    <p className="leading-relaxed">{badge.description}</p>
+                                    {!isUnlocked && (
+                                        <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-1 w-1 rounded-full bg-indigo-500" />
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">How to unlock</p>
+                                            </div>
+                                            <div className="space-y-2.5">
+                                                {(UNLOCK_GUIDE[badge.condition] || ["Perform designated activities", "Meet achievement criteria", "Verified by platform curators"]).map((step: string, idx: number) => (
+                                                    <div key={idx} className="flex gap-4 items-start group/step">
+                                                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-[9px] font-mono text-indigo-400 group-hover/step:bg-indigo-500 group-hover/step:text-white transition-all duration-300">
+                                                            {idx + 1}
+                                                        </div>
+                                                        <p className="text-xs text-slate-400 leading-normal group-hover/step:text-slate-200 transition-colors pt-0.5">
+                                                            {step}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Progress Section */}
                                 <div className="space-y-2 relative z-10">

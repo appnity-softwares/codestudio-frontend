@@ -28,8 +28,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/useMediaQuery";
+import { useBadgeCelebration } from "@/context/BadgeContext";
 
 interface FeedbackMessage {
     id: string;
@@ -109,6 +111,7 @@ export default function FeedbackWall() {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const isMobile = useIsMobile();
+    const { celebrate } = useBadgeCelebration();
 
     useEffect(() => {
         const hasVisited = localStorage.getItem("hasVisitedFeedbackWall");
@@ -144,7 +147,13 @@ export default function FeedbackWall() {
 
     const postMutation = useMutation({
         mutationFn: async (newFeedback: { content: string; category: string }) => {
-            return feedbackAPI.create(newFeedback);
+            const res = await feedbackAPI.create(newFeedback);
+            return res;
+        },
+        onSuccess: (res: any) => {
+            if (res.newBadges && res.newBadges.length > 0) {
+                celebrate(res.newBadges);
+            }
         },
         onMutate: async (newFeedback) => {
             await queryClient.cancelQueries({ queryKey: ['feedback'] });

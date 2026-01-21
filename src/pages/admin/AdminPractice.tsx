@@ -29,6 +29,17 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminPractice() {
     const { toast } = useToast();
@@ -36,6 +47,7 @@ export default function AdminPractice() {
     const [search, setSearch] = useState("");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingProblem, setEditingProblem] = useState<any>(null);
+    const [problemToDelete, setProblemToDelete] = useState<string | null>(null);
 
     // Fetch Problems
     const { data } = useQuery({
@@ -87,6 +99,14 @@ export default function AdminPractice() {
             testCases: formData.get("testCases") as string,
             language: formData.get("language") as string,
         };
+
+        // Simple JSON validation
+        try {
+            JSON.parse(data.testCases);
+        } catch (e) {
+            toast({ variant: "destructive", title: "Invalid JSON", description: "Test cases must be a valid JSON array." });
+            return;
+        }
 
         if (editingProblem) {
             updateMutation.mutate({ id: editingProblem.id, data });
@@ -208,49 +228,96 @@ export default function AdminPractice() {
 
                 <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead>Title</TableHead>
-                            <TableHead>Difficulty</TableHead>
-                            <TableHead>Stats</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                        <TableRow className="hover:bg-transparent border-white/5">
+                            <TableHead className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider">Title</TableHead>
+                            <TableHead className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider">Difficulty</TableHead>
+                            <TableHead className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider">Stats</TableHead>
+                            <TableHead className="text-right text-muted-foreground font-bold text-[10px] uppercase tracking-wider">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {problems.map((problem: any) => (
-                            <TableRow key={problem.id}>
-                                <TableCell className="font-medium">
-                                    <div>{problem.title}</div>
-                                    <div className="text-xs text-muted-foreground">{problem.category}</div>
+                        {problems.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="h-48 text-center">
+                                    <div className="flex flex-col items-center justify-center opacity-40">
+                                        <Search className="h-10 w-10 mb-2" />
+                                        <p className="text-sm font-mono uppercase tracking-widest">No challenges in the buffer</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : problems.map((problem: any) => (
+                            <TableRow key={problem.id} className="border-white/5 hover:bg-white/[0.02] transition-colors">
+                                <TableCell className="font-medium py-4">
+                                    <div className="font-headline text-white/90">{problem.title}</div>
+                                    <div className="text-[10px] font-mono text-primary/60 uppercase tracking-widest mt-0.5">{problem.category}</div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline" className={
+                                    <Badge variant="outline" className={cn(
+                                        "font-mono text-[9px] font-bold px-2 py-0 border-0 bg-white/5",
                                         problem.difficulty === 'EASY' ? "text-emerald-400" :
                                             problem.difficulty === 'MEDIUM' ? "text-amber-400" : "text-rose-400"
-                                    }>
+                                    )}>
                                         {problem.difficulty}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-muted-foreground text-xs">
-                                    <div>Solves: {problem.solveCount || 0}</div>
-                                    <div>Attempts: {problem.attemptCount || 0}</div>
+                                <TableCell className="text-muted-foreground text-[10px] font-mono whitespace-nowrap">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-white/40 uppercase tracking-tighter">Solves</span>
+                                            <span className="text-white/80">{problem.solveCount || 0}</span>
+                                        </div>
+                                        <div className="flex flex-col border-l border-white/5 pl-4">
+                                            <span className="text-white/40 uppercase tracking-tighter">Attempts</span>
+                                            <span className="text-white/80">{problem.attemptCount || 0}</span>
+                                        </div>
+                                    </div>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => {
-                                        setEditingProblem(problem);
-                                        setIsDialogOpen(true);
-                                    }}>
-                                        <Edit2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="text-rose-400 hover:text-rose-500" onClick={() => {
-                                        if (confirm('Are you sure?')) deleteMutation.mutate(problem.id);
-                                    }}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    <div className="flex justify-end items-center gap-1">
+                                        <Button variant="ghost" size="icon" className="hover:bg-primary/20 hover:text-primary transition-all" onClick={() => {
+                                            setEditingProblem(problem);
+                                            setIsDialogOpen(true);
+                                        }}>
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="text-rose-400/60 hover:text-rose-400 hover:bg-rose-400/10 transition-all" onClick={() => {
+                                            setProblemToDelete(problem.id);
+                                        }}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+
+                {/* Deactivation/Delete Confirmation */}
+                <AlertDialog open={!!problemToDelete} onOpenChange={(open) => !open && setProblemToDelete(null)}>
+                    <AlertDialogContent className="bg-surface border-white/10">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-muted-foreground">
+                                This action cannot be undone. This will permanently delete the practice challenge
+                                and all associated user submissions.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10">Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={() => {
+                                    if (problemToDelete) {
+                                        deleteMutation.mutate(problemToDelete);
+                                        setProblemToDelete(null);
+                                    }
+                                }}
+                                className="bg-rose-500 text-white hover:bg-rose-600 shadow-[0_0_20px_rgba(244,63,94,0.3)]"
+                            >
+                                Delete Challenge
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     );

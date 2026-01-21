@@ -274,7 +274,7 @@ export default function Profile() {
                         {snippets.length > 0 ? (
                             <div className="space-y-4">
                                 {snippets.slice(0, 6).map((snippet: any) => (
-                                    <SnippetCard key={snippet.id} snippet={snippet} />
+                                    <SnippetCard key={snippet.id} snippet={snippet} className="max-w-none mx-0 mb-0" />
                                 ))}
                             </div>
                         ) : (
@@ -462,7 +462,7 @@ export default function Profile() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {snippets.slice(0, 3).map((snippet: any) => (
-                                <SnippetCard key={snippet.id} snippet={snippet} />
+                                <SnippetCard key={snippet.id} snippet={snippet} className="max-w-none mx-0 mb-0" />
                             ))}
                             {snippets.length === 0 && (
                                 <div className="col-span-full py-12 border border-dashed border-white/10 rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center px-6">
@@ -501,9 +501,9 @@ export default function Profile() {
                         </h2>
                     </div>
                     {snippets.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {snippets.map((snippet: any) => (
-                                <SnippetCard key={snippet.id} snippet={snippet} />
+                                <SnippetCard key={snippet.id} snippet={snippet} className="max-w-none mx-0 mb-0" />
                             ))}
                         </div>
                     ) : (

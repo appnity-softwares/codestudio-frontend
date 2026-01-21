@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Settings, Power, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { adminAPI } from "@/lib/api";
@@ -108,12 +109,41 @@ export default function AdminSystem() {
                                     </div>
                                 </div>
                                 <Switch
-                                    checked={item.key === "maintenance_mode" ? isEnabled(item.key) : isEnabled(item.key)}
+                                    checked={isEnabled(item.key)}
                                     onCheckedChange={() => toggleSetting(item.key)}
                                     disabled={updateMutation.isPending}
                                 />
                             </div>
                         </CardHeader>
+                        {item.key === "maintenance_mode" && isEnabled("maintenance_mode") && (
+                            <CardContent className="pt-0 pb-6 border-t border-red-100 dark:border-red-950/30 mt-4">
+                                <div className="space-y-4 pt-4">
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Estimated Return Time (ETA)</label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                placeholder="e.g. 20 Minutes, 2:30 PM, Tomorrow"
+                                                defaultValue={settings["maintenance_eta"] || ""}
+                                                className="bg-red-50/50 dark:bg-red-950/10 border-red-200 dark:border-red-900/50"
+                                                onBlur={(e) => {
+                                                    if (e.target.value !== settings["maintenance_eta"]) {
+                                                        updateMutation.mutate({ key: "maintenance_eta", value: e.target.value });
+                                                    }
+                                                }}
+                                            />
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => updateMutation.mutate({ key: "maintenance_eta", value: "Fixed Soon" })}
+                                            >
+                                                Reset
+                                            </Button>
+                                        </div>
+                                        <p className="text-[10px] text-red-500/60 ml-1">Visible to users on maintenance and login pages.</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        )}
                     </Card>
                 ))}
             </div>

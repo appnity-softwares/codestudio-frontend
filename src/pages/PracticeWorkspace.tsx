@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { practiceAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useBadgeCelebration } from "@/context/BadgeContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,42 +20,8 @@ import {
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { Badge } from "@/components/ui/badge";
-import { motion, AnimatePresence } from "framer-motion";
 
-// Helper for Badge Modal
-function BadgeAwardModal({ badges, onClose }: { badges: any[], onClose: () => void }) {
-    if (!badges || badges.length === 0) return null;
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <motion.div
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="bg-[#0a0a0c] border border-primary/30 rounded-2xl p-8 max-w-sm w-full text-center relative overflow-hidden"
-            >
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent pointer-events-none" />
-                <motion.div
-                    initial={{ y: -20 }}
-                    animate={{ y: 0 }}
-                    transition={{ type: "spring", bounce: 0.6 }}
-                    className="text-6xl mb-4"
-                >
-                    🎉
-                </motion.div>
-                <h2 className="text-2xl font-black text-foreground mb-2">Badge Unlocked!</h2>
-                <div className="space-y-4 my-6">
-                    {badges.map(badge => (
-                        <div key={badge.id} className="bg-surface border border-white/10 p-4 rounded-xl flex flex-col items-center gap-2">
-                            <div className="text-4xl">{badge.icon}</div>
-                            <div className="font-bold text-primary">{badge.name}</div>
-                            <div className="text-xs text-muted-foreground">{badge.description}</div>
-                        </div>
-                    ))}
-                </div>
-                <Button onClick={onClose} className="w-full font-bold">Awesome!</Button>
-            </motion.div>
-        </div>
-    );
-}
+
 
 export default function PracticeWorkspace() {
     const { id } = useParams();
@@ -66,7 +33,7 @@ export default function PracticeWorkspace() {
     const [code, setCode] = useState("");
     const [output, setOutput] = useState<{ stdout: string, stderr: string, status?: string } | null>(null);
     const [activeTab, setActiveTab] = useState<'problem' | 'submissions'>('problem');
-    const [newBadges, setNewBadges] = useState<any[]>([]);
+    const { celebrate } = useBadgeCelebration();
 
     // Fetch Problem
     const { data, isLoading } = useQuery({
@@ -109,7 +76,7 @@ export default function PracticeWorkspace() {
             if (res.submission.status === 'ACCEPTED') {
                 toast({ title: "✅ Accepted", description: "Congratulations! All tests passed." });
                 if (res.newBadges && res.newBadges.length > 0) {
-                    setNewBadges(res.newBadges);
+                    celebrate(res.newBadges);
                 }
 
                 if (res.nextProblemId) {
@@ -148,11 +115,7 @@ export default function PracticeWorkspace() {
 
     return (
         <div className="h-screen bg-canvas flex flex-col overflow-hidden">
-            <AnimatePresence>
-                {newBadges.length > 0 && (
-                    <BadgeAwardModal badges={newBadges} onClose={() => setNewBadges([])} />
-                )}
-            </AnimatePresence>
+
 
             {/* Top Bar */}
             <header className="h-14 border-b border-white/5 bg-background flex items-center justify-between px-4 shrink-0">

@@ -7,11 +7,15 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
 import { useToast } from "@/hooks/use-toast"
+import { MaintenanceError } from "@/lib/api"
+import MaintenanceModal from "@/components/MaintenanceModal"
 
 export default function SignIn() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
+    const [maintenanceEta, setMaintenanceEta] = useState<string | undefined>()
+    const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
     const { signIn } = useAuth()
     const navigate = useNavigate()
     const { toast } = useToast()
@@ -27,12 +31,17 @@ export default function SignIn() {
                 description: "You have successfully signed in.",
             })
             navigate("/feed")
-        } catch {
-            toast({
-                title: "Authentication failed",
-                description: "Be sure to check your credentials.",
-                variant: "destructive",
-            })
+        } catch (error: any) {
+            if (error instanceof MaintenanceError) {
+                setMaintenanceEta(error.eta)
+                setShowMaintenanceModal(true)
+            } else {
+                toast({
+                    title: "Authentication failed",
+                    description: "Be sure to check your credentials.",
+                    variant: "destructive",
+                })
+            }
         } finally {
             setLoading(false)
         }
@@ -209,6 +218,11 @@ export default function SignIn() {
                     </form>
                 </Card>
             </div>
+            <MaintenanceModal
+                isOpen={showMaintenanceModal}
+                onClose={() => setShowMaintenanceModal(false)}
+                eta={maintenanceEta}
+            />
         </div>
     )
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminAPI } from "@/lib/api";
@@ -24,11 +25,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ContestManager() {
     const navigate = useNavigate();
     const { toast } = useToast();
     const queryClient = useQueryClient();
+    const [contestToDelete, setContestToDelete] = useState<string | null>(null);
 
     const { data, isLoading } = useQuery({
         queryKey: ["admin-contests"],
@@ -63,6 +75,17 @@ export default function ContestManager() {
         }
     });
 
+    const deleteMutation = useMutation({
+        mutationFn: adminAPI.deleteContest,
+        onSuccess: () => {
+            toast({ title: "Contest Deleted", description: "The contest has been removed safely." });
+            queryClient.invalidateQueries({ queryKey: ["admin-contests"] });
+        },
+        onError: (err: any) => {
+            toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+        }
+    });
+
     const handleCreate = () => {
         // Create a default draft
         createMutation.mutate({
@@ -77,11 +100,11 @@ export default function ContestManager() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "LIVE": return "bg-green-500/10 text-green-500 border-green-500/20";
-            case "UPCOMING": return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-            case "ENDED": return "bg-gray-500/10 text-gray-500 border-gray-500/20";
-            case "FROZEN": return "bg-cyan-500/10 text-cyan-500 border-cyan-500/20";
-            default: return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"; // DRAFT
+            case "LIVE": return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]";
+            case "UPCOMING": return "bg-sky-500/10 text-sky-400 border-sky-500/20";
+            case "ENDED": return "bg-white/5 text-muted-foreground border-white/10";
+            case "FROZEN": return "bg-cyan-500/10 text-cyan-400 border-cyan-500/20";
+            default: return "bg-amber-500/10 text-amber-500 border-amber-500/20"; // DRAFT
         }
     };
 
@@ -129,28 +152,36 @@ export default function ContestManager() {
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         <div className="flex flex-col">
-                                            <span>{contest.title}</span>
-                                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">{contest.id}</span>
+                                            <span className="text-white/90 font-headline">{contest.title}</span>
+                                            <span className="text-[10px] font-mono text-muted-foreground/50 tracking-tighter hover:text-primary transition-colors cursor-help" title={contest.id}>
+                                                {contest.id.slice(0, 8)}...{contest.id.slice(-4)}
+                                            </span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         {contest.type === "EXTERNAL" ? (
-                                            <Badge variant="secondary" className="gap-1">
-                                                <ExternalLink className="h-3 w-3" /> Ext
+                                            <Badge variant="secondary" className="gap-1 bg-white/5 border-white/10 text-purple-400 text-[10px] font-mono uppercase tracking-tighter">
+                                                <ExternalLink className="h-3 w-3" /> External
                                             </Badge>
                                         ) : (
-                                            <Badge variant="secondary" className="gap-1">
-                                                <Trophy className="h-3 w-3" /> Int
+                                            <Badge variant="secondary" className="gap-1 bg-white/5 border-white/10 text-blue-400 text-[10px] font-mono uppercase tracking-tighter">
+                                                <Trophy className="h-3 w-3" /> Internal
                                             </Badge>
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex flex-col text-sm">
-                                            <span className="text-muted-foreground text-xs">Start: {format(new Date(contest.startTime), "PP p")}</span>
-                                            <span className="text-muted-foreground text-xs">End: {format(new Date(contest.endTime), "PP p")}</span>
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                                <span className="text-muted-foreground text-[10px] font-mono">Start: {format(new Date(contest.startTime), "PP p")}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1 h-1 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
+                                                <span className="text-muted-foreground text-[10px] font-mono">End: {format(new Date(contest.endTime), "PP p")}</span>
+                                            </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground text-xs">
+                                    <TableCell className="text-muted-foreground text-[10px] font-mono uppercase tracking-tighter">
                                         {format(new Date(contest.createdAt), "PP")}
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -175,9 +206,13 @@ export default function ContestManager() {
                                                     <DropdownMenuItem onClick={() => endMutation.mutate(contest.id)} disabled={contest.status === "ENDED"}>
                                                         End Contest
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem className="text-destructive">
-                                                        <Trash className="mr-2 h-4 w-4" /> Delete (Drafts only)
+                                                    <DropdownMenuSeparator className="bg-white/5" />
+                                                    <DropdownMenuItem
+                                                        className="text-rose-400 focus:text-rose-400 focus:bg-rose-400/10"
+                                                        onClick={() => setContestToDelete(contest.id)}
+                                                        disabled={contest.status === "LIVE"}
+                                                    >
+                                                        <Trash className="mr-2 h-4 w-4" /> Delete Contest
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -189,6 +224,33 @@ export default function ContestManager() {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Delete Confirmation */}
+            <AlertDialog open={!!contestToDelete} onOpenChange={(open) => !open && setContestToDelete(null)}>
+                <AlertDialogContent className="bg-surface border-white/10">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-white">Nuke Contest Path?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground">
+                            This will permanently remove the contest structure. If there are active registrations
+                            this might fail on the backend to prevent data corruption.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-white/5 border-white/10 text-white">Retreat</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (contestToDelete) {
+                                    deleteMutation.mutate(contestToDelete);
+                                    setContestToDelete(null);
+                                }
+                            }}
+                            className="bg-rose-500 text-white hover:bg-rose-600 shadow-[0_0_20px_rgba(244,63,94,0.3)]"
+                        >
+                            Confirm Deletion
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

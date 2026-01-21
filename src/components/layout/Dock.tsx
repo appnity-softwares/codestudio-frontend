@@ -28,12 +28,32 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQueryClient } from "@tanstack/react-query";
+import { feedAPI, authAPI } from "@/lib/api";
 
 export function Dock() {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, signOut } = useAuth();
+    const queryClient = useQueryClient();
     const isAdmin = user?.role === 'ADMIN';
+
+    const handlePrefetch = (path: string) => {
+        if (path === '/feed') {
+            queryClient.prefetchQuery({
+                queryKey: ['feed', 'trending'],
+                queryFn: () => feedAPI.get('trending'),
+                staleTime: 60000,
+            });
+        }
+        if (path === '/profile/me') {
+            queryClient.prefetchQuery({
+                queryKey: ['user', 'me'],
+                queryFn: () => authAPI.me(),
+                staleTime: 60000,
+            });
+        }
+    };
 
     // State for collapse, initialized from localStorage
     const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -117,6 +137,7 @@ export function Dock() {
                                     const LinkContent = (
                                         <Link
                                             to={item.path}
+                                            onMouseEnter={() => handlePrefetch(item.path)}
                                             className={cn(
                                                 "flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 group relative overflow-hidden",
                                                 isCollapsed ? "justify-center px-0 w-10 h-10 mx-auto" : "w-full",
@@ -199,7 +220,10 @@ export function Dock() {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/profile/me')}>
+                        <DropdownMenuItem
+                            onClick={() => navigate('/profile/me')}
+                            onMouseEnter={() => handlePrefetch('/profile/me')}
+                        >
                             <UserIcon className="mr-2 h-4 w-4" /> Profile
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate('/settings')}>

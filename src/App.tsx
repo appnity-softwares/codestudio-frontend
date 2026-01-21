@@ -5,65 +5,72 @@ import { TooltipProvider } from "./components/ui/tooltip"
 import { Toaster } from "./components/ui/toaster"
 import { DashboardLayout } from "./components/layout/DashboardLayout"
 import { SocketProvider } from "./context/SocketContext"
+import { BadgeProvider } from "./context/BadgeContext"
 
 // Pages
-import Feed from "./pages/Feed"
-import Arena from "./pages/arena/Arena"
-import EventDetail from "./pages/arena/EventDetail"
-import ContestEnvironment from "./pages/arena/Environment"
-import OfficialContest from "./pages/arena/OfficialContest"
-import ContestLeaderboard from "./pages/arena/Leaderboard"
-import FeedbackWall from "./pages/FeedbackWall"
+import { lazy, Suspense } from "react"
+import { PageLoader } from "./components/ui/PageLoader"
 
-import Convert from "./pages/Convert"
-import Dashboard from "./pages/Dashboard"
-import Profile from "./pages/Profile"
-import PublicProfile from "./pages/PublicProfile"
-import Community from "./pages/Community"
-import { ContestHistory } from "./pages/profile/ContestHistory"
-import Settings from "./pages/Settings"
-import SignIn from '@/pages/auth/SignIn';
-import SignUp from '@/pages/auth/SignUp';
-import Onboarding from '@/pages/auth/Onboarding';
-import ForgotPassword from '@/pages/auth/ForgotPassword';
-import ResetPassword from '@/pages/auth/ResetPassword';
-import OAuthCallback from "./pages/auth/OAuthCallback"
-import Create from "./pages/Create"
-import SnippetDetail from "./pages/SnippetDetail"
-import Chat from "./pages/Chat"
-import Badges from "./pages/Badges"
-import AdminLayout from "./pages/admin/AdminLayout"
-import AdminDashboard from "./pages/admin/AdminDashboard"
-import ContestManager from "./pages/admin/ContestManager"
-import ContestEditor from "./pages/admin/ContestEditor"
-import ProblemEditor from "./pages/admin/ProblemEditor"
-import FlagReview from "./pages/admin/FlagReview"
-import AuditLogs from "./pages/admin/AuditLogs"
-import AdminUsers from "./pages/admin/AdminUsers"
-import AdminSubmissions from "./pages/admin/AdminSubmissions"
-import AdminSystem from "./pages/admin/AdminSystem"
-import AdminChangelog from "./pages/admin/AdminChangelog"
-import AdminPractice from "./pages/admin/AdminPractice"
-import Changelog from "./pages/Changelog"
-import PracticeList from "./pages/PracticeList"
-import PracticeWorkspace from "./pages/PracticeWorkspace"
-import NotFound from "./pages/NotFound"
+// Pages (Lazy Loaded)
+const Feed = lazy(() => import("./pages/Feed"))
+const Arena = lazy(() => import("./pages/arena/Arena"))
+const EventDetail = lazy(() => import("./pages/arena/EventDetail"))
+const ContestEnvironment = lazy(() => import("./pages/arena/Environment"))
+const OfficialContest = lazy(() => import("./pages/arena/OfficialContest"))
+const ContestLeaderboard = lazy(() => import("./pages/arena/Leaderboard"))
+const FeedbackWall = lazy(() => import("./pages/FeedbackWall"))
+const Convert = lazy(() => import("./pages/Convert"))
+const Dashboard = lazy(() => import("./pages/Dashboard"))
+const Profile = lazy(() => import("./pages/Profile"))
+const PublicProfile = lazy(() => import("./pages/PublicProfile"))
+const Community = lazy(() => import("./pages/Community"))
+const ContestHistory = lazy(() => import("./pages/profile/ContestHistory").then(m => ({ default: m.ContestHistory })))
+const Settings = lazy(() => import("./pages/Settings"))
+const SignIn = lazy(() => import("@/pages/auth/SignIn"))
+const SignUp = lazy(() => import("@/pages/auth/SignUp"))
+const Onboarding = lazy(() => import("@/pages/auth/Onboarding"))
+const ForgotPassword = lazy(() => import("@/pages/auth/ForgotPassword"))
+const ResetPassword = lazy(() => import("@/pages/auth/ResetPassword"))
+const OAuthCallback = lazy(() => import("./pages/auth/OAuthCallback"))
+const Create = lazy(() => import("./pages/Create"))
+const SnippetDetail = lazy(() => import("./pages/SnippetDetail"))
+const Chat = lazy(() => import("./pages/Chat"))
+const Badges = lazy(() => import("./pages/Badges"))
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"))
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"))
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"))
+const ContestManager = lazy(() => import("./pages/admin/ContestManager"))
+const ContestEditor = lazy(() => import("./pages/admin/ContestEditor"))
+const ProblemEditor = lazy(() => import("./pages/admin/ProblemEditor"))
+const FlagReview = lazy(() => import("./pages/admin/FlagReview"))
+const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"))
+const AdminSubmissions = lazy(() => import("./pages/admin/AdminSubmissions"))
+const AdminSystem = lazy(() => import("./pages/admin/AdminSystem"))
+const AdminChangelog = lazy(() => import("./pages/admin/AdminChangelog"))
+const AdminPractice = lazy(() => import("./pages/admin/AdminPractice"))
+const Changelog = lazy(() => import("./pages/Changelog"))
+const PracticeList = lazy(() => import("./pages/PracticeList"))
+const PracticeWorkspace = lazy(() => import("./pages/PracticeWorkspace"))
+const Maintenance = lazy(() => import("./pages/Maintenance"))
+const NotFound = lazy(() => import("./pages/NotFound"))
+
 import { DesktopOnlyGuard } from "./components/DesktopOnlyGuard"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthError } from "./lib/api";
+import { AuthError, MaintenanceError } from "./lib/api";
 
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             retry: (failureCount, error) => {
                 if (error instanceof AuthError) return false;
-                // Don't retry if it's a 404 (optional, but good practice)
+                if (error instanceof MaintenanceError) return false;
                 if (error instanceof Error && error.message.includes('404')) return false;
                 return failureCount < 2;
             },
             refetchOnWindowFocus: false,
-            staleTime: 5 * 60 * 1000,
+            staleTime: 60 * 1000, // 1 minute stale time
+            gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
         },
     },
 });
@@ -94,131 +101,161 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <>{children}</>
 }
 
+// Global Maintenance Handler
+import { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+
+function GlobalMaintenanceHandler() {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        const handleMaintenance = () => {
+            const isAuthPage = location.pathname.startsWith('/auth') || location.pathname === '/onboarding';
+            if (location.pathname !== '/maintenance' && !isAuthPage) {
+                navigate('/maintenance');
+            }
+        };
+
+        window.addEventListener('api:maintenance', handleMaintenance);
+        return () => window.removeEventListener('api:maintenance', handleMaintenance);
+    }, [navigate, location]);
+
+    return null;
+}
+
 function AppRoutes() {
     return (
-        <Routes>
-            <Route path="/auth/signin" element={<SignIn />} />
-            <Route path="/auth/signup" element={<SignUp />} />
-            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route
-                path="/onboarding"
-                element={
-                    <ProtectedRoute>
-                        <Onboarding />
-                    </ProtectedRoute>
-                }
-            />
-            <Route path="/oauth-callback" element={<OAuthCallback />} />
+        <Suspense fallback={<PageLoader />}>
+            <GlobalMaintenanceHandler />
+            <Routes>
+                <Route path="/maintenance" element={<Maintenance />} />
+                <Route path="/auth/signin" element={<SignIn />} />
+                <Route path="/auth/signup" element={<SignUp />} />
+                <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                <Route path="/auth/reset-password" element={<ResetPassword />} />
+                <Route
+                    path="/onboarding"
+                    element={
+                        <ProtectedRoute>
+                            <Onboarding />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route path="/oauth-callback" element={<OAuthCallback />} />
 
-            <Route path="/" element={<DashboardLayout />}>
-                <Route index element={<Navigate to="/feed" replace />} />
-                <Route
-                    path="arena"
-                    element={
-                        <ProtectedRoute>
-                            <Arena />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="arena/events/:id"
-                    element={
-                        <ProtectedRoute>
-                            <EventDetail />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="contest/:id/leaderboard"
-                    element={
-                        <ProtectedRoute>
-                            <ContestLeaderboard />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="arena/env/:id"
-                    element={
-                        <ProtectedRoute>
-                            <DesktopOnlyGuard featureName="Contest Environment">
-                                <ContestEnvironment />
+                <Route path="/" element={<DashboardLayout />}>
+                    <Route index element={<Navigate to="/feed" replace />} />
+                    <Route
+                        path="arena"
+                        element={
+                            <ProtectedRoute>
+                                <Arena />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="arena/events/:id"
+                        element={
+                            <ProtectedRoute>
+                                <EventDetail />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="contest/:id/leaderboard"
+                        element={
+                            <ProtectedRoute>
+                                <ContestLeaderboard />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="arena/env/:id"
+                        element={
+                            <ProtectedRoute>
+                                <DesktopOnlyGuard featureName="Contest Environment">
+                                    <ContestEnvironment />
+                                </DesktopOnlyGuard>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="arena/official/:id"
+                        element={
+                            <ProtectedRoute>
+                                <OfficialContest />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="contest/:id/*"
+                        element={
+                            <ProtectedRoute>
+                                <DesktopOnlyGuard featureName="Live Contest">
+                                    <ContestEnvironment />
+                                </DesktopOnlyGuard>
+                            </ProtectedRoute>
+                        }
+                    />
+                    {/* v1.2: Practice Arena (casual, no auth required to view) */}
+                    <Route
+                        path="practice"
+                        element={<PracticeList />}
+                    />
+                    <Route
+                        path="practice/:id"
+                        element={
+                            <DesktopOnlyGuard featureName="Practice Arena">
+                                <PracticeWorkspace />
                             </DesktopOnlyGuard>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="arena/official/:id"
-                    element={
-                        <ProtectedRoute>
-                            <OfficialContest />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="contest/:id/*"
-                    element={
-                        <ProtectedRoute>
-                            <DesktopOnlyGuard featureName="Live Contest">
-                                <ContestEnvironment />
-                            </DesktopOnlyGuard>
-                        </ProtectedRoute>
-                    }
-                />
-                {/* v1.2: Practice Arena (casual, no auth required to view) */}
-                <Route
-                    path="practice"
-                    element={<PracticeList />}
-                />
-                <Route
-                    path="practice/:id"
-                    element={
-                        <DesktopOnlyGuard featureName="Practice Arena">
-                            <PracticeWorkspace />
-                        </DesktopOnlyGuard>
-                    }
-                />
-                <Route
-                    path="feed"
-                    element={
-                        <ProtectedRoute>
-                            <Feed />
-                        </ProtectedRoute>
-                    }
-                />
+                        }
+                    />
+                    <Route
+                        path="feed"
+                        element={
+                            <ProtectedRoute>
+                                <Feed />
+                            </ProtectedRoute>
+                        }
+                    />
 
 
-                <Route path="convert" element={<Convert />} />
-                <Route
-                    path="dashboard"
-                    element={
-                        <ProtectedRoute>
-                            <Dashboard />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="chat/:username?"
-                    element={
-                        <ProtectedRoute>
-                            <Chat />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route path="profile/:username" element={<Profile />} />
-                <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="changelog" element={<Changelog />} />
+                    <Route path="convert" element={<Convert />} />
+                    <Route
+                        path="dashboard"
+                        element={
+                            <ProtectedRoute>
+                                <Dashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="chat/:username?"
+                        element={
+                            <ProtectedRoute>
+                                <Chat />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route path="profile/:username" element={<Profile />} />
+                    <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="changelog" element={<Changelog />} />
 
-                {/* Community & Public Profile */}
-                <Route path="community" element={<Community />} />
-                <Route path="feedback" element={<FeedbackWall />} />
-                <Route path="u/:username" element={<PublicProfile />} />
+                    {/* Community & Public Profile */}
+                    <Route path="community" element={<Community />} />
+                    <Route path="feedback" element={<FeedbackWall />} />
+                    <Route path="u/:username" element={<PublicProfile />} />
 
-                <Route path="snippets/:id" element={<SnippetDetail />} />
-                <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
-                <Route path="badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
-                {/* Admin Routes */}
+                    <Route path="snippets/:id" element={<SnippetDetail />} />
+                    <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
+                    <Route path="badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
+                    {/* 404 Catch-all */}
+                    <Route path="*" element={<NotFound />} />
+                </Route>
+
+                {/* Admin Block: Dedicated Layout without Platform Sidebars */}
                 <Route path="admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<AdminUsers />} />
@@ -232,11 +269,8 @@ function AppRoutes() {
                     <Route path="changelog" element={<AdminChangelog />} />
                     <Route path="practice-problems" element={<AdminPractice />} />
                 </Route>
-
-                {/* 404 Catch-all */}
-                <Route path="*" element={<NotFound />} />
-            </Route>
-        </Routes>
+            </Routes>
+        </Suspense>
     )
 }
 
@@ -251,8 +285,10 @@ function App() {
                         <AuthProvider>
                             <SocketProvider>
                                 <TooltipProvider>
-                                    <AppRoutes />
-                                    <Toaster />
+                                    <BadgeProvider>
+                                        <AppRoutes />
+                                        <Toaster />
+                                    </BadgeProvider>
                                 </TooltipProvider>
                             </SocketProvider>
                         </AuthProvider>

@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
 import { useToast } from "@/hooks/use-toast"
+import { MaintenanceError } from "@/lib/api"
+import MaintenanceModal from "@/components/MaintenanceModal"
 
 export default function SignUp() {
     const [email, setEmail] = useState("")
@@ -14,6 +16,8 @@ export default function SignUp() {
     const [name, setName] = useState("")
     const [username, setUsername] = useState("")
     const [loading, setLoading] = useState(false)
+    const [maintenanceEta, setMaintenanceEta] = useState<string | undefined>()
+    const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
     const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
     const [suggestions, setSuggestions] = useState<string[]>([])
     const { signUp } = useAuth()
@@ -70,12 +74,17 @@ export default function SignUp() {
                 description: "Welcome to the community!",
             })
             navigate("/onboarding")
-        } catch (error) {
-            toast({
-                title: "Registration failed",
-                description: "Please check your details and try again.",
-                variant: "destructive",
-            })
+        } catch (error: any) {
+            if (error instanceof MaintenanceError) {
+                setMaintenanceEta(error.eta)
+                setShowMaintenanceModal(true)
+            } else {
+                toast({
+                    title: "Registration failed",
+                    description: "Please check your details and try again.",
+                    variant: "destructive",
+                })
+            }
         } finally {
             setLoading(false)
         }
@@ -305,6 +314,11 @@ export default function SignUp() {
                     </form>
                 </Card>
             </div>
+            <MaintenanceModal
+                isOpen={showMaintenanceModal}
+                onClose={() => setShowMaintenanceModal(false)}
+                eta={maintenanceEta}
+            />
         </div>
     )
 }

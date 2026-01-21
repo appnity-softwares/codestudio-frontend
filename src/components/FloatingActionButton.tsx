@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Code2, Trophy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 
 interface FABOption {
     icon: React.ReactNode;
@@ -29,6 +30,7 @@ const fabOptions: FABOption[] = [
 export function FloatingActionButton() {
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
+    const isMobile = useIsMobile();
 
     const handleOptionClick = (path: string) => {
         setIsOpen(false);
@@ -51,7 +53,10 @@ export function FloatingActionButton() {
             </AnimatePresence>
 
             {/* FAB Container - Bottom Right */}
-            <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+            <div className={cn(
+                "fixed right-6 z-50 flex flex-col items-end gap-3",
+                isMobile ? "bottom-24" : "bottom-6"
+            )}>
                 {/* Options - Appear ABOVE the button */}
                 <AnimatePresence>
                     {isOpen && (

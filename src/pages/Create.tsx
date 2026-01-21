@@ -12,11 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Play, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/useMediaQuery";
+import { useBadgeCelebration } from "@/context/BadgeContext";
 
 export default function Create() {
     const navigate = useNavigate();
     const { toast } = useToast();
     const isMobile = useIsMobile();
+    const { celebrate } = useBadgeCelebration();
     const [loading, setLoading] = useState(false);
 
     // Snippet State
@@ -131,8 +133,11 @@ export default function Create() {
                 await snippetsAPI.update(editId, payload);
                 toast({ title: "Updated", description: "Snippet updated successfully!" });
             } else {
-                await snippetsAPI.create(payload);
+                const res = await snippetsAPI.create(payload) as any;
                 toast({ title: "Created", description: "Snippet created successfully!" });
+                if (res.newBadges && res.newBadges.length > 0) {
+                    celebrate(res.newBadges);
+                }
             }
             navigate("/feed");
         } catch (error) {
@@ -403,7 +408,9 @@ export default function Create() {
                                     disabled={loading || !executionResult}
                                 >
                                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {!executionResult ? "Run to Publish" : "Post Snippet"}
+                                    {!executionResult
+                                        ? "Run to Verify"
+                                        : (editId ? "Update Snippet" : "Post Snippet")}
                                 </Button>
                             </div>
                         </CardContent>

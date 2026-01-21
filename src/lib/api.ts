@@ -25,6 +25,17 @@ export class AuthError extends Error {
     }
 }
 
+export class MaintenanceError extends Error {
+    status: number;
+    eta?: string;
+    constructor(status: number, message: string, eta?: string) {
+        super(message);
+        this.name = 'MaintenanceError';
+        this.status = status;
+        this.eta = eta;
+    }
+}
+
 // Generic API request helper
 async function apiRequest<T>(
     endpoint: string,
@@ -44,6 +55,13 @@ async function apiRequest<T>(
         });
 
         if (!response.ok) {
+            // Check for maintenance mode (503 Service Unavailable)
+            if (response.status === 503) {
+                const errorData = await response.json().catch(() => ({}));
+                window.dispatchEvent(new CustomEvent('api:maintenance', { detail: errorData }));
+                throw new MaintenanceError(503, errorData.message || 'Maintenance in progress', errorData.eta);
+            }
+
             // Handle 401 Unauthorized globally
             if (response.status === 401) {
                 removeToken();
@@ -605,5 +623,9 @@ export const adminAPI = {
     createChangelog: (data: any) => apiRequest<{ entry: any; message: string }>('/admin/changelog', { method: 'POST', body: JSON.stringify(data) }),
     updateChangelog: (id: string, data: any) => apiRequest<{ message: string }>('/admin/changelog/' + id, { method: 'PUT', body: JSON.stringify(data) }),
     deleteChangelog: (id: string) => apiRequest<{ message: string }>('/admin/changelog/' + id, { method: 'DELETE' }),
+};
+
+export const systemAPI = {
+    getPublicStatus: () => apiRequest<{ settings: Record<string, string> }>('/system/status'),
 };
 
