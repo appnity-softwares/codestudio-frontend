@@ -85,7 +85,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const location = useLocation()
 
     if (!isAuthenticated) {
-        return <Navigate to="/auth/signin" replace />
+        return <Navigate to="/auth/signin" state={{ from: location }} replace />
     }
 
     // Redirect to onboarding if not completed
@@ -217,30 +217,26 @@ function AppRoutes() {
                             </ProtectedRoute>
                         }
                     />
-                    {/* v1.2: Practice Arena (casual, no auth required to view) */}
+                    {/* v1.2: Practice Arena - Now Protected */}
                     <Route
                         path="practice"
-                        element={<PracticeList />}
+                        element={
+                            <ProtectedRoute>
+                                <PracticeList />
+                            </ProtectedRoute>
+                        }
                     />
                     <Route
                         path="practice/:id"
                         element={
-                            <DesktopOnlyGuard featureName="Practice Arena">
-                                <PracticeWorkspace />
-                            </DesktopOnlyGuard>
-                        }
-                    />
-                    <Route
-                        path="feed"
-                        element={
                             <ProtectedRoute>
-                                <Feed />
+                                <DesktopOnlyGuard featureName="Practice Arena">
+                                    <PracticeWorkspace />
+                                </DesktopOnlyGuard>
                             </ProtectedRoute>
                         }
                     />
-
-
-                    <Route path="convert" element={<Convert />} />
+                    <Route path="convert" element={<ProtectedRoute><Convert /></ProtectedRoute>} />
                     <Route
                         path="dashboard"
                         element={
@@ -257,18 +253,18 @@ function AppRoutes() {
                             </ProtectedRoute>
                         }
                     />
-                    <Route path="profile/:username" element={<Profile />} />
+                    <Route path="profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
-                    <Route path="settings" element={<Settings />} />
+                    <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                     <Route path="settings/avatars" element={<ProtectedRoute><AvatarPicker /></ProtectedRoute>} />
-                    <Route path="changelog" element={<Changelog />} />
+                    <Route path="changelog" element={<ProtectedRoute><Changelog /></ProtectedRoute>} />
 
-                    {/* Community & Public Profile */}
-                    <Route path="community" element={<Community />} />
-                    <Route path="feedback" element={<FeedbackWall />} />
-                    <Route path="u/:username" element={<Profile />} />
+                    {/* Community & Public Profile - Now Protected */}
+                    <Route path="community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+                    <Route path="feedback" element={<ProtectedRoute><FeedbackWall /></ProtectedRoute>} />
+                    <Route path="u/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
-                    <Route path="snippets/:id" element={<SnippetDetail />} />
+                    <Route path="snippets/:id" element={<ProtectedRoute><SnippetDetail /></ProtectedRoute>} />
                     <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
                     <Route path="badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
                     {/* 404 Catch-all */}

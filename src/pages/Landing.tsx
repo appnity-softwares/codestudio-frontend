@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Code2, Terminal, Users, Trophy, Zap, Globe, Sparkles, ChevronRight } from "lucide-react";
+import { ArrowRight, Code2, Users, Trophy, Zap, Globe, Sparkles, ChevronRight } from "lucide-react";
 import SEO from "@/components/SeoMeta";
 
 export default function Landing() {
@@ -102,12 +102,12 @@ export default function Landing() {
                     >
                         <Link to="/auth/signup">
                             <Button size="lg" className="h-12 px-8 text-base bg-white text-black hover:bg-white/90">
-                                Start Coding Now <ArrowRight className="ml-2 h-4 w-4" />
+                                Join the Arena <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         </Link>
                         <Link to="/practice">
                             <Button size="lg" variant="outline" className="h-12 px-8 text-base border-white/10 hover:bg-white/5 text-white bg-transparent">
-                                <Terminal className="mr-2 h-4 w-4" /> Try Practice Arena
+                                <Code2 className="mr-2 h-4 w-4" /> Enter Practice Arena
                             </Button>
                         </Link>
                     </motion.div>
