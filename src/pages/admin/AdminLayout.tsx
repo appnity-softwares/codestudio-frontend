@@ -10,7 +10,6 @@ export default function AdminLayout() {
 
     const navItems = [
         { to: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
-        // ... (keep existing navItems logic if needed, but tool replaces context)
         { to: "/admin/users", icon: Users, label: "Users" },
         { to: "/admin/snippets", icon: Code, label: "Snippets" },
         { to: "/admin/practice-problems", icon: Code, label: "Practice Problems" },

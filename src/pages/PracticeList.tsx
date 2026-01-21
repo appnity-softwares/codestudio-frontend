@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import SEO from "@/components/SEO";
 
 const difficultyColors: Record<string, string> = {
     EASY: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
@@ -39,6 +40,7 @@ export default function PracticeList() {
 
     return (
         <div className="min-h-screen bg-canvas pb-20">
+            <SEO title="Practice Arena" description="Solve coding problems and improve your skills." />
             {/* Header */}
             <div className="bg-surface border-b border-white/5 py-12">
                 <div className="container max-w-7xl mx-auto px-4">

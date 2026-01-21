@@ -4,6 +4,7 @@ import { adminAPI } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Flag, Trophy, Users, Activity, AlertTriangle, FileCode, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
+import SEO from "@/components/SEO";
 
 export default function AdminDashboard() {
     const { data: dashboardData, isLoading } = useQuery({
@@ -18,6 +19,7 @@ export default function AdminDashboard() {
 
     return (
         <div className="space-y-8">
+            <SEO title="Admin Dashboard" name="CodeStudio Admin" type="admin" />
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Admin Dashboard</h1>
 
             {/* Key Metrics */}

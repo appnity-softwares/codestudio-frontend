@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="primary_gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6366f1" /> <!-- Indigo 500 -->
+            <stop offset="100%" stop-color="#a855f7" /> <!-- Purple 500 -->
+        </linearGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="15" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+    </defs>
+    
+    <!-- Background (Optional, relying on transparency usually) -->
+    
+    <!-- Outer Hexagon / Shield Shape (Subtle) -->
+    <path d="M256 64 L416 160 L416 352 L256 448 L96 352 L96 160 Z" 
+          stroke="url(#primary_gradient)" 
+          stroke-width="12" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          fill="none" 
+          opacity="0.3" />
+
+    <!-- The "C" Shape - Stylized as open code bracket -->
+    <path d="M360 160 C 330 130 290 110 240 110 C 160 110 110 180 110 256 C 110 332 160 402 240 402 C 290 402 330 382 360 352" 
+          stroke="url(#primary_gradient)" 
+          stroke-width="40" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          fill="none">
+    </path>
+    
+    <!-- Inner "Dot" or "Cursor" representing code -->
+    <rect x="250" y="236" width="100" height="40" rx="10" fill="white" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite" />
+    </rect>
+</svg>

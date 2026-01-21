@@ -4,7 +4,7 @@ import { Clock, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
-import { Seo } from "@/components/Seo";
+import SEO from "@/components/SEO";
 
 export default function Changelog() {
     const { data, isLoading } = useQuery({
@@ -16,7 +16,7 @@ export default function Changelog() {
 
     return (
         <div className="min-h-screen bg-canvas py-12 px-4">
-            <Seo
+            <SEO
                 title={`Changelog | CodeStudio ${entries[0]?.version ? `(${entries[0].version})` : ''}`}
                 description="Latest platform updates, features, and fixes for CodeStudio."
             />

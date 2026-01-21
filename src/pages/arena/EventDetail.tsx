@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Calendar, ShieldCheck, AlertCircle, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
-import { Seo } from "@/components/Seo";
+import SEO from "@/components/SEO";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { Helmet } from "react-helmet-async";
 
@@ -154,7 +154,7 @@ export default function EventDetail() {
     return (
         <div className="container mx-auto py-10 max-w-4xl">
             {event && (
-                <Seo
+                <SEO
                     title={`${event.title} - CodeStudio Arena`}
                     description={event.description}
                     type="website"

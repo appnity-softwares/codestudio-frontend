@@ -14,7 +14,7 @@ import { SnippetInteraction } from "@/components/SnippetInteraction";
 import { formatDistanceToNow } from "date-fns";
 import { Copy, Terminal, Code2, Info, ArrowLeft, Loader2, GitFork } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Seo } from "@/components/Seo";
+import SEO from "@/components/SEO";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 
 export default function SnippetDetail() {
@@ -73,7 +73,7 @@ export default function SnippetDetail() {
 
     return (
         <div className="container max-w-6xl mx-auto py-6 px-4">
-            <Seo
+            <SEO
                 title={`${snippet.title} | CodeStudio`}
                 description={snippet.description || `Check out this ${snippet.language} snippet by ${snippet.author?.name}`}
                 type="article"

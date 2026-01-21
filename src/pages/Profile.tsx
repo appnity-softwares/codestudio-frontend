@@ -7,7 +7,7 @@ import {
 import { ShareProfileModal } from "@/components/profile/ShareProfileModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Seo } from "@/components/Seo";
+import SEO from "@/components/SEO";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usersAPI, authAPI } from "@/lib/api";
@@ -205,7 +205,7 @@ export default function Profile() {
             <div className="space-y-6 px-4 py-6 pb-20 fade-in">
                 {/* SEO */}
                 {profileUser && (
-                    <Seo
+                    <SEO
                         title={`${profileUser.name || profileUser.username} (@${profileUser.username}) | CodeStudio`}
                         description={profileUser.bio || `Check out ${profileUser.name}'s developer profile on CodeStudio.`}
                         type="profile"
@@ -350,7 +350,7 @@ export default function Profile() {
     return (
         <div className="space-y-8 max-w-5xl mx-auto p-6 pb-20 fade-in">
             {profileUser && (
-                <Seo
+                <SEO
                     title={`${profileUser.name || profileUser.username} (@${profileUser.username}) | CodeStudio`}
                     description={profileUser.bio || `Check out ${profileUser.name}'s developer profile on CodeStudio.`}
                     type="profile"

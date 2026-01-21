@@ -9,6 +9,7 @@ import { Search, Flame, Clock, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useIsMobile } from "@/hooks/useMediaQuery";
+import SEO from "@/components/SEO";
 
 type FeedBucket = 'trending' | 'new' | 'editor';
 
@@ -54,6 +55,7 @@ export default function Feed() {
             "min-h-full bg-canvas container max-w-[1800px] mx-auto",
             isMobile ? "py-4 px-0" : "py-8 px-4"
         )}>
+            <SEO title="Live Feed" description="Discover trending code snippets and developer stories." />
             <div className="space-y-6">
                 {/* Main Feed Column - Full Width */}
                 <div className="space-y-6">

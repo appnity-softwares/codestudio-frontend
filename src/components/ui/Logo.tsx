@@ -16,10 +16,10 @@ export function Logo({ className, showText = true }: { className?: string; showT
                     <Skeleton className="h-8 w-8 rounded-lg" />
                 )}
 
-                {/* Actual Logo Image - Try loading /logo.png */}
+                {/* Actual Logo Image - Try loading /logo.svg */}
                 {!imageError ? (
                     <img
-                        src="/logo.png"
+                        src="/logo.svg"
                         alt="CodeStudio"
                         className={`h-8 w-8 object-contain transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0 absolute'}`}
                         onLoad={() => setImageLoaded(true)}
