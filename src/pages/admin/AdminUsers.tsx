@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, ChevronLeft, ChevronRight, AlertTriangle, Ban, Unlock } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, AlertTriangle, Ban, Unlock, Edit2, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { adminAPI } from "@/lib/api";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export default function AdminUsers() {
     const { toast } = useToast();
@@ -35,6 +42,19 @@ export default function AdminUsers() {
     // State for Suspensions
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+    // Form State
+    const [editForm, setEditForm] = useState({
+        name: "",
+        username: "",
+        email: "",
+        role: "USER",
+        trustScore: 100,
+        isBlocked: false,
+    });
+
     const [suspendReason, setSuspendReason] = useState("");
     const [suspendType, setSuspendType] = useState<"TEMPORARY" | "PERMANENT">("TEMPORARY");
     const [suspendHours, setSuspendHours] = useState(24);
@@ -71,6 +91,33 @@ export default function AdminUsers() {
         },
     });
 
+    // Update user mutation
+    const updateMutation = useMutation({
+        mutationFn: (data: { userId: string; updates: any }) =>
+            adminAPI.updateUser(data.userId, data.updates),
+        onSuccess: () => {
+            toast({ title: "User Updated", description: "The user details have been updated." });
+            queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            setEditDialogOpen(false);
+        },
+        onError: (error: any) => {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        },
+    });
+
+    // Delete user mutation
+    const deleteMutation = useMutation({
+        mutationFn: (userId: string) => adminAPI.deleteUser(userId),
+        onSuccess: () => {
+            toast({ title: "User Deleted", description: "The user has been permanently deleted." });
+            queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            setDeleteDialogOpen(false);
+        },
+        onError: (error: any) => {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        },
+    });
+
     // Unsuspend user mutation
     const unsuspendMutation = useMutation({
         mutationFn: (userId: string) => adminAPI.unsuspendUser(userId),
@@ -99,9 +146,30 @@ export default function AdminUsers() {
     };
 
     const getTrustBadge = (score: number) => {
-        if (score >= 80) return <Badge className="bg-green-500">High ({score})</Badge>;
-        if (score >= 50) return <Badge className="bg-yellow-500">Medium ({score})</Badge>;
-        return <Badge className="bg-red-500">Low ({score})</Badge>;
+        if (score >= 80) return <Badge className="bg-green-500 hover:bg-green-600">High ({score})</Badge>;
+        if (score >= 50) return <Badge className="bg-yellow-500 hover:bg-yellow-600">Medium ({score})</Badge>;
+        return <Badge className="bg-red-500 hover:bg-red-600">Low ({score})</Badge>;
+    };
+
+    const handleEditOpen = (user: any) => {
+        setSelectedUser(user);
+        setEditForm({
+            name: user.name || "",
+            username: user.username || "",
+            email: user.email || "",
+            role: user.role || "USER",
+            trustScore: user.trustScore || 100,
+            isBlocked: user.isBlocked || false,
+        });
+        setEditDialogOpen(true);
+    };
+
+    const handleUpdate = () => {
+        if (!selectedUser) return;
+        updateMutation.mutate({
+            userId: selectedUser.id,
+            updates: editForm,
+        });
     };
 
     return (
@@ -166,7 +234,7 @@ export default function AdminUsers() {
                                     </TableCell>
                                     <TableCell>{user.email}</TableCell>
                                     <TableCell>
-                                        <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
+                                        <Badge variant={user.role === "ADMIN" ? "default" : user.role === "MODERATOR" ? "outline" : "secondary"} className={user.role === "MODERATOR" ? "border-purple-500 text-purple-500" : ""}>
                                             {user.role}
                                         </Badge>
                                     </TableCell>
@@ -181,29 +249,51 @@ export default function AdminUsers() {
                                     <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleEditOpen(user)}
+                                            >
+                                                <Edit2 className="h-4 w-4" />
+                                            </Button>
+
                                             {user.isBlocked ? (
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => unsuspendMutation.mutate(user.id)}
                                                     disabled={unsuspendMutation.isPending}
+                                                    title="Unsuspend"
                                                 >
-                                                    <Unlock className="h-4 w-4 mr-1" />
-                                                    Unsuspend
+                                                    <Unlock className="h-4 w-4 text-green-600" />
                                                 </Button>
                                             ) : (
                                                 <Button
                                                     size="sm"
-                                                    variant="destructive"
+                                                    variant="outline"
+                                                    className="text-yellow-600"
                                                     onClick={() => {
                                                         setSelectedUser(user);
                                                         setSuspendDialogOpen(true);
                                                     }}
+                                                    title="Suspend"
                                                 >
-                                                    <Ban className="h-4 w-4 mr-1" />
-                                                    Suspend
+                                                    <Ban className="h-4 w-4" />
                                                 </Button>
                                             )}
+
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                                onClick={() => {
+                                                    setSelectedUser(user);
+                                                    setDeleteDialogOpen(true);
+                                                }}
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -312,6 +402,107 @@ export default function AdminUsers() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Edit User Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Edit User Profile</DialogTitle>
+                        <DialogDescription>
+                            Modify account details for @{selectedUser?.username}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right text-xs">Name</Label>
+                            <Input
+                                id="name"
+                                value={editForm.name}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                                className="col-span-3 h-8"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="username" className="text-right text-xs">Username</Label>
+                            <Input
+                                id="username"
+                                value={editForm.username}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
+                                className="col-span-3 h-8 font-mono"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="email" className="text-right text-xs">Email</Label>
+                            <Input
+                                id="email"
+                                value={editForm.email}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                                className="col-span-3 h-8"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="role" className="text-right text-xs">Role</Label>
+                            <Select
+                                value={editForm.role}
+                                onValueChange={(v) => setEditForm(prev => ({ ...prev, role: v }))}
+                            >
+                                <SelectTrigger className="col-span-3 h-8">
+                                    <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="USER">User (Standard)</SelectItem>
+                                    <SelectItem value="MODERATOR">Moderator (Staff)</SelectItem>
+                                    <SelectItem value="ADMIN">Administrator (Full)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="trust" className="text-right text-xs">Trust Score</Label>
+                            <Input
+                                id="trust"
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={editForm.trustScore}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, trustScore: parseInt(e.target.value) || 0 }))}
+                                className="col-span-3 h-8"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                        <Button size="sm" onClick={handleUpdate} disabled={updateMutation.isPending}>
+                            {updateMutation.isPending ? "Updating..." : "Save Changes"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete User</DialogTitle>
+                        <DialogDescription>
+                            Are you absolutely sure you want to delete @{selectedUser?.username}? This action is irreversible and will remove all their data.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" size="sm" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteMutation.mutate(selectedUser.id)}
+                            disabled={deleteMutation.isPending}
+                        >
+                            {deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+

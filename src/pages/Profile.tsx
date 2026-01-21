@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-    Code, Users, Settings, Shield, Terminal, Trophy, Linkedin
+    Code, Users, Settings, Shield, Terminal, Trophy, Linkedin, Share2
 } from "lucide-react";
+import { ShareProfileModal } from "@/components/profile/ShareProfileModal";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
@@ -38,6 +40,7 @@ export default function Profile() {
     const [githubUrl, setGithubUrl] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");
     const [linkedinUrl, setLinkedinUrl] = useState("");
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const queryClient = useQueryClient();
 
@@ -449,14 +452,49 @@ export default function Profile() {
                     </div>
                 </div>
 
-                {currentUser?.id === profileUser.id && (
-                    <Link to="/settings">
-                        <Button variant="outline" size="sm" className="gap-2 font-mono text-xs uppercase tracking-wider">
-                            <Settings className="h-3.5 w-3.5" /> Configure
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap gap-2">
+                        {currentUser?.id === profileUser.id && (
+                            <Link to="/settings">
+                                <Button variant="outline" size="sm" className="gap-2 font-mono text-xs uppercase tracking-wider h-10 px-4">
+                                    <Settings className="h-3.5 w-3.5" /> Configure Profile
+                                </Button>
+                            </Link>
+                        )}
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="gap-2 font-mono text-xs uppercase tracking-wider h-10 px-4"
+                            onClick={() => setIsShareModalOpen(true)}
+                        >
+                            <Share2 className="h-3.5 w-3.5 text-primary" /> Share
                         </Button>
-                    </Link>
-                )}
+                    </div>
+                </div>
             </div>
+
+            {/* Tags Row */}
+            {(profileUser.preferredLanguages?.length > 0 || profileUser.interests?.length > 0) && (
+                <div className="flex flex-wrap gap-2 px-1">
+                    {profileUser.preferredLanguages?.map((lang: string) => (
+                        <Badge key={lang} variant="secondary" className="bg-primary/5 text-primary border-primary/20 text-[10px] py-0.5">
+                            {lang}
+                        </Badge>
+                    ))}
+                    {profileUser.interests?.map((interest: string) => (
+                        <Badge key={interest} variant="outline" className="text-muted-foreground border-white/10 text-[10px] py-0.5">
+                            {interest}
+                        </Badge>
+                    ))}
+                </div>
+            )}
+
+            <ShareProfileModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                username={profileUser.username}
+                displayName={profileUser.name || profileUser.username}
+            />
 
             {/* TABS NAVIGATION */}
             <Tabs defaultValue="overview" className="space-y-6">

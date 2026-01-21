@@ -323,7 +323,9 @@ export const communityAPI = {
     getUsers: (params: { search?: string; sort?: string; page?: number }) => {
         const query = new URLSearchParams(params as any).toString();
         return apiRequest<{ users: any[]; page: number }>(`/community/users?${query}`);
-    }
+    },
+    getSearchSuggestions: (query: string) =>
+        apiRequest<{ users: any[] }>(`/community/search-suggestions?q=${encodeURIComponent(query)}`)
 };
 
 // Open Feedback Message API
@@ -588,6 +590,15 @@ export const adminAPI = {
     banUserContest: (id: string, eventId: string) => apiRequest<{ message: string }>(`/admin/users/${id}/ban-contest`, { method: 'POST', body: JSON.stringify({ eventId }) }),
     adjustTrustScore: (id: string, trustScore: number, reason: string) =>
         apiRequest<{ message: string }>(`/admin/users/${id}/trust`, { method: 'POST', body: JSON.stringify({ trustScore, reason }) }),
+    updateUser: (id: string, data: any) =>
+        apiRequest<{ message: string }>(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteUser: (id: string) =>
+        apiRequest<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' }),
+
+    getRolePermissions: () =>
+        apiRequest<{ permissions: any[] }>('/admin/roles/permissions'),
+    updateRolePermission: (data: any) =>
+        apiRequest<{ message: string; permission: any }>('/admin/roles/permissions', { method: 'PUT', body: JSON.stringify(data) }),
 
     // Submissions
     getSubmissions: (params: { page?: number; contestId?: string; userId?: string; verdict?: string; flagged?: string }) => {

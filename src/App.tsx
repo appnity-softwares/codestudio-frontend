@@ -47,6 +47,7 @@ const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"))
 const AdminSubmissions = lazy(() => import("./pages/admin/AdminSubmissions"))
 const AdminSystem = lazy(() => import("./pages/admin/AdminSystem"))
 const AdminAvatars = lazy(() => import("./pages/admin/AdminAvatars"))
+const AdminRoles = lazy(() => import("./pages/admin/AdminRoles"))
 const AdminChangelog = lazy(() => import("./pages/admin/AdminChangelog"))
 const AdminPractice = lazy(() => import("./pages/admin/AdminPractice"))
 const Changelog = lazy(() => import("./pages/Changelog"))
@@ -275,6 +276,7 @@ function AppRoutes() {
                     <Route path="flags" element={<FlagReview />} />
                     <Route path="system" element={<AdminSystem />} />
                     <Route path="avatars" element={<AdminAvatars />} />
+                    <Route path="roles" element={<AdminRoles />} />
                     <Route path="audit-logs" element={<AuditLogs />} />
                     <Route path="changelog" element={<AdminChangelog />} />
                     <Route path="practice-problems" element={<AdminPractice />} />

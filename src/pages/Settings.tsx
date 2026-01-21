@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, LogOut, Lock, Trash2, Shield, Link as LinkIcon, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { User, LogOut, Lock, Trash2, Shield, Link as LinkIcon, Image as ImageIcon, RefreshCw, Terminal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { usersAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { TagInput } from "@/components/ui/tag-input";
 
 export default function SettingsPage() {
     const { user, signOut, updateUser } = useAuth();
@@ -27,8 +28,8 @@ export default function SettingsPage() {
     const [githubUrl, setGithubUrl] = useState("");
     const [linkedinUrl, setLinkedinUrl] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");
-    const [languages, setLanguages] = useState("");
-    const [interests, setInterests] = useState("");
+    const [languages, setLanguages] = useState<string[]>([]);
+    const [interests, setInterests] = useState<string[]>([]);
 
     // Initialize state
     useEffect(() => {
@@ -46,16 +47,15 @@ export default function SettingsPage() {
             setInstagramUrl(user.instagramUrl || "");
 
             // Format arrays safely (Postgres/GORM might return {} for empty arrays)
-            const formatArray = (val: any) => {
-                if (!val) return "";
-                if (Array.isArray(val)) return val.join(", ");
-                if (typeof val === 'string') return val;
-                if (typeof val === 'object') return "";
-                return String(val);
+            const getArray = (val: any): string[] => {
+                if (!val) return [];
+                if (Array.isArray(val)) return val;
+                if (typeof val === 'string') return val.split(",").map(s => s.trim()).filter(Boolean);
+                return [];
             };
 
-            setLanguages(formatArray(user.preferredLanguages));
-            setInterests(formatArray(user.interests));
+            setLanguages(getArray(user.preferredLanguages));
+            setInterests(getArray(user.interests));
             setPublicProfile(user.visibility === "PUBLIC");
             console.log("Profile Data Loaded:", { languages: user.preferredLanguages, interests: user.interests });
         }
@@ -72,8 +72,8 @@ export default function SettingsPage() {
                 githubUrl,
                 linkedinUrl,
                 instagramUrl,
-                languages: languages.split(",").map(s => s.trim()).filter(Boolean),
-                interests: interests.split(",").map(s => s.trim()).filter(Boolean),
+                languages: languages,
+                interests: interests,
                 visibility: publicProfile ? "PUBLIC" : "PRIVATE"
             });
             updateUser(response.user);
@@ -248,24 +248,30 @@ export default function SettingsPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label className="text-sm">Skills (Comma separated)</Label>
-                            <Input
-                                value={languages}
-                                onChange={(e) => setLanguages(e.target.value)}
-                                className="bg-black/20 border-white/10"
-                                placeholder="React, Go, Python"
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <Terminal className="h-4 w-4 text-primary" /> Skills & Stack
+                            </Label>
+                            <TagInput
+                                tags={languages}
+                                setTags={setLanguages}
+                                placeholder="React, Go, Python..."
+                                suggestions={["React", "TypeScript", "Go", "Python", "Node.js", "Docker", "AWS", "Rust", "Java"]}
                             />
+                            <p className="text-[10px] text-muted-foreground italic">Add your primary tech stack for profile matching.</p>
                         </div>
-                        <div className="space-y-2">
-                            <Label className="text-sm">Interests (Comma separated)</Label>
-                            <Input
-                                value={interests}
-                                onChange={(e) => setInterests(e.target.value)}
-                                className="bg-black/20 border-white/10"
-                                placeholder="AI, UI/UX, Blockchain"
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <LinkIcon className="h-4 w-4 text-primary" /> Core Interests
+                            </Label>
+                            <TagInput
+                                tags={interests}
+                                setTags={setInterests}
+                                placeholder="AI, UI/UX, Blockchain..."
+                                suggestions={["AI/ML", "Web3", "UI/UX", "Cloud Architecture", "Game Dev", "Open Source"]}
                             />
+                            <p className="text-[10px] text-muted-foreground italic">What are you passionate about building?</p>
                         </div>
                     </div>
 
