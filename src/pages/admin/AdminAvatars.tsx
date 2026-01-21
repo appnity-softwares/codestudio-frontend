@@ -188,8 +188,8 @@ export default function AdminAvatars() {
                             Array(8).fill(0).map((_, i) => (
                                 <div key={i} className="h-32 bg-muted/20 animate-pulse rounded-xl" />
                             ))
-                        ) : filtered.map((avatar) => (
-                            <div key={avatar.id} className="group relative bg-surface border border-white/5 p-4 rounded-xl hover:border-white/10 transition-colors">
+                        ) : filtered.map((avatar, idx) => (
+                            <div key={avatar.id || `virtual-${idx}`} className="group relative bg-surface border border-white/5 p-4 rounded-xl hover:border-white/10 transition-colors">
                                 <div className="flex flex-col items-center gap-3">
                                     <img
                                         src={`https://api.dicebear.com/7.x/${avatar.style}/svg?seed=${avatar.seed}`}

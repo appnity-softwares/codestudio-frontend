@@ -4,11 +4,15 @@ import { LayoutDashboard, Trophy, Flag, ShieldAlert, FileText, LogOut, Users, Co
 import { cn } from "@/lib/utils";
 import { removeToken } from "@/lib/api";
 
+import { Logo } from "@/components/ui/Logo";
+
 export default function AdminLayout() {
 
     const navItems = [
         { to: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
+        // ... (keep existing navItems logic if needed, but tool replaces context)
         { to: "/admin/users", icon: Users, label: "Users" },
+        { to: "/admin/snippets", icon: Code, label: "Snippets" },
         { to: "/admin/practice-problems", icon: Code, label: "Practice Problems" },
         { to: "/admin/contests", icon: Trophy, label: "Contests" },
         { to: "/admin/submissions", icon: FileText, label: "Submissions" },
@@ -31,10 +35,7 @@ export default function AdminLayout() {
             {/* Sidebar */}
             <aside className="w-64 bg-surface border-r border-white/5 flex flex-col shadow-2xl relative z-20">
                 <div className="h-16 flex items-center px-6 border-b border-white/5 bg-black/20">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 border border-indigo-500/30 mr-3 shadow-lg">
-                        <ShieldAlert className="h-4 w-4" />
-                    </div>
-                    <span className="font-bold text-base tracking-tight font-headline text-white/90">CodeStudio Admin</span>
+                    <Logo className="scale-90 origin-left" />
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar pt-6">

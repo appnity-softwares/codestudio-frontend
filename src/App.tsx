@@ -22,7 +22,6 @@ const FeedbackWall = lazy(() => import("./pages/FeedbackWall"))
 const Convert = lazy(() => import("./pages/Convert"))
 const Dashboard = lazy(() => import("./pages/Dashboard"))
 const Profile = lazy(() => import("./pages/Profile"))
-const PublicProfile = lazy(() => import("./pages/PublicProfile"))
 const Community = lazy(() => import("./pages/Community"))
 const ContestHistory = lazy(() => import("./pages/profile/ContestHistory").then(m => ({ default: m.ContestHistory })))
 const Settings = lazy(() => import("./pages/Settings"))
@@ -39,6 +38,7 @@ const Badges = lazy(() => import("./pages/Badges"))
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"))
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"))
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"))
+const AdminSnippets = lazy(() => import("./pages/admin/AdminSnippets"))
 const ContestManager = lazy(() => import("./pages/admin/ContestManager"))
 const ContestEditor = lazy(() => import("./pages/admin/ContestEditor"))
 const ProblemEditor = lazy(() => import("./pages/admin/ProblemEditor"))
@@ -256,7 +256,7 @@ function AppRoutes() {
                     {/* Community & Public Profile */}
                     <Route path="community" element={<Community />} />
                     <Route path="feedback" element={<FeedbackWall />} />
-                    <Route path="u/:username" element={<PublicProfile />} />
+                    <Route path="u/:username" element={<Profile />} />
 
                     <Route path="snippets/:id" element={<SnippetDetail />} />
                     <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
@@ -269,6 +269,7 @@ function AppRoutes() {
                 <Route path="admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<AdminUsers />} />
+                    <Route path="snippets" element={<AdminSnippets />} />
                     <Route path="contests" element={<ContestManager />} />
                     <Route path="contests/:id" element={<ContestEditor />} />
                     <Route path="problems/:id" element={<ProblemEditor />} />

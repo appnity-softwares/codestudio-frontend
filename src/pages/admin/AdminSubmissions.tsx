@@ -121,14 +121,19 @@ export default function AdminSubmissions() {
                     </SelectContent>
                 </Select>
 
-                <Button
-                    variant={flaggedOnly ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFlaggedOnly(!flaggedOnly)}
-                >
-                    <Flag className="h-4 w-4 mr-2" />
-                    Flagged Only
-                </Button>
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant={flaggedOnly ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFlaggedOnly(!flaggedOnly)}
+                    >
+                        <Flag className="h-4 w-4 mr-2" />
+                        Flagged Only
+                    </Button>
+                    <div className="text-muted-foreground cursor-help" title="Submissions are flagged if they trigger anti-cheat detection (e.g. pasted code, blur events).">
+                        <Flag className="h-3 w-3 opacity-50" />
+                    </div>
+                </div>
 
                 <Button
                     variant="ghost"

@@ -170,7 +170,7 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                 </div>
 
                 {/* B. CONTENT (Aspect Block) */}
-                <div className="relative w-full aspect-[4/3] bg-black/50 overflow-hidden group/preview border-b border-white/[0.04]">
+                <div className="relative w-full h-[600px] bg-black/50 overflow-hidden group/preview border-b border-white/[0.04]">
                     {/* View Mode Indicator */}
                     <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-0 group-hover/preview:opacity-100 transition-opacity">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 bg-black/60 backdrop-blur px-2 py-1 rounded border border-white/5">

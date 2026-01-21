@@ -3,7 +3,7 @@
 import { Link } from "react-router-dom";
 import { UserNav } from "./UserNav";
 import { Button } from "@/components/ui/button";
-import { Code, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -14,6 +14,8 @@ import { useAuth } from "@/context/AuthContext";
 import { SearchDialog } from "../SearchDialog";
 import { NotificationBell } from "./NotificationBell";
 
+import { Logo } from "@/components/ui/Logo";
+
 export function Header() {
     const { isAuthenticated, user } = useAuth();
 
@@ -21,11 +23,8 @@ export function Header() {
         <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="mx-auto max-w-7xl flex h-16 items-center px-4 md:px-8">
                 <div className="mr-4 flex items-center">
-                    <Link to="/feed" className="mr-6 flex items-center space-x-2">
-                        <Code className="h-6 w-6 text-primary" />
-                        <span className="hidden font-bold sm:inline-block font-headline text-xl">
-                            CodeStudio
-                        </span>
+                    <Link to="/feed" className="mr-6">
+                        <Logo />
                     </Link>
                 </div>
 

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings, Power, AlertTriangle, CheckCircle } from "lucide-react";
+import { Settings, Power, AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,17 @@ export default function AdminSystem() {
         },
         onError: (error: any) => {
             toast({ title: "Error", description: error.message, variant: "destructive" });
+        },
+    });
+
+    // Redeploy Mutation
+    const redeployMutation = useMutation({
+        mutationFn: (mode: string) => adminAPI.triggerRedeploy(mode),
+        onSuccess: (data) => {
+            toast({ title: "Deployment Triggered", description: data.message });
+        },
+        onError: (error: any) => {
+            toast({ title: "Deployment Error", description: error.message, variant: "destructive" });
         },
     });
 
@@ -91,6 +102,84 @@ export default function AdminSystem() {
                 <Settings className="h-6 w-6" />
                 <h1 className="text-2xl font-bold">System Controls</h1>
             </div>
+
+            {/* Deployment Zone */}
+            <Card className="border-blue-200 dark:border-blue-900">
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <RefreshCw className="h-5 w-5 text-blue-500" />
+                        <CardTitle>System Updates</CardTitle>
+                    </div>
+                    <CardDescription>
+                        Trigger deployment scripts on the server. Requires VPS setup.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-4 border rounded-lg bg-card/50 flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <span className="font-semibold text-sm">Frontend</span>
+                                <span className="text-[10px] uppercase bg-secondary px-2 py-0.5 rounded text-muted-foreground">React</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Pulls latest code, builds dist, and updates assets.</p>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full mt-auto"
+                                onClick={() => {
+                                    if (confirm("Redeploy Frontend? This takes ~2 mins.")) {
+                                        redeployMutation.mutate("frontend");
+                                    }
+                                }}
+                                disabled={redeployMutation.isPending}
+                            >
+                                {redeployMutation.isPending ? "Deploying..." : "Update Frontend"}
+                            </Button>
+                        </div>
+
+                        <div className="p-4 border rounded-lg bg-card/50 flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <span className="font-semibold text-sm">Backend</span>
+                                <span className="text-[10px] uppercase bg-secondary px-2 py-0.5 rounded text-muted-foreground">Go API</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Pulls code, recompiles binary, and restarts service.</p>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full mt-auto"
+                                onClick={() => {
+                                    if (confirm("Redeploy Backend? Service will restart.")) {
+                                        redeployMutation.mutate("backend");
+                                    }
+                                }}
+                                disabled={redeployMutation.isPending}
+                            >
+                                {redeployMutation.isPending ? "Deploying..." : "Update Backend"}
+                            </Button>
+                        </div>
+
+                        <div className="p-4 border rounded-lg bg-blue-500/5 border-blue-200/20 flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <span className="font-semibold text-sm text-blue-400">Full System</span>
+                                <span className="text-[10px] uppercase bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">All</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Full stack update. Updates both frontend and backend.</p>
+                            <Button
+                                size="sm"
+                                className="w-full mt-auto bg-blue-600 hover:bg-blue-700"
+                                onClick={() => {
+                                    if (confirm("Perform Full Redeploy? This will briefly interrupt service.")) {
+                                        redeployMutation.mutate("all");
+                                    }
+                                }}
+                                disabled={redeployMutation.isPending}
+                            >
+                                {redeployMutation.isPending ? "Deploying..." : "Full Redeploy"}
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid gap-4">
                 {settingItems.map((item) => (

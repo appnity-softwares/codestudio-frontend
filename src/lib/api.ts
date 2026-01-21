@@ -615,13 +615,19 @@ export const adminAPI = {
         apiRequest<{ message: string }>(`/admin/submissions/${id}/restore`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
     // Snippets
+    getSnippets: (page: number = 1, limit: number = 20, search: string = "") =>
+        apiRequest<{ snippets: any[]; pagination: any }>(`/admin/snippets?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`),
     pinSnippet: (id: string, featured: boolean) =>
         apiRequest<{ message: string }>(`/admin/snippets/${id}/pin`, { method: 'POST', body: JSON.stringify({ featured }) }),
+    deleteSnippet: (id: string) =>
+        apiRequest<{ message: string }>(`/admin/snippets/${id}`, { method: 'DELETE' }),
 
     // System Settings
     getSystemSettings: () => apiRequest<{ settings: Record<string, string> }>('/admin/system'),
     updateSystemSettings: (key: string, value: string) =>
         apiRequest<{ message: string; setting: any }>('/admin/system', { method: 'PUT', body: JSON.stringify({ key, value }) }),
+    triggerRedeploy: (mode: string = "all") =>
+        apiRequest<{ message: string }>('/admin/system/redeploy', { method: 'POST', body: JSON.stringify({ mode }) }),
 
     // Audit
     getAuditLogs: () => apiRequest<{ logs: any[] }>('/admin/audit-logs'),
