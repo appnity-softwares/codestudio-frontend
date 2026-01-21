@@ -50,7 +50,7 @@ export default function Blogs() {
                             Premium Insights
                         </Badge>
                         <h1 className="text-6xl lg:text-7xl font-headline font-black tracking-tighter">
-                            DevConnect <span className="text-gradient bg-gradient-to-r from-primary to-indigo-400 bg-clip-text text-transparent">Nexus</span>
+                            CodeStudio <span className="text-gradient bg-gradient-to-r from-primary to-indigo-400 bg-clip-text text-transparent">Nexus</span>
                         </h1>
                         <p className="text-xl text-muted-foreground font-medium leading-relaxed max-w-xl">
                             Expert perspectives on modern software engineering, AI integration, and community growth.

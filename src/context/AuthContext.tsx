@@ -9,8 +9,9 @@ interface User {
     username?: string;
     image?: string;
     bio?: string;
-    github_id?: string;
-    google_id?: string;
+    githubUrl?: string;
+    instagramUrl?: string;
+    linkedinUrl?: string;
     role: 'USER' | 'ADMIN';
     onboardingCompleted?: boolean;
     preferredLanguages?: string[];

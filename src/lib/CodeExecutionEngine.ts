@@ -40,7 +40,7 @@ export const executeCode = async (language: string, code: string): Promise<Execu
     const normalizedLang = languageMap[lang] || lang;
 
     const logs: string[] = [];
-    logs.push(`[DevConnect] Executing ${normalizedLang}...`);
+    logs.push(`[CodeStudio] Executing ${normalizedLang}...`);
     logs.push(LIBRARY_WARNING.trim());
 
     try {

@@ -24,7 +24,7 @@ export function Header() {
                     <Link to="/feed" className="mr-6 flex items-center space-x-2">
                         <Code className="h-6 w-6 text-primary" />
                         <span className="hidden font-bold sm:inline-block font-headline text-xl">
-                            DevConnect
+                            CodeStudio
                         </span>
                     </Link>
                 </div>

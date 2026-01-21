@@ -43,7 +43,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({ isOpen, onClose, 
                 key: orderData.keyId,
                 amount: orderData.amount,
                 currency: orderData.currency,
-                name: "DevConnect Arena",
+                name: "CodeStudio Arena",
                 description: `Entry Fee for ${event.title}`,
                 order_id: orderData.orderId,
                 handler: async function (response: any) {
@@ -64,7 +64,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({ isOpen, onClose, 
                     }
                 },
                 prefill: {
-                    name: "DevConnect User", // In real app, fill from user context
+                    name: "CodeStudio User", // In real app, fill from user context
                     email: "user@example.com",
                     contact: "9999999999"
                 },

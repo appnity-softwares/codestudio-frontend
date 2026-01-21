@@ -46,12 +46,14 @@ const FlagReview = lazy(() => import("./pages/admin/FlagReview"))
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"))
 const AdminSubmissions = lazy(() => import("./pages/admin/AdminSubmissions"))
 const AdminSystem = lazy(() => import("./pages/admin/AdminSystem"))
+const AdminAvatars = lazy(() => import("./pages/admin/AdminAvatars"))
 const AdminChangelog = lazy(() => import("./pages/admin/AdminChangelog"))
 const AdminPractice = lazy(() => import("./pages/admin/AdminPractice"))
 const Changelog = lazy(() => import("./pages/Changelog"))
 const PracticeList = lazy(() => import("./pages/PracticeList"))
 const PracticeWorkspace = lazy(() => import("./pages/PracticeWorkspace"))
 const Maintenance = lazy(() => import("./pages/Maintenance"))
+const AvatarPicker = lazy(() => import("./pages/AvatarPicker"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
 import { DesktopOnlyGuard } from "./components/DesktopOnlyGuard"
@@ -77,10 +79,16 @@ const queryClient = new QueryClient({
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated } = useAuth()
+    const { isAuthenticated, user } = useAuth()
+    const location = useLocation()
 
     if (!isAuthenticated) {
         return <Navigate to="/auth/signin" replace />
+    }
+
+    // Redirect to onboarding if not completed
+    if (user && !user.onboardingCompleted && location.pathname !== '/onboarding') {
+        return <Navigate to="/onboarding" replace />
     }
 
     return <>{children}</>
@@ -241,6 +249,7 @@ function AppRoutes() {
                     <Route path="profile/:username" element={<Profile />} />
                     <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="settings/avatars" element={<ProtectedRoute><AvatarPicker /></ProtectedRoute>} />
                     <Route path="changelog" element={<Changelog />} />
 
                     {/* Community & Public Profile */}
@@ -265,6 +274,7 @@ function AppRoutes() {
                     <Route path="submissions" element={<AdminSubmissions />} />
                     <Route path="flags" element={<FlagReview />} />
                     <Route path="system" element={<AdminSystem />} />
+                    <Route path="avatars" element={<AdminAvatars />} />
                     <Route path="audit-logs" element={<AuditLogs />} />
                     <Route path="changelog" element={<AdminChangelog />} />
                     <Route path="practice-problems" element={<AdminPractice />} />

@@ -74,7 +74,7 @@ export function MobileSidebar() {
                             <Code className="w-6 h-6 text-primary" />
                         </motion.div>
                         <h1 className="font-headline bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                            DevConnect
+                            CodeStudio
                         </h1>
                         <Sparkles className="w-4 h-4 text-primary ml-auto" />
                     </Link>

@@ -22,7 +22,7 @@ export function FollowOnGitHubCard() {
                 </div>
 
                 <p className="text-xs text-white/50 mb-4 leading-relaxed">
-                    Get updates from the core developers and the organization behind DevConnect.
+                    Get updates from the core developers and the organization behind CodeStudio.
                 </p>
 
                 <div className="space-y-2">

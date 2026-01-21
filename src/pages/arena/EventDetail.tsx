@@ -85,7 +85,7 @@ export default function EventDetail() {
                     key: order.keyId,
                     amount: order.amount,
                     currency: order.currency,
-                    name: "DevConnect Arena",
+                    name: "CodeStudio Arena",
                     description: `Registration for ${event.title}`,
                     order_id: order.orderId,
                     handler: function (response: any) {

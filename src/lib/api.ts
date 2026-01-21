@@ -297,12 +297,23 @@ export const usersAPI = {
 
     getContestHistory: () => apiRequest<{ history: any[] }>('/users/me/contests'),
 
-    completeOnboarding: (data: { bio: string; languages: string[]; interests: string[] }) =>
+    completeOnboarding: (data: {
+        name: string;
+        username: string;
+        bio: string;
+        image: string;
+        githubUrl: string;
+        instagramUrl: string;
+        linkedinUrl: string;
+        languages: string[];
+        interests: string[]
+    }) =>
         apiRequest<{ message: string; user: any }>('/users/onboarding', {
             method: 'POST',
             body: JSON.stringify(data),
         }),
     getBadges: (username: string) => apiRequest<{ badges: any[]; influence: any }>(`/users/${username}/badges`),
+    getAvatars: () => apiRequest<{ avatars: any[] }>('/users/avatars'),
 
     // New Public/Community Methods
     getPublicProfile: (username: string) => apiRequest<{ user: any }>(`/public/users/${username}`),
@@ -603,6 +614,10 @@ export const adminAPI = {
 
     // Audit
     getAuditLogs: () => apiRequest<{ logs: any[] }>('/admin/audit-logs'),
+
+    // Avatars
+    createAvatar: (seed: string, style?: string) => apiRequest<{ avatar: any }>('/admin/avatars', { method: 'POST', body: JSON.stringify({ seed, style }) }),
+    deleteAvatar: (id: string) => apiRequest<{ message: string }>(`/admin/avatars/${id}`, { method: 'DELETE' }),
 
     // Analytics
     getTopSnippets: (limit: number = 10) =>

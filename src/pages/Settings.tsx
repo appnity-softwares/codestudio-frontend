@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, LogOut, Lock, Trash2, Shield, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
+import { User, LogOut, Lock, Trash2, Shield, Link as LinkIcon, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +24,11 @@ export default function SettingsPage() {
     const [bio, setBio] = useState("");
     const [image, setImage] = useState("");
     const [publicProfile, setPublicProfile] = useState(true);
+    const [githubUrl, setGithubUrl] = useState("");
+    const [linkedinUrl, setLinkedinUrl] = useState("");
+    const [instagramUrl, setInstagramUrl] = useState("");
+    const [languages, setLanguages] = useState("");
+    const [interests, setInterests] = useState("");
 
     // Initialize state
     useEffect(() => {
@@ -30,8 +36,28 @@ export default function SettingsPage() {
             setName(user.name || "");
             setUsername(user.username || "");
             setBio(user.bio || "");
-            setImage(user.image || "");
-            // setPublicProfile(user.visibility === "PUBLIC"); // Assuming backend supports this
+
+            // Only show image URL if it's NOT a DiceBear system URL
+            const isDiceBear = (user.image || "").includes("api.dicebear.com");
+            setImage(isDiceBear ? "" : (user.image || ""));
+
+            setGithubUrl(user.githubUrl || "");
+            setLinkedinUrl(user.linkedinUrl || "");
+            setInstagramUrl(user.instagramUrl || "");
+
+            // Format arrays safely (Postgres/GORM might return {} for empty arrays)
+            const formatArray = (val: any) => {
+                if (!val) return "";
+                if (Array.isArray(val)) return val.join(", ");
+                if (typeof val === 'string') return val;
+                if (typeof val === 'object') return "";
+                return String(val);
+            };
+
+            setLanguages(formatArray(user.preferredLanguages));
+            setInterests(formatArray(user.interests));
+            setPublicProfile(user.visibility === "PUBLIC");
+            console.log("Profile Data Loaded:", { languages: user.preferredLanguages, interests: user.interests });
         }
     }, [user]);
 
@@ -43,6 +69,11 @@ export default function SettingsPage() {
                 username,
                 bio,
                 image,
+                githubUrl,
+                linkedinUrl,
+                instagramUrl,
+                languages: languages.split(",").map(s => s.trim()).filter(Boolean),
+                interests: interests.split(",").map(s => s.trim()).filter(Boolean),
                 visibility: publicProfile ? "PUBLIC" : "PRIVATE"
             });
             updateUser(response.user);
@@ -99,28 +130,55 @@ export default function SettingsPage() {
 
                     {/* Image URL Section */}
                     <div className="flex flex-col md:flex-row gap-6 items-start">
-                        <Avatar className="h-24 w-24 border-2 border-white/10">
-                            <AvatarImage src={image} alt={name} className="object-cover" />
-                            <AvatarFallback className="bg-white/5 text-2xl">{name?.charAt(0) || "U"}</AvatarFallback>
+                        <Avatar className="h-24 w-24 border-2 border-primary/20 bg-surface">
+                            <AvatarImage src={image || user?.image} alt={name} className="object-cover" />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
+                                {name?.charAt(0) || "U"}
+                            </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 space-y-2 w-full">
-                            <Label className="text-sm flex items-center gap-2">
-                                <ImageIcon className="h-3 w-3" /> Profile Image URL
-                            </Label>
-                            <div className="flex gap-2">
-                                <div className="relative flex-1">
-                                    <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        value={image}
-                                        onChange={(e) => setImage(e.target.value)}
-                                        className="pl-9 bg-black/20 border-white/10"
-                                        placeholder="https://example.com/my-avatar.png"
-                                    />
+                        <div className="flex-1 space-y-4 w-full">
+                            <div>
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-3">
+                                    <ImageIcon className="h-3.5 w-3.5" /> Profile Picture
+                                </Label>
+
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Link to="/settings/avatars">
+                                        <Button variant="outline" size="sm" className="h-9 px-4 gap-2 border-white/10 hover:bg-white/5">
+                                            <RefreshCw className="h-3.5 w-3.5" /> Pick from Collection
+                                        </Button>
+                                    </Link>
+                                    <span className="text-[10px] text-muted-foreground font-bold uppercase py-1 px-2 bg-white/5 rounded">or</span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-9 px-4 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-colors"
+                                        onClick={() => setImage(`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'user'}`)}
+                                    >
+                                        Use Default
+                                    </Button>
                                 </div>
                             </div>
-                            <p className="text-[10px] text-muted-foreground">
-                                Hosted URL Required (Imgur, GitHub Assets, etc.). We do not store files to keep the platform lightweight.
-                            </p>
+
+                            <div className="pt-2 space-y-2">
+                                <Label className="text-[10px] text-muted-foreground uppercase">Custom Image URL</Label>
+                                <div className="relative">
+                                    <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="image"
+                                        value={image}
+                                        onChange={(e) => setImage(e.target.value)}
+                                        className="pl-9 bg-black/20 border-white/10 h-9 text-xs"
+                                        placeholder={user?.image?.includes("api.dicebear.com") ? "Using Collection Avatar" : "https://example.com/custom-avatar.png"}
+                                    />
+                                </div>
+                                {user?.image?.includes("api.dicebear.com") && !image && (
+                                    <div className="text-[10px] text-muted-foreground mt-1 ml-1 flex items-center gap-1 transition-all">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                                        Platform default active. Enter URL to override.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -158,6 +216,57 @@ export default function SettingsPage() {
                             placeholder="Tell us about yourself..."
                         />
                         <div className="text-xs text-right text-muted-foreground">{bio.length}/160</div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-sm">GitHub</Label>
+                            <Input
+                                value={githubUrl}
+                                onChange={(e) => setGithubUrl(e.target.value)}
+                                className="bg-black/20 border-white/10"
+                                placeholder="GitHub URL"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm">LinkedIn</Label>
+                            <Input
+                                value={linkedinUrl}
+                                onChange={(e) => setLinkedinUrl(e.target.value)}
+                                className="bg-black/20 border-white/10"
+                                placeholder="LinkedIn URL"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm">External Connection</Label>
+                            <Input
+                                value={instagramUrl}
+                                onChange={(e) => setInstagramUrl(e.target.value)}
+                                className="bg-black/20 border-white/10"
+                                placeholder="Website/Insta URL"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-sm">Skills (Comma separated)</Label>
+                            <Input
+                                value={languages}
+                                onChange={(e) => setLanguages(e.target.value)}
+                                className="bg-black/20 border-white/10"
+                                placeholder="React, Go, Python"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm">Interests (Comma separated)</Label>
+                            <Input
+                                value={interests}
+                                onChange={(e) => setInterests(e.target.value)}
+                                className="bg-black/20 border-white/10"
+                                placeholder="AI, UI/UX, Blockchain"
+                            />
+                        </div>
                     </div>
 
                     <div className="space-y-2">

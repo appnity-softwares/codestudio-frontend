@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 // @ts-ignore
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, Check, Code2, Rocket, Swords } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Code2, Rocket, Swords, RefreshCw, Plus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { usersAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
@@ -30,9 +30,31 @@ export default function Onboarding() {
     const [isLoading, setIsLoading] = useState(false);
 
     // Form State
+    const [name, setName] = useState(user?.name || '');
+    const [username, setUsername] = useState(user?.username || '');
     const [bio, setBio] = useState('');
+    const [image, setImage] = useState(user?.image || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix');
+    const [githubUrl, setGithubUrl] = useState('');
+    const [instagramUrl, setInstagramUrl] = useState('');
+    const [linkedinUrl, setLinkedinUrl] = useState('');
     const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
     const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+    const [availableAvatars, setAvailableAvatars] = useState<any[]>([]);
+    const [isAvatarsLoading, setIsAvatarsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAvatars = async () => {
+            try {
+                const response = await usersAPI.getAvatars();
+                setAvailableAvatars(response.avatars.slice(0, 8)); // Only show first 8 in onboarding
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setIsAvatarsLoading(false);
+            }
+        };
+        fetchAvatars();
+    }, []);
 
     const handleNext = async () => {
         if (currentStep < steps.length - 1) {
@@ -66,7 +88,13 @@ export default function Onboarding() {
         setIsLoading(true);
         try {
             await usersAPI.completeOnboarding({
+                name,
+                username,
                 bio,
+                image,
+                githubUrl,
+                instagramUrl,
+                linkedinUrl,
                 languages: selectedLangs,
                 interests: selectedInterests
             });
@@ -93,26 +121,89 @@ export default function Onboarding() {
         switch (currentStep) {
             case 0:
                 return (
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Display Name</Label>
-                            <Input disabled value={user?.name || ''} className="bg-muted" />
-                            <p className="text-xs text-muted-foreground">Imported from signup.</p>
+                    <div className="space-y-6">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="relative group">
+                                <div className="h-24 w-24 rounded-full border-2 border-primary/20 overflow-hidden bg-muted">
+                                    <img src={image} alt="Avatar" className="h-full w-full object-cover" />
+                                </div>
+                                <Link to="/settings/avatars" className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-full transition-opacity cursor-pointer">
+                                    <span className="text-[10px] text-white font-bold uppercase tracking-widest">More...</span>
+                                </Link>
+                            </div>
+                            <div className="flex flex-wrap justify-center gap-2">
+                                {isAvatarsLoading ? (
+                                    <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                                ) : (
+                                    availableAvatars.map(avatar => {
+                                        const url = `https://api.dicebear.com/7.x/${avatar.style}/svg?seed=${avatar.seed}`;
+                                        return (
+                                            <button
+                                                key={avatar.id || avatar.seed}
+                                                onClick={() => setImage(url)}
+                                                className={`h-8 w-8 rounded-full border overflow-hidden transition-all ${image === url ? 'border-primary ring-2 ring-primary/20 scale-110' : 'border-white/10 opacity-50 hover:opacity-100'}`}
+                                            >
+                                                <img src={url} alt="Avatar Seed" className="h-full w-full object-cover" />
+                                            </button>
+                                        );
+                                    })
+                                )}
+                                <Link to="/settings/avatars">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-dashed border-white/20">
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </Link>
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Username</Label>
-                            <Input disabled value={'@' + (user?.username || '')} className="bg-muted" />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Full Name <span className="text-red-500">*</span></Label>
+                                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Username <span className="text-red-500">*</span></Label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span>
+                                    <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} className="pl-7" />
+                                </div>
+                            </div>
                         </div>
+
                         <div className="space-y-2">
                             <Label>Bio <span className="text-muted-foreground">(Optional)</span></Label>
                             <Textarea
                                 placeholder="I write code and break things..."
                                 value={bio}
                                 onChange={(e) => setBio(e.target.value)}
-                                className="resize-none h-24"
+                                className="resize-none h-20"
                                 maxLength={160}
                             />
-                            <p className="text-xs text-right text-muted-foreground">{bio.length}/160</p>
+                            <p className="text-[10px] text-right text-muted-foreground">{bio.length}/160</p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label>External Connections <span className="text-muted-foreground">(Optional)</span></Label>
+                            <div className="grid grid-cols-1 gap-2">
+                                <Input
+                                    placeholder="GitHub Profile URL"
+                                    value={githubUrl}
+                                    onChange={(e) => setGithubUrl(e.target.value)}
+                                    className="bg-white/5 border-white/10"
+                                />
+                                <Input
+                                    placeholder="LinkedIn Profile URL"
+                                    value={linkedinUrl}
+                                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                                    className="bg-white/5 border-white/10"
+                                />
+                                <Input
+                                    placeholder="Instagram/Website URL"
+                                    value={instagramUrl}
+                                    onChange={(e) => setInstagramUrl(e.target.value)}
+                                    className="bg-white/5 border-white/10"
+                                />
+                            </div>
                         </div>
                     </div>
                 );

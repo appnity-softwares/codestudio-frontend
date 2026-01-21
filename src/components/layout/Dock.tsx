@@ -248,6 +248,22 @@ export function Dock() {
                 >
                     {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
                 </Button>
+
+                {!isCollapsed && (
+                    <div className="pt-2 px-3 pb-2 text-[10px] text-muted-foreground/30 font-medium animate-in fade-in duration-500">
+                        <div className="flex items-center justify-between border-t border-border/20 pt-2">
+                            <span>v1.2.0</span>
+                            <a
+                                href="https://github.com/appnity-softwares?tab=repositories"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-primary transition-colors flex items-center gap-1"
+                            >
+                                Appnity Softwares
+                            </a>
+                        </div>
+                    </div>
+                )}
             </div>
         </aside>
     );
