@@ -5,6 +5,7 @@ import { FloatingActionButton } from "../FloatingActionButton";
 import { MobileTabBar } from "./MobileTabBar";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
+import { ExperienceModal } from "../ExperienceModal";
 
 export function DashboardLayout() {
     const isMobile = useIsMobile();
@@ -46,6 +47,8 @@ export function DashboardLayout() {
 
             {/* Mobile Bottom Tab Navigation */}
             {isMobile && <MobileTabBar />}
+
+            <ExperienceModal />
         </div>
     );
 }

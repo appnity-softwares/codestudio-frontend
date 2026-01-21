@@ -44,7 +44,7 @@ export const executeCode = async (language: string, code: string): Promise<Execu
     logs.push(LIBRARY_WARNING.trim());
 
     try {
-        const result = await snippetsAPI.execute(normalizedLang, code);
+        const result = await snippetsAPI.execute({ language: normalizedLang, code: code });
 
         const output = result.run?.stdout || '';
         const stderr = result.run?.stderr || '';

@@ -7,6 +7,7 @@ import { ArrowRight, Code2, Users, Trophy, Zap, Globe, Sparkles, ChevronRight, T
 import SEO from "@/components/SeoMeta";
 import { useQuery } from "@tanstack/react-query";
 import { systemAPI } from "@/lib/api";
+import { ChangelogSection } from "@/components/ChangelogSection";
 
 export default function Landing() {
     const { isAuthenticated } = useAuth();
@@ -324,6 +325,8 @@ export default function Landing() {
                     </div>
                 </div>
             </section>
+
+            <ChangelogSection />
 
             {/* Footer */}
             <footer className="py-12 px-6 border-t border-white/5 bg-[#08080a]">

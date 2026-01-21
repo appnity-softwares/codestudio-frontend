@@ -99,7 +99,7 @@ export function EditSnippetModal({ snippet, open, onOpenChange }: EditSnippetMod
     const handleRunCode = async () => {
         setExecuting(true);
         try {
-            const res = await snippetsAPI.execute(language, code);
+            const res = await snippetsAPI.execute({ language, code });
             setExecutionResult(res.run);
             if (res.run.code !== 0) {
                 toast({ title: "Execution Failed", description: "Check errors below", variant: "destructive" });
