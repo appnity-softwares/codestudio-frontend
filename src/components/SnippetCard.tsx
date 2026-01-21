@@ -172,7 +172,7 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                 {/* B. CONTENT (Aspect Block) */}
                 <div className="relative w-full h-[600px] bg-black/50 overflow-hidden group/preview border-b border-white/[0.04]">
                     {/* View Mode Indicator */}
-                    <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-0 group-hover/preview:opacity-100 transition-opacity">
+                    <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-100 sm:opacity-0 sm:group-hover/preview:opacity-100 transition-opacity">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 bg-black/60 backdrop-blur px-2 py-1 rounded border border-white/5">
                             {viewMode === 'preview' ? (isReact ? 'Live React' : isMarkdown ? 'Markdown' : 'Web Preview') : viewMode === 'output' ? 'Console' : 'Source'}
                         </span>
@@ -231,7 +231,7 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                     )}
 
                     {/* Execution Controls (Overlay on Content) */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 w-auto opacity-0 group-hover/preview:opacity-100 transition-all duration-300 translate-y-2 group-hover/preview:translate-y-0">
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 w-auto opacity-100 translate-y-0 sm:opacity-0 sm:group-hover/preview:opacity-100 transition-all duration-300 sm:translate-y-2 sm:group-hover/preview:translate-y-0">
                         <div className="bg-black/80 backdrop-blur-xl rounded-full p-1 border border-white/10 shadow-xl flex items-center gap-1">
                             {hasPreview && (
                                 <>

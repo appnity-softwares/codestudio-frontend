@@ -46,6 +46,10 @@ export function MobileTabBar() {
         return location.pathname.startsWith(tabPath);
     };
 
+    if (location.pathname === "/feedback") {
+        return null;
+    }
+
     return (
         <nav
             className={cn(

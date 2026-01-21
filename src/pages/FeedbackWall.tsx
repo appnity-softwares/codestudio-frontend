@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { Send, ThumbsUp, ThumbsDown, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown, Info, Clock, Lock, Pin, FileText, MoreHorizontal, Eye, EyeOff } from "lucide-react";
+import { Send, ThumbsUp, ThumbsDown, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown, Info, Clock, Lock, Pin, FileText, MoreHorizontal, Eye, EyeOff, ChevronLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -102,6 +103,7 @@ const MAX_CHARS = 500;
 export default function FeedbackWall() {
     const { toast } = useToast();
     const { user } = useAuth();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [category, setCategory] = useState<string>("FEATURE");
     const [content, setContent] = useState("");
@@ -302,6 +304,14 @@ export default function FeedbackWall() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <div className="flex items-center gap-2.5">
+                                    {isMobile && (
+                                        <button
+                                            onClick={() => navigate(-1)}
+                                            className="mr-1 p-1 -ml-2 rounded-full hover:bg-white/10 text-white/70"
+                                        >
+                                            <ChevronLeft className="h-5 w-5" />
+                                        </button>
+                                    )}
                                     <h1 className="text-lg font-semibold text-white/90 tracking-tight">
                                         Feedback Wall
                                     </h1>

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     Home,
-    Zap,
     Trophy,
     Globe,
     ChevronLeft,
@@ -30,6 +29,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQueryClient } from "@tanstack/react-query";
 import { feedAPI, authAPI } from "@/lib/api";
+import { Logo } from "@/components/ui/Logo";
 
 export function Dock() {
     const location = useLocation();
@@ -110,13 +110,15 @@ export function Dock() {
                 "flex items-center h-16 px-4 mb-2",
                 isCollapsed ? "justify-center" : "justify-start gap-3"
             )}>
-                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary border border-primary/20 shadow-sm shrink-0">
-                    <Zap className="w-4 h-4 fill-current" />
+                {/* Use the Logo component directly, preventing double-boxing if Logo has its own container, or verify Logo styling */}
+
+                <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                    <Logo className="w-8 h-8" showText={false} />
                 </div>
                 {!isCollapsed && (
-                    <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-                        <span className="font-bold tracking-tight text-foreground/90 font-headline">CodeStudio</span>
-                    </div>
+                    <span className="font-bold tracking-tight text-foreground/90 font-headline animate-in fade-in slide-in-from-left-2 duration-300">
+                        CodeStudio
+                    </span>
                 )}
             </div>
 

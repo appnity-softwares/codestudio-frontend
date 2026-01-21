@@ -10,13 +10,11 @@ import { Loader2, Search, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-// Assuming useDebounce hook exists or needs to be created/imported. 
-// Standard hook usage. If not present, I can implement basic debounce.
 
 export default function Community() {
     const navigate = useNavigate();
     const [search, setSearch] = useState("");
-    const [sort, setSort] = useState("recommended");
+    const [sort, setSort] = useState("all");
     const [page, setPage] = useState(1);
     const [debouncedSearch, setDebouncedSearch] = useState(search);
     const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -108,7 +106,8 @@ export default function Community() {
                             <SelectValue placeholder="Sort by" />
                         </SelectTrigger>
                         <SelectContent className="bg-surface border-white/10">
-                            <SelectItem value="recommended">For You</SelectItem>
+                            <SelectItem value="all">All Users</SelectItem>
+                            <SelectItem value="recommended">Assuming you like this platform</SelectItem>
                             <SelectItem value="active">Recently Active</SelectItem>
                             <SelectItem value="trust">Highest Trust</SelectItem>
                             <SelectItem value="snippets">Most Snippets</SelectItem>

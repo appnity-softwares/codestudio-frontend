@@ -33,7 +33,7 @@ export default function AdminLayout() {
         <div className="flex h-screen bg-canvas text-foreground font-sans selection:bg-primary/20">
             {/* Sidebar */}
             <aside className="w-64 bg-surface border-r border-white/5 flex flex-col shadow-2xl relative z-20">
-                <div className="h-16 flex items-center px-6 border-b border-white/5 bg-black/20">
+                <div className="h-16 flex items-center px-6 border-b border-white/5 bg-black/20 gap-3">
                     <Logo className="scale-90 origin-left" />
                 </div>
 
