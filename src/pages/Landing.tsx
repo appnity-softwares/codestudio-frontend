@@ -1,14 +1,22 @@
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Code2, Users, Trophy, Zap, Globe, Sparkles, ChevronRight } from "lucide-react";
+import { ArrowRight, Code2, Users, Trophy, Zap, Globe, Sparkles, ChevronRight, TrendingUp } from "lucide-react";
 import SEO from "@/components/SeoMeta";
+import { useQuery } from "@tanstack/react-query";
+import { systemAPI } from "@/lib/api";
 
 export default function Landing() {
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
+
+    const { data: stats } = useQuery({
+        queryKey: ["landing-stats"],
+        queryFn: systemAPI.getLandingStats,
+        staleTime: 5 * 60 * 1000,
+    });
 
     // Redirect if authenticated
     useEffect(() => {
@@ -23,8 +31,7 @@ export default function Landing() {
                 title="CodeStudio - Master the Art of Coding"
                 description="The ultimate platform for developers to compete, collaborate, and grow. Join thousands of coders in the arena."
             />
-
-            {/* Navbar */}
+            {/* ... Navbar remains same ... */}
             <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#050505]/80 backdrop-blur-xl">
                 <div className="container max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -36,7 +43,7 @@ export default function Landing() {
 
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/60">
                         <a href="#features" className="hover:text-white transition-colors">Features</a>
-                        <a href="#community" className="hover:text-white transition-colors">Community</a>
+                        <a href="#rankings" className="hover:text-white transition-colors">Rankings</a>
                         <a href="/practice" className="hover:text-white transition-colors">Practice</a>
                     </div>
 
@@ -112,7 +119,7 @@ export default function Landing() {
                         </Link>
                     </motion.div>
 
-                    {/* Stats */}
+                    {/* Dynamic Stats */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -120,13 +127,23 @@ export default function Landing() {
                         className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mt-20 pt-10 border-t border-white/5"
                     >
                         {[
-                            { label: "Active Developers", value: "10K+" },
-                            { label: "Code Submissions", value: "500K+" },
-                            { label: "Daily Challenges", value: "365+" },
-                            { label: "Global Contests", value: "50+" },
+                            { label: "Active Developers", value: stats?.totalUsers ?? "..." },
+                            { label: "Code Submissions", value: stats?.totalSubmissions ?? "..." },
+                            { label: "Knowledge Snippets", value: stats?.totalSnippets ?? "..." },
+                            { label: "Hosted Contests", value: stats?.totalContests ?? "..." },
                         ].map((stat, i) => (
                             <div key={i}>
-                                <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={stat.value}
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-3xl font-bold text-white mb-1"
+                                    >
+                                        {stat.value}
+                                        {typeof stat.value === 'number' && "+"}
+                                    </motion.div>
+                                </AnimatePresence>
                                 <div className="text-sm text-white/40">{stat.label}</div>
                             </div>
                         ))}
@@ -161,6 +178,91 @@ export default function Landing() {
                             description="Run code in 40+ languages instantly with our high-performance execution engine and advanced test cases."
                             color="text-emerald-400"
                         />
+                    </div>
+                </div>
+            </section>
+
+            {/* Top Contestants / Rankings */}
+            <section id="rankings" className="py-24 px-6 relative">
+                <div className="container max-w-7xl mx-auto">
+                    <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-12">
+                        <div className="max-w-xl">
+                            <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
+                                <TrendingUp className="h-8 w-8 text-primary" />
+                                Elite Rankings
+                            </h2>
+                            <p className="text-white/40 text-lg">
+                                Meet the developers leading the pack. Our most trusted and active contributors shaping the future of CodeStudio.
+                            </p>
+                        </div>
+                        <Link to="/community">
+                            <Button variant="outline" className="border-white/10 hover:bg-white/5">
+                                View Leaderboard <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        </Link>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {stats?.topContestants?.map((user: any, i: number) => (
+                            <motion.div
+                                key={user.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.1 }}
+                                viewport={{ once: true }}
+                                className="group relative p-8 rounded-2xl bg-gradient-to-b from-white/[0.05] to-transparent border border-white/5 hover:border-primary/20 transition-all"
+                            >
+                                <div className="absolute top-4 right-6 text-4xl font-black text-white/5 group-hover:text-primary/10 transition-colors">
+                                    0{i + 1}
+                                </div>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="relative">
+                                        <img
+                                            src={user.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                                            alt={user.name}
+                                            className="h-16 w-16 rounded-xl object-cover ring-2 ring-white/5 group-hover:ring-primary/40 transition-all"
+                                        />
+                                        <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-[#050505] border border-white/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                                            {user.trustScore}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{user.name}</h3>
+                                        <p className="text-sm text-white/40">@{user.username}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between pt-4 border-t border-white/5 text-sm">
+                                    <div className="text-white/40">Knowledge Snippets</div>
+                                    <div className="font-mono text-primary">{user.snippetCount ?? 0}</div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Upcoming Events / Ticker */}
+            <section className="py-12 bg-primary/5 border-y border-primary/10">
+                <div className="container max-w-7xl mx-auto px-6">
+                    <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
+                        <div className="flex items-center gap-2 text-sm font-bold text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                            </span>
+                            Live Arena Feed
+                        </div>
+                        {stats?.upcomingEvents?.map((event: any) => (
+                            <div key={event.id} className="flex items-center gap-4 group cursor-help">
+                                <div className="text-sm border-l-2 border-white/10 pl-4 group-hover:border-primary transition-colors">
+                                    <div className="font-bold text-white group-hover:text-primary transition-colors">{event.title}</div>
+                                    <div className="text-xs text-white/30">{new Date(event.startTime).toLocaleDateString()} at {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                </div>
+                            </div>
+                        ))}
+                        {(!stats?.upcomingEvents || stats.upcomingEvents.length === 0) && (
+                            <div className="text-white/40 text-sm font-medium">New challenges are arriving soon. Stay tuned.</div>
+                        )}
                     </div>
                 </div>
             </section>

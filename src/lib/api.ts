@@ -659,5 +659,13 @@ export const adminAPI = {
 
 export const systemAPI = {
     getPublicStatus: () => apiRequest<{ settings: Record<string, string> }>('/system/status'),
+    getLandingStats: () => apiRequest<{
+        totalUsers: number;
+        totalSubmissions: number;
+        totalSnippets: number;
+        totalContests: number;
+        upcomingEvents: any[];
+        topContestants: any[];
+    }>('/landing/stats'),
 };
 
