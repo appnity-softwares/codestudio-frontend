@@ -101,17 +101,18 @@ export function Dock() {
     return (
         <aside
             className={cn(
-                "h-full z-40 flex flex-col border-r border-border/30 bg-[#0a0a0c]/95 backdrop-blur-xl transition-all duration-300 ease-in-out relative group/sidebar",
+                "h-full z-40 flex flex-col border-r border-white/5 bg-[#08080a] transition-all duration-300 ease-in-out relative group/sidebar",
                 isCollapsed ? "w-[70px]" : "w-[240px]"
             )}
         >
             {/* Logo Area */}
-            <div className={cn(
-                "flex items-center h-16 px-4 mb-2",
-                isCollapsed ? "justify-center" : "justify-start gap-3"
-            )}>
-                {/* Use the Logo component directly, preventing double-boxing if Logo has its own container, or verify Logo styling */}
-
+            <Link
+                to="/feed"
+                className={cn(
+                    "flex items-center h-16 px-4 mb-2 hover:bg-white/[0.02] transition-colors",
+                    isCollapsed ? "justify-center" : "justify-start gap-3"
+                )}
+            >
                 <div className="w-8 h-8 flex items-center justify-center shrink-0">
                     <Logo className="w-8 h-8" showText={false} />
                 </div>
@@ -120,19 +121,19 @@ export function Dock() {
                         CodeStudio
                     </span>
                 )}
-            </div>
+            </Link>
 
             {/* Navigation Groups */}
-            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-6 scrollbar-thin scrollbar-thumb-white/10">
+            <div className="flex-1 overflow-y-auto px-2 py-4 space-y-8 scrollbar-hide">
                 <TooltipProvider delayDuration={0}>
                     {activeGroups.map((group, idx) => (
-                        <div key={idx}>
+                        <div key={idx} className="space-y-1">
                             {!isCollapsed && (
-                                <h3 className="px-3 mb-2 text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest font-mono select-none">
+                                <h3 className="px-4 mb-2 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] font-headline select-none">
                                     {group.title}
                                 </h3>
                             )}
-                            <div className="space-y-1">
+                            <div className="space-y-0.5">
                                 {group.items.map((item) => {
                                     const isActive = location.pathname.startsWith(item.path);
 
@@ -214,7 +215,7 @@ export function Dock() {
                             {!isCollapsed && <MoreHorizontal className="w-4 h-4 ml-auto text-muted-foreground/50" />}
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" side="right" className="w-56" sideOffset={10}>
+                    <DropdownMenuContent align="start" side="top" className="w-56 mb-2" sideOffset={10}>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
                                 <p className="text-sm font-medium leading-none">{user?.name}</p>
@@ -252,11 +253,11 @@ export function Dock() {
                 </Button>
 
                 {!isCollapsed && (
-                    <div className="pt-2 px-3 pb-2 text-[10px] text-muted-foreground/30 font-medium animate-in fade-in duration-500">
-                        <div className="flex items-center justify-between border-t border-border/20 pt-2">
+                    <div className="pt-2 px-3 pb-2 text-[10px] text-muted-foreground/20 font-medium animate-in fade-in duration-500">
+                        <div className="flex items-center justify-between pt-2">
                             <span>v1.2.0</span>
                             <a
-                                href="https://github.com/appnity-softwares?tab=repositories"
+                                href="https://appnity.co.in"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="hover:text-primary transition-colors flex items-center gap-1"

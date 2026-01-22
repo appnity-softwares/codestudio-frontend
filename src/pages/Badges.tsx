@@ -133,59 +133,38 @@ export default function Badges() {
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-12 animate-in fade-in duration-500 pb-20">
             {/* Header / Influence Section */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 border border-white/10 shadow-2xl p-8 md:p-12 text-center md:text-left group">
-                {/* Background Effects */}
-                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 bg-primary/20 rounded-full blur-[100px] group-hover:bg-primary/30 transition-all duration-1000" />
-                <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-purple-500/20 rounded-full blur-[80px]" />
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
-
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
-                    <div className="space-y-6 max-w-2xl">
-                        <div>
-                            <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
-                                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white">
-                                    {influence?.rank || 'Novice'}
-                                </h1>
-                                {authUser?.role === 'ADMIN' && (
-                                    <UIBadge variant="secondary" className="bg-amber-400/20 text-amber-300 border-amber-400/50 px-3 py-1 text-xs">ADMIN</UIBadge>
-                                )}
-                            </div>
-                            <p className="text-xl text-slate-300 font-light leading-relaxed">
-                                Your influence score unlocks exclusive perks and showcases your mastery.
-                                Climb the ranks by solving problems and helping the community.
-                            </p>
-                        </div>
-
-                        {/* Stats Breakdown */}
-                        <div className="grid grid-cols-3 gap-4 pt-2">
-                            {[
-                                { label: "Trust Score", value: influence?.breakdown?.trust || 0, color: "text-white" },
-                                { label: "Snippet Points", value: `+${influence?.breakdown?.snippets || 0}`, color: "text-emerald-400" },
-                                { label: "Badge Points", value: `+${influence?.breakdown?.badges || 0}`, color: "text-purple-400" }
-                            ].map((stat, i) => (
-                                <div key={i} className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-center hover:bg-white/10 transition-colors">
-                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">{stat.label}</div>
-                                    <div className={cn("text-2xl font-mono font-bold", stat.color)}>{stat.value}</div>
-                                </div>
-                            ))}
-                        </div>
+            <div className="space-y-4">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold font-headline">Achievements & Influence</h1>
+                        <p className="text-muted-foreground mt-1">
+                            Your rank is <span className="text-white font-bold">{influence?.rank || 'Novice'}</span>.
+                            Unlock exclusive perks as you climb the leaderboard.
+                        </p>
                     </div>
 
-                    {/* Big Score Display */}
-                    <div className="relative flex flex-col items-center justify-center p-8 rounded-full border border-white/10 bg-black/20 backdrop-blur-sm aspect-square w-64 h-64 shadow-[0_0_50px_rgba(124,58,237,0.3)]">
-                        <Trophy className="absolute top-4 text-yellow-500/20 w-12 h-12" />
-                        <div className="text-5xl md:text-6xl font-black text-white font-mono tracking-tighter">
-                            {currentScore.toLocaleString()}
+                    <div className="flex items-center gap-3">
+                        <div className="text-right">
+                            <div className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Total Influence</div>
+                            <div className="text-3xl font-black text-white font-mono">{currentScore.toLocaleString()}</div>
                         </div>
-                        <div className="text-sm font-bold text-primary tracking-[0.3em] uppercase mt-2">Influence</div>
-
-                        {/* Progress Ring (Visual Only) */}
-                        <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-2">
-                            <circle cx="50%" cy="50%" r="48%" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/5" />
-                            <circle cx="50%" cy="50%" r="48%" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary/50"
-                                strokeDasharray="300" strokeDashoffset="100" strokeLinecap="round" />
-                        </svg>
+                        <div className="h-12 w-px bg-white/10 hidden md:block" />
+                        <Trophy className="w-8 h-8 text-amber-400" />
                     </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                        { label: "Trust Score", value: influence?.breakdown?.trust || 0, color: "text-white" },
+                        { label: "Snippet Points", value: `+${influence?.breakdown?.snippets || 0}`, color: "text-emerald-400" },
+                        { label: "Badge Points", value: `+${influence?.breakdown?.badges || 0}`, color: "text-purple-400" }
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-tight">{stat.label}</span>
+                            <span className={cn("text-xl font-mono font-bold", stat.color)}>{stat.value}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
 

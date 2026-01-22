@@ -16,11 +16,23 @@ import { ReactLivePreview } from "@/components/preview/ReactLivePreview";
 import { MermaidDiagram } from "@/components/preview/MermaidDiagram";
 import { CodeEditor } from "@/components/CodeEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Terminal as TerminalIcon, Info, RefreshCcw, Sparkles, Play, Loader2, Code2, Eye } from "lucide-react";
 import { useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
+import { SnippetCard } from "@/components/SnippetCard";
+import {
+    Terminal as TerminalIcon,
+    Info,
+    RefreshCcw,
+    Sparkles,
+    Play,
+    Loader2,
+    Code2,
+    Eye,
+    Globe
+} from "lucide-react";
 
 const BOILERPLATES: Record<string, string> = {
     python: `def main():\n    print("Hello from Python!")\n    \nif __name__ == "__main__":\n    main()`,
@@ -38,11 +50,17 @@ const BOILERPLATES: Record<string, string> = {
 };
 
 export default function Create() {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
     const isMobile = useIsMobile();
     const { celebrate } = useBadgeCelebration();
     const [loading, setLoading] = useState(false);
+
+    // Ensure we start at the top on mount
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
     // Snippet State
     const [snippetTitle, setSnippetTitle] = useState("");
@@ -50,15 +68,20 @@ export default function Create() {
     const [snippetLang, setSnippetLang] = useState("typescript");
     const [snippetType, setSnippetType] = useState("ALGORITHM");
     const [snippetDifficulty, setSnippetDifficulty] = useState("MEDIUM");
-    const [snippetCode, setSnippetCode] = useState("");
+    const [snippetCode, setSnippetCode] = useState(BOILERPLATES["typescript"]);
     const [snippetTags, setSnippetTags] = useState("");
+    const [snippetRefUrl, setSnippetRefUrl] = useState("");
     const [stdIn, setStdIn] = useState("");
     const [executing, setExecuting] = useState(false);
     const [executionResult, setExecutionResult] = useState<{ stdout: string; stderr: string; code: number } | null>(null);
     const [terminalLines, setTerminalLines] = useState<{ type: 'input' | 'output' | 'error', text: string }[]>([]);
     const [activeTab, setActiveTab] = useState("terminal");
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
     const terminalEndRef = useRef<HTMLDivElement>(null);
     const terminalInputRef = useRef<HTMLInputElement>(null);
+
+    const MAX_TITLE = 80;
+    const MAX_DESC = 300;
 
     // Visual Preview Support
     const isVisualLang = ['html', 'react', 'markdown', 'mermaid'].includes(snippetLang);
@@ -168,6 +191,7 @@ export default function Create() {
                 setSnippetDifficulty(snippet.difficulty || "MEDIUM");
                 setSnippetCode(snippet.code);
                 setSnippetTags(snippet.tags?.join(", ") || "");
+                setSnippetRefUrl(snippet.referenceUrl || "");
             } catch (error) {
                 toast({ variant: "destructive", title: "Error", description: "Failed to load snippet." });
             } finally {
@@ -181,13 +205,19 @@ export default function Create() {
 
     const handleSubmit = async () => {
         if (!snippetTitle || !snippetCode) {
-            toast({ title: "Error", description: "Title and Code are required", variant: "destructive" });
+            toast({ title: "Missing Information", description: "Please provide both a title and the source code.", variant: "destructive" });
             return;
         }
 
         // MVP Rule: Execution Success Required (only for non-visual languages)
         if (!isVisualLang && (!executionResult || executionResult.code !== 0)) {
-            toast({ title: "Verification Failed", description: "You must successfully RUN your code before posting/updating.", variant: "destructive" });
+            toast({
+                title: "Run Verification Required",
+                description: "You must successfully RUN your code once before publishing. This ensures quality in the feed.",
+                variant: "destructive"
+            });
+            // Auto-switch back to code tab and highlight run button logic could go here
+            setActiveTab('terminal');
             return;
         }
 
@@ -211,21 +241,23 @@ export default function Create() {
                 tags: snippetTags.split(",").map(t => t.trim()).filter(Boolean),
                 outputSnapshot: executionResult ? (executionResult.stdout + (executionResult.stderr ? `\n[STDERR]\n${executionResult.stderr}` : "")) : "",
                 previewType: isVisualLang ? "WEB_PREVIEW_CENTER" : "TERMINAL",
+                referenceUrl: snippetRefUrl,
+                status: 'PUBLISHED'
             };
 
             if (editId) {
                 await snippetsAPI.update(editId, payload);
-                toast({ title: "Updated", description: "Snippet updated successfully!" });
+                toast({ title: "Changes Saved", description: "Your snippet has been updated successfully!" });
             } else {
                 const res = await snippetsAPI.create(payload) as any;
-                toast({ title: "Created", description: "Snippet created successfully!" });
+                toast({ title: "Published! 🚀", description: "Your code is now live on the feed." });
                 if (res.newBadges && res.newBadges.length > 0) {
                     celebrate(res.newBadges);
                 }
             }
             navigate("/feed");
         } catch (error) {
-            toast({ title: "Error", description: "Action failed", variant: "destructive" });
+            toast({ title: "Action Failed", description: "We couldn't save your snippet. Please check your connection.", variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -404,6 +436,15 @@ export default function Create() {
                                         className="h-12"
                                     />
                                 </div>
+                                <div className="space-y-2">
+                                    <Label>Reference URL</Label>
+                                    <Input
+                                        placeholder="https://docs.microsoft.com/..."
+                                        value={snippetRefUrl}
+                                        onChange={e => setSnippetRefUrl(e.target.value)}
+                                        className="h-12"
+                                    />
+                                </div>
                             </TabsContent>
                         </Tabs>
                     </CardContent>
@@ -416,53 +457,109 @@ export default function Create() {
     return (
         <div className="container max-w-7xl mx-auto py-10 animate-in fade-in duration-500 min-h-screen px-4">
             <div className="flex flex-col gap-8">
-                {/* Header Information Area */}
-                <div className="space-y-6">
+                {/* Sticky Header Information Area */}
+                <div className="sticky top-0 z-50 py-4 -mt-4 bg-canvas/80 backdrop-blur-xl border-b border-white/5 space-y-6">
                     <div className="flex items-center justify-between">
                         <div className="space-y-1">
                             <h1 className="text-3xl font-black tracking-tight text-white font-headline">
                                 Create New <span className="text-primary italic">Snippet</span>
                             </h1>
-                            <p className="text-muted-foreground/60 text-sm font-medium">Build, test and publish your code to the universe.</p>
+                            <p className="text-white/50 text-sm font-medium italic">Build, test and publish your code to the universe.</p>
                         </div>
                         <div className="flex gap-4">
                             <Button
                                 variant="outline"
                                 onClick={() => navigate(-1)}
-                                className="bg-white/5 border-white/10 hover:bg-white/10"
+                                className="bg-white/5 border-white/10 hover:bg-white/10 text-white/70"
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleSubmit}
-                                disabled={loading || (!isVisualLang && !executionResult)}
-                                className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 px-8 font-bold"
+                                disabled={loading}
+                                className={cn(
+                                    "relative overflow-hidden shadow-xl px-8 font-bold transition-all active:scale-95 group min-w-[160px]",
+                                    (!isVisualLang && !executionResult)
+                                        ? "bg-white/10 text-white/40 border border-white/10"
+                                        : "bg-gradient-to-r from-primary to-indigo-500 hover:shadow-primary/40 text-white"
+                                )}
                             >
-                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                {editId ? "Update Snippet" : "Publish Content"}
+                                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                                <span className="relative flex items-center justify-center">
+                                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                    <span>{editId ? "Update Snippet" : "Publish Content"}</span>
+                                    {!isVisualLang && !executionResult && (
+                                        <div className="ml-2 w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Run required" />
+                                    )}
+                                </span>
                             </Button>
                         </div>
                     </div>
+                </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md">
-                        <div className="space-y-3">
-                            <Label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">1. Snippet Title</Label>
+                {/* Metadata Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start bg-white/[0.04] border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none opacity-50" />
+                    <div className="space-y-4 relative z-10">
+                        <div className="flex justify-between items-end">
+                            <Label className="text-[12px] font-black uppercase tracking-[0.2em] text-white drop-shadow-md">
+                                1. Snippet Title <span className="text-primary italic ml-1">#Required</span>
+                            </Label>
+                            <span className={cn("text-[10px] font-bold", snippetTitle.length > MAX_TITLE ? "text-red-500" : "text-white/40")}>
+                                {snippetTitle.length} / {MAX_TITLE}
+                            </span>
+                        </div>
+                        <Input
+                            placeholder="e.g. Optimized Binary Search in Rust"
+                            value={snippetTitle}
+                            maxLength={MAX_TITLE + 10}
+                            onChange={e => setSnippetTitle(e.target.value)}
+                            className="h-16 bg-black/60 border-white/20 text-white text-xl font-bold rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-white/20 px-6 shadow-inner"
+                        />
+                    </div>
+                    <div className="space-y-4 relative z-10">
+                        <div className="flex justify-between items-end">
+                            <Label className="text-[12px] font-black uppercase tracking-[0.2em] text-white/90">
+                                2. Description <span className="text-white/30 font-medium ml-1 italic">(Recommended)</span>
+                            </Label>
+                            <span className={cn("text-[10px] font-bold", snippetDesc.length > MAX_DESC ? "text-red-500" : "text-white/40")}>
+                                {snippetDesc.length} / {MAX_DESC}
+                            </span>
+                        </div>
+                        <Textarea
+                            placeholder="Briefly explain the logic, Big O complexity, or usage instructions..."
+                            value={snippetDesc}
+                            maxLength={MAX_DESC + 20}
+                            onChange={e => setSnippetDesc(e.target.value)}
+                            className="min-h-[64px] h-16 py-5 bg-black/60 border-white/20 text-white text-sm font-medium rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all resize-none placeholder:text-white/20 px-6 shadow-inner"
+                        />
+                    </div>
+                </div>
+
+                {/* Additional Settings Bar */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white/[0.02] border border-white/5 p-6 rounded-2xl backdrop-blur-sm -mt-4">
+                    <div className="flex flex-col gap-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70 ml-1">Reference URL (Optional)</Label>
+                        <div className="relative group">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-primary transition-colors" />
                             <Input
-                                placeholder="Give your work a name..."
-                                value={snippetTitle}
-                                onChange={e => setSnippetTitle(e.target.value)}
-                                className="h-12 bg-black/40 border-white/10 text-lg font-bold rounded-xl focus:border-primary/50 transition-all placeholder:text-white/10"
+                                placeholder="https://docs.microsoft.com/..."
+                                value={snippetRefUrl}
+                                onChange={e => setSnippetRefUrl(e.target.value)}
+                                className="pl-10 h-11 bg-black/40 border-white/10 text-white text-xs rounded-xl focus:border-primary/50 transition-all placeholder:text-white/10"
                             />
                         </div>
-                        <div className="space-y-3">
-                            <Label className="text-[10px] font-bold uppercase tracking-widest text-primary/70">2. Description (Optional)</Label>
-                            <Textarea
-                                placeholder="Explain what this code does in a few words..."
-                                value={snippetDesc}
-                                onChange={e => setSnippetDesc(e.target.value)}
-                                className="min-h-[48px] h-12 py-3 bg-black/40 border-white/10 text-sm rounded-xl focus:border-primary/50 transition-all resize-none placeholder:text-white/10"
-                            />
-                        </div>
+                    </div>
+                    <div className="flex items-end gap-3 md:col-span-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowPreviewModal(true)}
+                            className="h-11 px-6 text-xs font-bold text-white/70 hover:text-white hover:bg-white/5 border border-white/5 rounded-xl transition-all"
+                        >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Live Feed Preview
+                        </Button>
+                        <p className="text-[10px] text-white/30 italic pb-3">Preview exactly how your snippet will appear to others.</p>
                     </div>
                 </div>
 
@@ -530,10 +627,15 @@ export default function Create() {
                                         variant="secondary"
                                         onClick={() => handleRunCode()}
                                         disabled={executing || !snippetCode}
-                                        className="h-8 px-4 text-[10px] font-black tracking-widest bg-white/5 hover:bg-white/10 border-white/5"
+                                        className={cn(
+                                            "h-9 px-6 text-[11px] font-black tracking-[0.15em] transition-all",
+                                            (!executionResult && !isVisualLang)
+                                                ? "bg-primary text-white shadow-[0_0_15px_rgba(56,189,248,0.4)] animate-pulse scale-105"
+                                                : "bg-white/5 hover:bg-white/10 border-white/5"
+                                        )}
                                     >
-                                        {executing ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <Play className="mr-2 h-3 w-3 fill-current" />}
-                                        RUN CODE
+                                        {executing ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Play className="mr-2 h-3.5 w-3.5 fill-current" />}
+                                        {executionResult ? "RE-RUN CODE" : "RUN CODE"}
                                     </Button>
                                 </div>
                             </div>
@@ -592,42 +694,42 @@ export default function Create() {
                             </div>
                         </Card>
 
-                        {/* Bottom Metadata Bar */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white/[0.02] border border-white/5 p-6 rounded-2xl">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white/[0.02] border border-white/5 p-8 rounded-2xl shadow-inner relative overflow-hidden group">
+                            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="space-y-2.5">
-                                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Algorithm Type</Label>
+                                <Label className="text-[11px] font-black uppercase tracking-widest text-white">Algorithm Type</Label>
                                 <Select value={snippetType} onValueChange={setSnippetType}>
-                                    <SelectTrigger className="h-11 bg-black/40 border-white/5 rounded-xl">
-                                        <SelectValue />
+                                    <SelectTrigger className="h-12 bg-black/40 border-white/10 text-white rounded-xl focus:ring-primary/20 shadow-lg">
+                                        <SelectValue placeholder="Select type..." />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-white/10">
-                                        <SelectItem value="ALGORITHM">Algorithm</SelectItem>
-                                        <SelectItem value="UTILITY">Utility</SelectItem>
-                                        <SelectItem value="EXAMPLE">Example</SelectItem>
-                                        <SelectItem value="VISUAL">Visual</SelectItem>
+                                    <SelectContent className="bg-neutral-900 border-white/10 text-white">
+                                        <SelectItem value="ALGORITHM">Algorithm Library</SelectItem>
+                                        <SelectItem value="UTILITY">Utility Script</SelectItem>
+                                        <SelectItem value="EXAMPLE">Reference Example</SelectItem>
+                                        <SelectItem value="VISUAL">Visual Component</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2.5">
-                                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Difficulty Tier</Label>
+                                <Label className="text-[11px] font-black uppercase tracking-widest text-white">Difficulty Tier</Label>
                                 <Select value={snippetDifficulty} onValueChange={setSnippetDifficulty}>
-                                    <SelectTrigger className="h-11 bg-black/40 border-white/5 rounded-xl">
-                                        <SelectValue />
+                                    <SelectTrigger className="h-12 bg-black/40 border-white/10 text-white rounded-xl focus:ring-primary/20 shadow-lg">
+                                        <SelectValue placeholder="Beginner? Expert?" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-neutral-900 border-white/10">
-                                        <SelectItem value="EASY">Beginner</SelectItem>
+                                    <SelectContent className="bg-neutral-900 border-white/10 text-white">
+                                        <SelectItem value="EASY">Beginner Friendly</SelectItem>
                                         <SelectItem value="MEDIUM">Intermediate</SelectItem>
-                                        <SelectItem value="HARD">Pro Gamer</SelectItem>
+                                        <SelectItem value="HARD">Pro Level</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2.5">
-                                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Taxonomy Tags</Label>
+                                <Label className="text-[11px] font-black uppercase tracking-widest text-white">Taxonomy Tags</Label>
                                 <Input
-                                    placeholder="react, ui, architecture"
+                                    placeholder="e.g. react, ui, hooks"
                                     value={snippetTags}
                                     onChange={e => setSnippetTags(e.target.value)}
-                                    className="h-11 bg-black/40 border-white/5 rounded-xl focus:border-primary/50 transition-all placeholder:text-white/5"
+                                    className="h-12 bg-black/40 border-white/10 text-white rounded-xl focus:border-primary/50 transition-all placeholder:text-white/20 shadow-lg"
                                 />
                             </div>
                         </div>
@@ -654,9 +756,9 @@ export default function Create() {
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-6 font-mono text-[13px] space-y-2 selection:bg-primary/20 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto p-6 font-mono text-[14px] space-y-2 selection:bg-primary/30 custom-scrollbar">
                                 {terminalLines.length === 0 && !executing && (
-                                    <div className="text-muted-foreground/30 italic text-xs leading-relaxed">
+                                    <div className="text-white/20 italic text-xs leading-relaxed">
                                         CodeStudio Execution Runtime v2.1.0<br />
                                         &gt; Waiting for process start...
                                     </div>
@@ -664,15 +766,15 @@ export default function Create() {
                                 {terminalLines.map((line, i) => (
                                     <div key={i} className={cn(
                                         "whitespace-pre-wrap break-all leading-relaxed transition-all",
-                                        line.type === 'input' ? "text-primary/70 font-bold before:content-['>_'] before:mr-2" :
-                                            line.type === 'error' ? "text-rose-400 bg-rose-500/5 px-3 py-1.5 rounded-lg border border-rose-500/10 my-2" : "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.15)]"
+                                        line.type === 'input' ? "text-primary font-bold before:content-['>_'] before:mr-2" :
+                                            line.type === 'error' ? "text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 my-2" : "text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]"
                                     )}>
                                         {line.text}
                                     </div>
                                 ))}
                                 {executing && (
                                     <div className="flex items-center gap-3 text-primary animate-pulse py-2">
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        <Loader2 className="h-4 w-4 animate-spin" />
                                         <span className="text-xs font-bold uppercase tracking-widest">Compiling & Running...</span>
                                     </div>
                                 )}
@@ -694,22 +796,108 @@ export default function Create() {
                                 }}
                                 className="p-4 bg-white/[0.02] border-t border-white/5 flex items-center gap-3 shrink-0 group focus-within:bg-white/[0.04] transition-all"
                             >
-                                <span className="text-primary font-bold text-sm">{">"}</span>
+                                <span className="text-primary font-black text-sm">{">"}</span>
                                 <input
                                     ref={terminalInputRef}
                                     name="terminalInput"
-                                    className="flex-1 bg-transparent border-none outline-none text-[13px] font-mono text-white placeholder:text-muted-foreground/20 w-full"
-                                    placeholder="Type standard input..."
+                                    className="flex-1 bg-transparent border-none outline-none text-[14px] font-mono text-white placeholder:text-white/30 w-full"
+                                    placeholder="Type standard input and hit Enter..."
                                     autoComplete="off"
                                 />
-                                <kbd className="text-[10px] text-muted-foreground/20 font-mono hidden sm:inline px-2 py-1 rounded border border-white/5">ENTER</kbd>
+                                <kbd className="text-[10px] text-white/40 font-mono hidden sm:inline px-2 py-1 rounded border border-white/10 bg-white/5">ENTER</kbd>
                             </form>
                         </Card>
                     </div>
                 </div>
             </div>
+
+            {/* Live Card Preview Modal */}
+            <AnimatePresence>
+                {showPreviewModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowPreviewModal(false)}
+                            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-2xl bg-[#0c0c0e] border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                                        <Eye className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">Snippet Feed Preview</h3>
+                                        <p className="text-xs text-white/40">This is how your code will look to other developers.</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setShowPreviewModal(false)}
+                                    className="h-8 w-8 text-white/40 hover:text-white hover:bg-white/5 rounded-full"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <div className="p-8 bg-grid-white/[0.02] flex items-center justify-center min-h-[400px]">
+                                <div className="w-full">
+                                    {/* Mock Snippet Data for Preview */}
+                                    <SnippetCard
+                                        snippet={{
+                                            id: "preview",
+                                            title: snippetTitle || "Untitled Snippet",
+                                            description: snippetDesc || "No description provided yet.",
+                                            language: snippetLang,
+                                            type: snippetType,
+                                            difficulty: snippetDifficulty,
+                                            code: snippetCode,
+                                            tags: snippetTags.split(",").map(t => t.trim()).filter(Boolean),
+                                            referenceUrl: snippetRefUrl,
+                                            previewType: isVisualLang ? "WEB_PREVIEW_CENTER" : "TERMINAL",
+                                            author: user || { username: "You", image: "" },
+                                            lastExecutionOutput: executionResult ? (executionResult.stdout + (executionResult.stderr ? `\n[STDERR]\n${executionResult.stderr}` : "")) : "",
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="p-4 bg-white/[0.02] text-center">
+                                <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-black">Interactive Preview Environment</p>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
+}
+
+// Simple X Icon if not imported
+function X(props: any) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+        </svg>
+    )
 }
 
 

@@ -12,7 +12,7 @@ import { Loader2, Calendar, ShieldCheck, AlertCircle, ExternalLink } from "lucid
 import { format } from "date-fns";
 import SEO from "@/components/SeoMeta";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
-import { Helmet } from "react-helmet-async";
+
 
 export default function EventDetail() {
     const { id } = useParams<{ id: string }>();
@@ -197,7 +197,7 @@ export default function EventDetail() {
             )}
 
             {event && !event.isExternal && (
-                <Helmet>
+                <>
                     <script type="application/ld+json">
                         {JSON.stringify({
                             "@context": "https://schema.org",
@@ -231,7 +231,7 @@ export default function EventDetail() {
                             ]
                         })}
                     </script>
-                </Helmet>
+                </>
             )}
 
             <Button variant="ghost" className="mb-6" onClick={() => navigate('/arena')}>&larr; Back to Arena</Button>

@@ -10,7 +10,7 @@ import { systemAPI } from "@/lib/api";
 import { ChangelogSection } from "@/components/ChangelogSection";
 
 export default function Landing() {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const navigate = useNavigate();
 
     const { data: stats } = useQuery({
@@ -22,9 +22,13 @@ export default function Landing() {
     // Redirect if authenticated
     useEffect(() => {
         if (isAuthenticated) {
-            navigate("/feed");
+            if (user && !user.onboardingCompleted) {
+                navigate("/onboarding");
+            } else {
+                navigate("/feed");
+            }
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, user, navigate]);
 
     return (
         <div className="min-h-screen bg-[#050505] text-white selection:bg-primary/30 overflow-x-hidden">

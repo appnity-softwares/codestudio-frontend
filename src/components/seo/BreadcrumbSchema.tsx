@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async';
+
 
 interface BreadcrumbItem {
     name: string;
@@ -22,10 +22,10 @@ export const BreadcrumbSchema = ({ items }: BreadcrumbSchemaProps) => {
     };
 
     return (
-        <Helmet>
+        <>
             <script type="application/ld+json">
                 {JSON.stringify(schema)}
             </script>
-        </Helmet>
+        </>
     );
 };

@@ -49,7 +49,7 @@ export function DashboardLayout() {
 
                 {/* Column 3: Context Toolbelt (Desktop Only) */}
                 {!isMobile && !hideToolbelt && (
-                    <div className="hidden lg:block w-[300px] flex-shrink-0 border-l border-border bg-canvas/50">
+                    <div className="hidden xl:block w-[280px] 2xl:w-[320px] flex-shrink-0 border-l border-white/5 bg-canvas/30 backdrop-blur-sm">
                         <Toolbelt />
                     </div>
                 )}

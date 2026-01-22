@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import SEO from "@/components/SeoMeta";
+import localforage from "localforage";
+import { useEffect } from "react";
 
 type FeedBucket = 'trending' | 'new' | 'editor';
 
@@ -20,11 +22,35 @@ export default function Feed() {
     const [language, setLanguage] = useState("all");
     const [type, setType] = useState("all");
     const [difficulty, setDifficulty] = useState("all");
+    const [cachedSnippets, setCachedSnippets] = useState<any[]>([]);
+
+    // Load from cache on mount
+    useEffect(() => {
+        const loadCache = async () => {
+            const cached = await localforage.getItem(`feed_${bucket}`);
+            if (cached) {
+                setCachedSnippets(cached as any[]);
+            }
+        };
+        loadCache();
+    }, [bucket]);
 
     // Use Smart Feed API for bucket-based feeds
     const { data: feedData, isLoading: feedLoading } = useQuery({
         queryKey: ['feed', bucket],
-        queryFn: () => feedAPI.get(bucket),
+        queryFn: async () => {
+            try {
+                const res = await feedAPI.get(bucket);
+                if (res.snippets) {
+                    await localforage.setItem(`feed_${bucket}`, res.snippets);
+                }
+                return res;
+            } catch (err) {
+                const cached = await localforage.getItem(`feed_${bucket}`);
+                if (cached) return { snippets: cached, bucket };
+                throw err;
+            }
+        },
         enabled: !search && language === 'all' && type === 'all' && difficulty === 'all',
     });
 
@@ -41,8 +67,8 @@ export default function Feed() {
     });
 
     const isFiltering = !!(search || language !== 'all' || type !== 'all' || difficulty !== 'all');
-    const snippets = isFiltering ? (searchData?.snippets || []) : (feedData?.snippets || []);
-    const loading = isFiltering ? searchLoading : feedLoading;
+    const snippets = (isFiltering ? (searchData?.snippets || []) : (feedData?.snippets || cachedSnippets)) as any[];
+    const loading = isFiltering ? searchLoading : (feedLoading && cachedSnippets.length === 0);
 
     const tabs: { id: FeedBucket; label: string; icon: React.ReactNode }[] = [
         { id: 'trending', label: 'Trending', icon: <Flame className="h-4 w-4" /> },

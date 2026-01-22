@@ -1,8 +1,8 @@
 import {
-    Users,
     TerminalIcon,
     Cpu,
-    Activity
+    Activity,
+    Medal
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -45,10 +45,10 @@ export function Toolbelt() {
                                 <span className="text-xs font-bold text-white group-hover:text-primary transition-colors">Create Snippet</span>
                             </div>
                         </Link>
-                        <Link to="/arena" className="block">
-                            <div className="p-4 rounded-xl bg-surface border border-white/10 hover:border-orange-500 hover:bg-white/5 transition-all text-center cursor-pointer h-full flex flex-col items-center justify-center group shadow-sm">
-                                <Users className="w-6 h-6 mb-2 text-orange-400 group-hover:scale-110 transition-transform" />
-                                <span className="text-xs font-bold text-white group-hover:text-orange-400 transition-colors">Arena</span>
+                        <Link to="/badges" className="block">
+                            <div className="p-4 rounded-xl bg-surface border border-white/10 hover:border-amber-500 hover:bg-white/5 transition-all text-center cursor-pointer h-full flex flex-col items-center justify-center group shadow-sm">
+                                <Medal className="w-6 h-6 mb-2 text-amber-400 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors">Badges</span>
                             </div>
                         </Link>
                         <Link to="/changelog" className="block col-span-2">

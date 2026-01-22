@@ -43,6 +43,12 @@ export default function Onboarding() {
     const [isAvatarsLoading, setIsAvatarsLoading] = useState(true);
 
     useEffect(() => {
+        // If user already completed onboarding, don't show this screen
+        if (user?.onboardingCompleted) {
+            navigate('/feed', { replace: true });
+            return;
+        }
+
         const fetchAvatars = async () => {
             try {
                 const response = await usersAPI.getAvatars();
@@ -54,7 +60,7 @@ export default function Onboarding() {
             }
         };
         fetchAvatars();
-    }, []);
+    }, [user, navigate]);
 
     const handleNext = async () => {
         if (currentStep < steps.length - 1) {
@@ -87,9 +93,13 @@ export default function Onboarding() {
     const handleFinish = async () => {
         setIsLoading(true);
         try {
+            // Ensure we have at least a name and username for the backend
+            const finalName = name.trim() || user?.name || "Member";
+            const finalUsername = username.trim() || user?.username || `user_${Date.now().toString().slice(-6)}`;
+
             await usersAPI.completeOnboarding({
-                name,
-                username,
+                name: finalName,
+                username: finalUsername,
                 bio,
                 image,
                 githubUrl,
@@ -98,16 +108,21 @@ export default function Onboarding() {
                 languages: selectedLangs,
                 interests: selectedInterests
             });
-            await updateUser({ onboardingCompleted: true }); // Update local context if supported or force refresh
-            navigate('/');
+
+            // Force update local user state or refresh
+            if (updateUser) {
+                await updateUser({ onboardingCompleted: true, name: finalName, username: finalUsername, image });
+            }
+
+            navigate('/feed'); // Redirect to feed instead of landing to avoid re-redirects
             toast({
                 title: "Welcome aboard! 🚀",
                 description: "Your profile has been set up.",
             });
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 title: "Error",
-                description: "Failed to complete onboarding.",
+                description: error.message || "Failed to complete onboarding.",
                 variant: "destructive",
             });
             console.error(error);
@@ -140,6 +155,7 @@ export default function Onboarding() {
                                         return (
                                             <button
                                                 key={avatar.id || avatar.seed}
+                                                type="button"
                                                 onClick={() => setImage(url)}
                                                 className={`h-8 w-8 rounded-full border overflow-hidden transition-all ${image === url ? 'border-primary ring-2 ring-primary/20 scale-110' : 'border-white/10 opacity-50 hover:opacity-100'}`}
                                             >
@@ -148,11 +164,25 @@ export default function Onboarding() {
                                         );
                                     })
                                 )}
-                                <Link to="/settings/avatars">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-dashed border-white/20">
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </Link>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full border border-dashed border-white/20"
+                                    onClick={() => navigate('/settings/avatars')}
+                                >
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            <div className="w-full max-w-xs space-y-1.5 pt-2">
+                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Or use custom image URL</Label>
+                                <Input
+                                    value={image}
+                                    onChange={(e) => setImage(e.target.value)}
+                                    placeholder="https://..."
+                                    className="h-8 text-xs bg-white/5 border-white/10"
+                                />
                             </div>
                         </div>
 
@@ -300,7 +330,13 @@ export default function Onboarding() {
                         <Badge variant="secondary" className="text-xs">
                             Step {currentStep + 1} of {steps.length}
                         </Badge>
-                        <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="text-muted-foreground hover:text-foreground">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isLoading}
+                            onClick={handleFinish}
+                            className="text-muted-foreground hover:text-foreground hover:bg-white/5"
+                        >
                             Skip
                         </Button>
                     </div>

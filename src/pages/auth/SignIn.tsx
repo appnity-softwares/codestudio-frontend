@@ -25,12 +25,18 @@ export default function SignIn() {
         setLoading(true)
 
         try {
-            await signIn(email, password)
+            const response = await signIn(email, password) as any
             toast({
                 title: "Welcome back",
                 description: "You have successfully signed in.",
             })
-            navigate("/feed")
+
+            // Navigate based on onboarding status
+            if (response?.user && !response.user.onboardingCompleted) {
+                navigate("/onboarding")
+            } else {
+                navigate("/feed")
+            }
         } catch (error: any) {
             if (error instanceof MaintenanceError) {
                 setMaintenanceEta(error.eta)

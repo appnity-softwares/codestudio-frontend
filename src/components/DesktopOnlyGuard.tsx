@@ -2,6 +2,8 @@ import { useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useShouldBlockEditor } from "@/hooks/useDeviceType";
 import { DesktopRequiredModal, useDesktopRequiredDismissed } from "./DesktopRequiredModal";
+import { motion } from "framer-motion";
+import { Monitor } from "lucide-react";
 
 interface DesktopOnlyGuardProps {
     children: ReactNode;
@@ -36,8 +38,10 @@ export function DesktopOnlyGuard({
 
     const handleClose = () => {
         setShowModal(false);
-        // Navigate back to previous page after dismissing
-        navigate(-1);
+    };
+
+    const handleReopen = () => {
+        setShowModal(true);
     };
 
     // On desktop, render children normally
@@ -45,21 +49,30 @@ export function DesktopOnlyGuard({
         return <>{children}</>;
     }
 
-    // On mobile/tablet, show modal and don't render the actual content
+    // On mobile/tablet, we show the modal automatically first (if not dismissed)
+    // But we let them "dismiss" and see the content if they really want, 
+    // while showing a persistent info button to get the link back.
     return (
-        <>
-            {/* Show a placeholder or empty state behind the modal */}
-            <div className="flex items-center justify-center h-screen bg-background">
-                <div className="text-center p-6">
-                    <p className="text-muted-foreground">Loading...</p>
-                </div>
-            </div>
+        <div className="relative min-h-screen">
+            {children}
+
+            {/* Minimized Info Icon (Visible when modal is closed) */}
+            {!showModal && (
+                <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    onClick={handleReopen}
+                    className="fixed bottom-6 right-6 z-[60] h-12 w-12 rounded-full bg-primary shadow-2xl shadow-primary/40 flex items-center justify-center border border-white/20 text-white"
+                >
+                    <Monitor className="h-6 w-6" />
+                </motion.button>
+            )}
 
             <DesktopRequiredModal
                 isOpen={showModal}
                 onClose={handleClose}
                 featureName={featureName}
             />
-        </>
+        </div>
     );
 }

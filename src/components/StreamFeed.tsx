@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { SnippetCardSkeleton } from "./skeletons/SnippetCardSkeleton";
 
 interface StreamFeedProps {
     snippets: any[];
@@ -47,7 +48,7 @@ export function StreamFeed({ snippets, loading }: StreamFeedProps) {
     if (loading) {
         return (
             <div className={cn(
-                "mx-auto py-6 space-y-8",
+                "mx-auto py-6 space-y-4",
                 isMobile ? "w-full px-0" : "max-w-3xl px-4 md:px-0"
             )}>
                 {/* Header Skeleton */}
@@ -58,25 +59,7 @@ export function StreamFeed({ snippets, loading }: StreamFeedProps) {
 
                 {/* Card Skeletons */}
                 {[...Array(3)].map((_, i) => (
-                    <div key={i} className={cn(
-                        "w-full max-w-xl mx-auto space-y-4",
-                        isMobile ? "px-0" : "px-4 sm:px-0"
-                    )}>
-                        {/* Fake Card Header */}
-                        <div className="flex items-center justify-between px-4">
-                            <div className="space-y-2">
-                                <Skeleton className="h-5 w-48" />
-                                <Skeleton className="h-3 w-32" />
-                            </div>
-                            <Skeleton className="h-5 w-16 rounded-md" />
-                        </div>
-
-                        {/* Fake Card Body */}
-                        <Skeleton className={cn(
-                            "w-full h-[400px]",
-                            isMobile ? "rounded-[1.5rem]" : "rounded-[2rem]"
-                        )} />
-                    </div>
+                    <SnippetCardSkeleton key={i} />
                 ))}
             </div>
         );

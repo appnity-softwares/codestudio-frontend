@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Monitor, Keyboard, Zap, Copy, Check, X } from "lucide-react";
+import { Monitor, Copy, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -47,96 +47,65 @@ export function DesktopRequiredModal({
                         onClick={handleDismiss}
                     />
 
-                    {/* Bottom Sheet Modal */}
+                    {/* Compact Modal Sheet */}
                     <motion.div
                         initial={{ y: "100%" }}
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
-                        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
                         className={cn(
-                            "fixed bottom-0 left-0 right-0 z-[101]",
-                            "bg-[#14141a] border-t border-white/10",
-                            "rounded-t-3xl shadow-2xl",
-                            "pb-safe" // Safe area for iOS
+                            "fixed bottom-4 left-4 right-4 z-[101]",
+                            "bg-[#111115]/95 backdrop-blur-xl border border-white/10",
+                            "rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]",
+                            "overflow-hidden"
                         )}
                     >
-                        {/* Handle bar */}
-                        <div className="flex justify-center pt-3 pb-2">
-                            <div className="w-10 h-1 rounded-full bg-white/20" />
-                        </div>
-
                         {/* Close button */}
                         <button
                             onClick={handleDismiss}
-                            className="absolute top-4 right-4 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                            className="absolute top-3 right-3 p-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors z-10"
                         >
-                            <X className="h-5 w-5 text-white/50" />
+                            <X className="h-4 w-4 text-white/40" />
                         </button>
 
                         {/* Content */}
-                        <div className="px-6 pb-8 pt-2 text-center">
-                            {/* Icon */}
-                            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                                <Monitor className="h-8 w-8 text-primary" />
+                        <div className="p-6 text-center">
+                            {/* Icon - Smaller */}
+                            <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                <Monitor className="h-6 w-6 text-primary" />
                             </div>
 
-                            {/* Title */}
-                            <h2 className="text-xl font-bold text-white mb-2">
-                                Desktop Required
-                            </h2>
+                            <h2 className="text-lg font-bold text-white mb-2">Desktop Required</h2>
 
-                            {/* Description */}
-                            <p className="text-white/60 text-sm mb-6 max-w-sm mx-auto leading-relaxed">
-                                {featureName} is optimized for larger screens to ensure the best coding experience.
+                            <p className="text-white/50 text-[11px] mb-6 max-w-[240px] mx-auto leading-relaxed">
+                                <strong>{featureName}</strong> is designed for precision. We recommend a larger screen for the best experience.
                             </p>
 
-                            {/* Benefits list */}
-                            <div className="flex flex-col gap-3 mb-8 max-w-xs mx-auto">
-                                <div className="flex items-center gap-3 text-left">
-                                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                                        <Keyboard className="h-4 w-4 text-white/70" />
-                                    </div>
-                                    <span className="text-sm text-white/80">Full keyboard support</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-left">
-                                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                                        <Monitor className="h-4 w-4 text-white/70" />
-                                    </div>
-                                    <span className="text-sm text-white/80">Powerful code editor</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-left">
-                                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                                        <Zap className="h-4 w-4 text-white/70" />
-                                    </div>
-                                    <span className="text-sm text-white/80">Faster code execution</span>
-                                </div>
-                            </div>
-
-                            {/* Action buttons */}
-                            <div className="flex flex-col gap-3">
+                            {/* Action buttons - Compact horizontal on small screens if possible, or vertical */}
+                            <div className="flex flex-col gap-2">
                                 <Button
                                     onClick={handleCopyLink}
                                     variant="outline"
-                                    className="w-full h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white touch-target"
+                                    className="w-full h-10 text-[11px] rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white/80"
                                 >
                                     {copied ? (
                                         <>
-                                            <Check className="h-4 w-4 mr-2 text-emerald-400" />
+                                            <Check className="h-3.5 w-3.5 mr-2 text-emerald-400" />
                                             Link Copied!
                                         </>
                                     ) : (
                                         <>
-                                            <Copy className="h-4 w-4 mr-2" />
-                                            Copy Link to Open on Desktop
+                                            <Copy className="h-3.5 w-3.5 mr-2" />
+                                            Copy Link
                                         </>
                                     )}
                                 </Button>
 
                                 <Button
                                     onClick={handleDismiss}
-                                    className="w-full h-12 rounded-xl touch-target"
+                                    className="w-full h-10 text-[11px] rounded-xl font-bold"
                                 >
-                                    Got it
+                                    Dismiss & Browse
                                 </Button>
                             </div>
                         </div>

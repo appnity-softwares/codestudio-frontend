@@ -119,11 +119,11 @@ export function CodeEditor({
             onMount={handleEditorDidMount}
             options={{
                 minimap: { enabled: false },
-                fontSize: 14,
+                fontSize: 16,
                 fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
-                padding: { top: 16, bottom: 16 },
+                padding: { top: 20, bottom: 20 },
                 readOnly: readOnly,
                 fontLigatures: true,
                 tabSize: 4,

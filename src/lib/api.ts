@@ -155,6 +155,7 @@ export const snippetsAPI = {
         previewType?: string;
         type?: string;
         difficulty?: string;
+        referenceUrl?: string;
     }) =>
         apiRequest<{ snippet: any }>('/snippets', {
             method: 'POST',
@@ -169,6 +170,8 @@ export const snippetsAPI = {
         visibility?: string;
         outputSnapshot?: string;
         previewType?: string;
+        referenceUrl?: string;
+        annotations?: string;
     }) =>
         apiRequest<{ snippet: any }>(`/snippets/${id}`, {
             method: 'PUT',
@@ -347,6 +350,17 @@ export const feedbackAPI = {
     disagree: (id: string) =>
         apiRequest<{ status: string }>(`/feedback/${id}/disagree`, {
             method: 'POST'
+        }),
+
+    update: (id: string, data: { content: string; category: string }) =>
+        apiRequest<{ data: any; message: string }>(`/feedback/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+
+    delete: (id: string) =>
+        apiRequest<{ message: string }>(`/feedback/${id}`, {
+            method: 'DELETE',
         }),
 };
 

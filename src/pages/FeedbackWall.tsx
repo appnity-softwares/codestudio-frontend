@@ -289,11 +289,49 @@ export default function FeedbackWall() {
         }
     });
 
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => feedbackAPI.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['feedback'] });
+            toast({ title: "Feedback deleted" });
+        },
+        onError: (err: any) => {
+            toast({ title: "Failed to delete", description: err.message, variant: "destructive" });
+        }
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, content, category }: { id: string; content: string; category: string }) =>
+            feedbackAPI.update(id, { content, category }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['feedback'] });
+            setEditingId(null);
+            toast({ title: "Feedback updated" });
+        },
+        onError: (err: any) => {
+            toast({ title: "Failed to update", description: err.message, variant: "destructive" });
+        }
+    });
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!content.trim() || postMutation.isPending || content.length > MAX_CHARS) return;
-        postMutation.mutate({ content, category });
+
+        if (editingId) {
+            updateMutation.mutate({ id: editingId, content, category });
+        } else {
+            postMutation.mutate({ content, category });
+        }
     };
+
+    const handleEdit = (msg: FeedbackMessage) => {
+        setEditingId(msg.id);
+        setContent(msg.content);
+        setCategory(msg.category);
+        document.querySelector('textarea')?.focus();
+    };
+
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     const charCount = content.length;
     const isOverLimit = charCount > MAX_CHARS;
@@ -302,52 +340,42 @@ export default function FeedbackWall() {
         <TooltipProvider delayDuration={200}>
             <div className="flex flex-col h-full bg-gradient-to-b from-[#0c0c0e] to-[#0a0a0c] overflow-hidden">
 
-                {/* Header */}
-                <header className="flex-shrink-0 px-8 py-5 border-b border-white/[0.04] bg-[#0c0c0e]/90 backdrop-blur-xl">
-                    <div className="max-w-4xl mx-auto">
+                {/* Header - More Compact */}
+                <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.04] bg-[#0c0c0e]/95 backdrop-blur-xl sticky top-0 z-50">
+                    <div className="max-w-5xl mx-auto">
                         <div className="flex items-center justify-between">
-                            <div>
-                                <div className="flex items-center gap-2.5">
-                                    {isMobile && (
-                                        <button
-                                            onClick={() => navigate(-1)}
-                                            className="mr-1 p-1 -ml-2 rounded-full hover:bg-white/10 text-white/70"
-                                        >
-                                            <ChevronLeft className="h-5 w-5" />
-                                        </button>
-                                    )}
-                                    <h1 className="text-lg font-semibold text-white/90 tracking-tight">
-                                        Feedback Wall
-                                    </h1>
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400/70 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                        Live
-                                    </span>
-
-                                    {/* Info Icon */}
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <button
-                                                onClick={() => setShowInfoModal(true)}
-                                                className="p-1 rounded-full hover:bg-white/5 transition-colors"
-                                            >
-                                                <Info className="h-4 w-4 text-white/30 hover:text-white/50" />
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom" className="bg-[#1a1a1e] border-white/10 text-white/80">
-                                            <p>Learn about the Feedback Wall</p>
-                                        </TooltipContent>
-                                    </Tooltip>
+                            <div className="flex items-center gap-3">
+                                {isMobile && (
+                                    <button
+                                        onClick={() => navigate(-1)}
+                                        className="p-1.5 rounded-full hover:bg-white/10 text-white/70"
+                                    >
+                                        <ChevronLeft className="h-5 w-5" />
+                                    </button>
+                                )}
+                                <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                        <h1 className="text-base font-bold text-white/90">Feedback Wall</h1>
+                                        <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20 uppercase tracking-tighter">
+                                            Live
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-white/30 hidden sm:block">Help us shape the future of CodeStudio.</p>
                                 </div>
-
-                                {/* Subtitle Microcopy */}
-                                <p className="text-xs text-white/30 mt-1 max-w-md">
-                                    Share ideas, suggest features, and help shape CodeStudio.
-                                    <span className="text-white/20"> Community votes guide our roadmap.</span>
-                                </p>
                             </div>
-                            <div className="text-[11px] text-white/20 font-mono">
-                                {messages.length} entries
+
+                            <div className="flex items-center gap-4">
+                                <div className="text-[10px] text-white/20 font-mono bg-white/5 px-2 py-1 rounded-md border border-white/5">
+                                    {messages.length} ENTRIES
+                                </div>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button onClick={() => setShowInfoModal(true)} className="p-1.5 rounded-full hover:bg-white/5 transition-colors">
+                                            <Info className="h-4 w-4 text-white/20" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="bg-[#1a1a1e] border-white/10">Learn more</TooltipContent>
+                                </Tooltip>
                             </div>
                         </div>
                     </div>
@@ -404,25 +432,25 @@ export default function FeedbackWall() {
                                     <div className={cn(
                                         isMobile
                                             ? "w-full" // Full width on mobile
-                                            : "w-[65%] max-w-[560px] min-w-[320px]", // Constrained on desktop
+                                            : "w-[85%] max-w-[700px] min-w-[320px]", // More space on desktop, less vertical sprawl
                                         isMe ? "ml-auto" : "mr-auto"
                                     )}>
                                         <div className={cn(
-                                            "border transition-all",
+                                            "border transition-all shadow-sm",
                                             isMe
-                                                ? "rounded-xl rounded-tr-sm bg-gradient-to-br from-primary/[0.12] to-primary/[0.05] border-primary/20"
+                                                ? "rounded-2xl rounded-tr-sm bg-primary/[0.08] border-primary/20"
                                                 : cn(
-                                                    "rounded-xl rounded-tl-sm bg-gradient-to-br from-white/[0.04] to-white/[0.01] border-white/[0.06]",
-                                                    msg.status === "SHIPPED" && "border-emerald-500/30 bg-emerald-500/[0.02]"
+                                                    "rounded-2xl rounded-tl-sm bg-white/[0.03] border-white/[0.06]",
+                                                    msg.status === "SHIPPED" && "border-emerald-500/30 bg-emerald-500/[0.01]"
                                                 )
                                         )}>
-                                            {/* Card Header */}
-                                            <div className="px-4 py-3 border-b border-white/[0.04]">
-                                                <div className="flex items-center justify-between gap-3">
+                                            {/* Card Header - Dense */}
+                                            <div className="px-3.5 py-2 border-b border-white/[0.04]">
+                                                <div className="flex items-center justify-between gap-2">
                                                     <div className="flex items-center gap-2.5 min-w-0">
-                                                        <Avatar className="h-6 w-6 rounded-full border border-white/[0.08] flex-shrink-0">
+                                                        <Avatar className="h-5 w-5 rounded-full border border-white/[0.08] flex-shrink-0">
                                                             <AvatarImage src={msg.user.image} />
-                                                            <AvatarFallback className="text-[9px] font-semibold bg-white/[0.04] text-white/40">
+                                                            <AvatarFallback className="text-[8px] font-semibold bg-white/[0.04] text-white/40">
                                                                 {msg.user.username[0]?.toUpperCase()}
                                                             </AvatarFallback>
                                                         </Avatar>
@@ -432,7 +460,7 @@ export default function FeedbackWall() {
                                                         <span className="text-[10px] text-white/20 font-mono">
                                                             {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                                                         </span>
-                                                        {user?.role === "ADMIN" && (
+                                                        {(user?.role === "ADMIN" || isMe) && (
                                                             <div className="ml-auto relative">
                                                                 <DropdownMenu>
                                                                     <DropdownMenuTrigger asChild>
@@ -441,39 +469,48 @@ export default function FeedbackWall() {
                                                                         </Button>
                                                                     </DropdownMenuTrigger>
                                                                     <DropdownMenuContent align="end" className="w-48 bg-[#1a1a1e] border-white/10 text-white">
-                                                                        <DropdownMenuLabel className="text-xs text-white/50">Admin Controls</DropdownMenuLabel>
-
-                                                                        <DropdownMenuSub>
-                                                                            <DropdownMenuSubTrigger className="text-xs">
-                                                                                <span>Change Status</span>
-                                                                            </DropdownMenuSubTrigger>
-                                                                            <DropdownMenuSubContent className="bg-[#1a1a1e] border-white/10 text-white">
-                                                                                <DropdownMenuRadioGroup value={msg.status} onValueChange={(val) => updateStatusMutation.mutate({ id: msg.id, status: val })}>
-                                                                                    {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                                                                                        <DropdownMenuRadioItem key={key} value={key} className="text-xs">
-                                                                                            {config.label}
-                                                                                        </DropdownMenuRadioItem>
-                                                                                    ))}
-                                                                                </DropdownMenuRadioGroup>
-                                                                            </DropdownMenuSubContent>
-                                                                        </DropdownMenuSub>
-
-                                                                        <DropdownMenuSeparator className="bg-white/10" />
-
-                                                                        <DropdownMenuItem onClick={() => lockMutation.mutate({ id: msg.id, isLocked: !msg.isLocked })} className="text-xs">
-                                                                            {msg.isLocked ? <Lock className="h-3.5 w-3.5 mr-2 text-white/50" /> : <Lock className="h-3.5 w-3.5 mr-2" />}
-                                                                            {msg.isLocked ? "Unlock Thread" : "Lock Thread"}
-                                                                        </DropdownMenuItem>
-
-                                                                        <DropdownMenuItem onClick={() => pinMutation.mutate({ id: msg.id, isPinned: !msg.isPinned })} className="text-xs">
-                                                                            <Pin className={cn("h-3.5 w-3.5 mr-2", msg.isPinned ? "fill-current" : "")} />
-                                                                            {msg.isPinned ? "Unpin Feedback" : "Pin Feedback"}
-                                                                        </DropdownMenuItem>
-
-                                                                        <DropdownMenuItem onClick={() => hideMutation.mutate({ id: msg.id, isHidden: !msg.isHidden })} className="text-xs text-red-400 focus:text-red-400">
-                                                                            {msg.isHidden ? <Eye className="h-3.5 w-3.5 mr-2" /> : <EyeOff className="h-3.5 w-3.5 mr-2" />}
-                                                                            {msg.isHidden ? "Unhide Feedback" : "Hide Feedback"}
-                                                                        </DropdownMenuItem>
+                                                                        {user?.role === "ADMIN" ? (
+                                                                            <>
+                                                                                <DropdownMenuLabel className="text-xs text-white/50">Admin Controls</DropdownMenuLabel>
+                                                                                <DropdownMenuSub>
+                                                                                    <DropdownMenuSubTrigger className="text-xs">
+                                                                                        <span>Change Status</span>
+                                                                                    </DropdownMenuSubTrigger>
+                                                                                    <DropdownMenuSubContent className="bg-[#1a1a1e] border-white/10 text-white">
+                                                                                        <DropdownMenuRadioGroup value={msg.status} onValueChange={(val) => updateStatusMutation.mutate({ id: msg.id, status: val })}>
+                                                                                            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                                                                                                <DropdownMenuRadioItem key={key} value={key} className="text-xs">
+                                                                                                    {config.label}
+                                                                                                </DropdownMenuRadioItem>
+                                                                                            ))}
+                                                                                        </DropdownMenuRadioGroup>
+                                                                                    </DropdownMenuSubContent>
+                                                                                </DropdownMenuSub>
+                                                                                <DropdownMenuSeparator className="bg-white/10" />
+                                                                                <DropdownMenuItem onClick={() => lockMutation.mutate({ id: msg.id, isLocked: !msg.isLocked })} className="text-xs">
+                                                                                    {msg.isLocked ? <Lock className="h-3.5 w-3.5 mr-2 text-white/50" /> : <Lock className="h-3.5 w-3.5 mr-2" />}
+                                                                                    {msg.isLocked ? "Unlock Thread" : "Lock Thread"}
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem onClick={() => pinMutation.mutate({ id: msg.id, isPinned: !msg.isPinned })} className="text-xs">
+                                                                                    <Pin className={cn("h-3.5 w-3.5 mr-2", msg.isPinned ? "fill-current" : "")} />
+                                                                                    {msg.isPinned ? "Unpin Feedback" : "Pin Feedback"}
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem onClick={() => hideMutation.mutate({ id: msg.id, isHidden: !msg.isHidden })} className="text-xs text-red-400 focus:text-red-400">
+                                                                                    {msg.isHidden ? <Eye className="h-3.5 w-3.5 mr-2" /> : <EyeOff className="h-3.5 w-3.5 mr-2" />}
+                                                                                    {msg.isHidden ? "Unhide Feedback" : "Hide Feedback"}
+                                                                                </DropdownMenuItem>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <DropdownMenuLabel className="text-xs text-white/50">Actions</DropdownMenuLabel>
+                                                                                <DropdownMenuItem onClick={() => handleEdit(msg)} className="text-xs">
+                                                                                    Edit Feedback
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem onClick={() => deleteMutation.mutate(msg.id)} className="text-xs text-red-400 focus:text-red-400">
+                                                                                    Delete Feedback
+                                                                                </DropdownMenuItem>
+                                                                            </>
+                                                                        )}
                                                                     </DropdownMenuContent>
                                                                 </DropdownMenu>
                                                             </div>
@@ -553,9 +590,9 @@ export default function FeedbackWall() {
                                                 </div>
                                             </div>
 
-                                            {/* Feedback Content */}
-                                            <div className="px-4 py-3 text-sm text-white/80 leading-relaxed font-light break-words">
-                                                <div className="prose prose-invert prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10">
+                                            {/* Feedback Content - Compact */}
+                                            <div className="px-3.5 py-1.5 text-[13px] text-white/80 leading-snug break-words">
+                                                <div className="prose prose-invert prose-sm max-w-none prose-p:my-0.5 prose-headings:my-1 prose-ul:my-0.5 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10">
                                                     <ReactMarkdown
                                                         remarkPlugins={[remarkGfm]}
                                                     >
@@ -564,8 +601,8 @@ export default function FeedbackWall() {
                                                 </div>
                                             </div>
 
-                                            {/* Card Footer - Actions */}
-                                            <div className="px-4 py-2.5 border-t border-white/[0.04] flex items-center gap-1">
+                                            {/* Card Footer - Action Area */}
+                                            <div className="px-3 py-1.5 border-t border-white/[0.04] flex items-center gap-1">
                                                 {/* Locked State */}
                                                 {msg.isLocked ? (
                                                     <div className="flex items-center gap-2 text-[10px] text-white/20 font-medium px-2 py-1">
@@ -724,25 +761,38 @@ export default function FeedbackWall() {
                                     </div>
 
                                     {/* Right: Submit Button */}
-                                    <Button
-                                        type="submit"
-                                        disabled={!content.trim() || postMutation.isPending || isOverLimit}
-                                        className={cn(
-                                            "h-9 px-4 rounded-lg font-medium text-sm transition-all active:scale-[0.98]",
-                                            content.trim() && !isOverLimit
-                                                ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
-                                                : "bg-white/[0.05] text-white/30 cursor-not-allowed"
+                                    <div className="flex items-center gap-2">
+                                        {editingId && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => { setEditingId(null); setContent(""); }}
+                                                className="h-9 px-3 text-xs text-white/40 hover:text-white"
+                                            >
+                                                Cancel
+                                            </Button>
                                         )}
-                                    >
-                                        {postMutation.isPending ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <>
-                                                <Send className="h-3.5 w-3.5 mr-2" />
-                                                Submit
-                                            </>
-                                        )}
-                                    </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={!content.trim() || postMutation.isPending || updateMutation.isPending || isOverLimit}
+                                            className={cn(
+                                                "h-9 px-4 rounded-lg font-medium text-sm transition-all active:scale-[0.98]",
+                                                content.trim() && !isOverLimit
+                                                    ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+                                                    : "bg-white/[0.05] text-white/30 cursor-not-allowed"
+                                            )}
+                                        >
+                                            {postMutation.isPending || updateMutation.isPending ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <>
+                                                    <Send className="h-3.5 w-3.5 mr-2" />
+                                                    {editingId ? "Update" : "Submit"}
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
 

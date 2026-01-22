@@ -53,7 +53,8 @@ export default function Profile() {
             }
             return usersAPI.getById(username!);
         },
-        retry: false
+        retry: false,
+        enabled: !!username && username !== 'undefined'
     });
 
     const profileUser = userResponse?.user ? { ...userResponse.user, isFollowing: userResponse.isFollowing } : null;
@@ -120,7 +121,7 @@ export default function Profile() {
         queryFn: () => usersAPI.getProfileSummary(username === 'me' ? undefined : username),
         retry: false,
         staleTime: 5 * 60 * 1000,
-        enabled: !!username && (username !== 'me' || !!currentUser)
+        enabled: !!username && username !== 'undefined' && (username !== 'me' || !!currentUser)
     });
 
     // Calculate stats from snippets data strictly for real-time updates
@@ -275,13 +276,22 @@ export default function Profile() {
                         )}
                     </div>
 
-                    {/* Settings Button (Own Profile) */}
+                    {/* Settings & Admin Buttons (Own Profile) */}
                     {currentUser?.id === profileUser.id && (
-                        <Link to="/settings">
-                            <Button variant="outline" size="sm" className="gap-2 touch-target">
-                                <Settings className="h-4 w-4" /> Edit Profile
-                            </Button>
-                        </Link>
+                        <div className="flex flex-col gap-2 w-full max-w-xs mx-auto">
+                            <Link to="/settings" className="w-full">
+                                <Button variant="outline" size="sm" className="w-full gap-2 h-11 rounded-xl">
+                                    <Settings className="h-4 w-4" /> Edit Profile
+                                </Button>
+                            </Link>
+                            {currentUser?.role === 'ADMIN' && (
+                                <Link to="/admin" className="w-full">
+                                    <Button variant="secondary" size="sm" className="w-full gap-2 h-11 rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10">
+                                        <Shield className="h-4 w-4" /> Admin Control Panel
+                                    </Button>
+                                </Link>
+                            )}
+                        </div>
                     )}
                 </div>
 

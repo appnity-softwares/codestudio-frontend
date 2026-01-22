@@ -89,7 +89,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
 
     // Redirect to onboarding if not completed
-    if (user && !user.onboardingCompleted && location.pathname !== '/onboarding') {
+    const publicPaths = ['/onboarding', '/settings/avatars'];
+    if (user && !user.onboardingCompleted && !publicPaths.includes(location.pathname)) {
         return <Navigate to="/onboarding" replace />
     }
 
@@ -294,27 +295,25 @@ function AppRoutes() {
     )
 }
 
-import { HelmetProvider } from "react-helmet-async";
+
 
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <HelmetProvider>
-                <BrowserRouter>
-                    <ThemeProvider defaultTheme="dark">
-                        <AuthProvider>
-                            <SocketProvider>
-                                <TooltipProvider>
-                                    <BadgeProvider>
-                                        <AppRoutes />
-                                        <Toaster />
-                                    </BadgeProvider>
-                                </TooltipProvider>
-                            </SocketProvider>
-                        </AuthProvider>
-                    </ThemeProvider>
-                </BrowserRouter>
-            </HelmetProvider>
+            <BrowserRouter>
+                <ThemeProvider defaultTheme="dark">
+                    <AuthProvider>
+                        <SocketProvider>
+                            <TooltipProvider>
+                                <BadgeProvider>
+                                    <AppRoutes />
+                                    <Toaster />
+                                </BadgeProvider>
+                            </TooltipProvider>
+                        </SocketProvider>
+                    </AuthProvider>
+                </ThemeProvider>
+            </BrowserRouter>
         </QueryClientProvider>
     )
 }
