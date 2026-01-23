@@ -20,10 +20,10 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
-				canvas: '#050505',
+				canvas: 'hsl(var(--canvas))',
 				surface: {
-					DEFAULT: '#09090b',
-					hover: '#18181b'
+					DEFAULT: 'hsl(var(--surface))',
+					hover: 'hsl(var(--surface-hover))'
 				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',

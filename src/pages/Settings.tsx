@@ -103,7 +103,7 @@ export default function SettingsPage() {
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-6">
+                <div className="flex items-center justify-between border-b border-border pb-6">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
                             <User className="h-6 w-6 text-primary" />
@@ -125,8 +125,8 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Profile Section */}
-                <div className="space-y-6 bg-surface/30 p-6 rounded-xl border border-white/5">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-white/5 pb-3">
+                <div className="space-y-6 bg-surface p-6 rounded-xl border border-border transition-all shadow-sm">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-border pb-3">
                         <User className="h-4 w-4 text-primary" /> Profile Details
                     </div>
 
@@ -146,11 +146,11 @@ export default function SettingsPage() {
 
                                 <div className="flex flex-wrap items-center gap-3">
                                     <Link to="/settings/avatars">
-                                        <Button variant="outline" size="sm" className="h-9 px-4 gap-2 border-white/10 hover:bg-white/5">
+                                        <Button variant="outline" size="sm" className="h-9 px-4 gap-2 border-border hover:bg-muted/50">
                                             <RefreshCw className="h-3.5 w-3.5" /> Pick from Collection
                                         </Button>
                                     </Link>
-                                    <span className="text-[10px] text-muted-foreground font-bold uppercase py-1 px-2 bg-white/5 rounded">or</span>
+                                    <span className="text-[10px] text-muted-foreground font-bold uppercase py-1 px-2 bg-muted/30 rounded">or</span>
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -170,7 +170,7 @@ export default function SettingsPage() {
                                         id="image"
                                         value={image}
                                         onChange={(e) => setImage(e.target.value)}
-                                        className="pl-9 bg-black/20 border-white/10 h-9 text-xs"
+                                        className="pl-9 bg-background border-border h-9 text-xs"
                                         placeholder={user?.image?.includes("api.dicebear.com") ? "Using Collection Avatar" : "https://example.com/custom-avatar.png"}
                                     />
                                 </div>
@@ -190,7 +190,7 @@ export default function SettingsPage() {
                             <Input
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="bg-black/20 border-white/10 h-10"
+                                className="bg-background border-border h-10"
                                 placeholder="Enter display name"
                             />
                         </div>
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                             <Input
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                                className="bg-black/20 border-white/10 h-10"
+                                className="bg-background border-border h-10"
                                 placeholder="Change username (limited)"
                             />
                             <p className="text-[10px] text-muted-foreground">
@@ -214,7 +214,7 @@ export default function SettingsPage() {
                             value={bio}
                             onChange={(e) => setBio(e.target.value)}
                             maxLength={160}
-                            className="bg-black/20 border-white/10 h-10"
+                            className="bg-background border-border h-10"
                             placeholder="Tell us about yourself..."
                         />
                         <div className="text-xs text-right text-muted-foreground">{bio.length}/160</div>
@@ -226,7 +226,7 @@ export default function SettingsPage() {
                             <Input
                                 value={githubUrl}
                                 onChange={(e) => setGithubUrl(e.target.value)}
-                                className="bg-black/20 border-white/10"
+                                className="bg-background border-border"
                                 placeholder="GitHub URL"
                             />
                         </div>
@@ -235,7 +235,7 @@ export default function SettingsPage() {
                             <Input
                                 value={linkedinUrl}
                                 onChange={(e) => setLinkedinUrl(e.target.value)}
-                                className="bg-black/20 border-white/10"
+                                className="bg-background border-border"
                                 placeholder="LinkedIn URL"
                             />
                         </div>
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                             <Input
                                 value={instagramUrl}
                                 onChange={(e) => setInstagramUrl(e.target.value)}
-                                className="bg-black/20 border-white/10"
+                                className="bg-background border-border"
                                 placeholder="Website/Insta URL"
                             />
                         </div>
@@ -279,7 +279,7 @@ export default function SettingsPage() {
 
                     <div className="space-y-2">
                         <Label className="text-sm text-muted-foreground">Email</Label>
-                        <div className="flex items-center gap-2 px-3 h-10 bg-black/10 border border-white/5 rounded-md text-sm text-muted-foreground opacity-50 cursor-not-allowed">
+                        <div className="flex items-center gap-2 px-3 h-10 bg-muted/20 border border-border rounded-md text-sm text-muted-foreground opacity-50 cursor-not-allowed">
                             <Lock className="h-4 w-4" />
                             {user?.email}
                         </div>
@@ -287,8 +287,8 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Privacy Section */}
-                <div className="space-y-6 bg-surface/30 p-6 rounded-xl border border-white/5">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-white/5 pb-3">
+                <div className="space-y-6 bg-surface p-6 rounded-xl border border-border transition-all shadow-sm">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-border pb-3">
                         <Shield className="h-4 w-4 text-primary" /> Privacy
                     </div>
 

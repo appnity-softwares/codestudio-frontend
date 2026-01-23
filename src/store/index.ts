@@ -1,9 +1,17 @@
 import { configureStore } from '@reduxjs/toolkit';
-import snippetsReducer from './slices/snippetsSlice';
+import uiReducer from './slices/uiSlice';
+import feedReducer from './slices/feedSlice';
+import systemReducer from './slices/systemSlice';
+import snippetReducer from './slices/snippetSlice';
+import userReducer from './slices/userSlice';
 
 export const store = configureStore({
     reducer: {
-        snippets: snippetsReducer,
+        ui: uiReducer,
+        feed: feedReducer,
+        system: systemReducer,
+        snippets: snippetReducer,
+        user: userReducer,
     },
 });
 

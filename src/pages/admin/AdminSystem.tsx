@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings, Power, AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
+import { Settings, Power, AlertTriangle, CheckCircle, RefreshCw, BookOpen, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -148,6 +148,24 @@ export default function AdminSystem() {
                 <Settings className="h-6 w-6" />
                 <h1 className="text-2xl font-bold">System Controls</h1>
             </div>
+
+            {/* System Manual Access */}
+            <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20 shadow-sm">
+                <div className="p-6 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-lg font-bold flex items-center gap-2 text-foreground">
+                            <BookOpen className="h-5 w-5 text-indigo-500" />
+                            System Manual & Documentation
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Access the comprehensive guide on platform features, XP system, and administration.
+                        </p>
+                    </div>
+                    <Button onClick={() => window.open('/help', '_blank')} variant="secondary" className="gap-2 bg-background hover:bg-muted">
+                        Open Manual <ExternalLink className="h-4 w-4" />
+                    </Button>
+                </div>
+            </Card>
 
             {/* Deployment Zone */}
             <Card className="border-blue-200 dark:border-blue-900">

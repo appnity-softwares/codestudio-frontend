@@ -68,6 +68,7 @@ const RoadmapList = lazy(() => import("@/pages/roadmaps/RoadmapList"))
 const RoadmapDetail = lazy(() => import("@/pages/roadmaps/RoadmapDetail"))
 const TrophyRoom = lazy(() => import("@/pages/TrophyRoom"))
 const XPStore = lazy(() => import("@/pages/XPStore"))
+const Help = lazy(() => import("./pages/Help"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
 import { DesktopOnlyGuard } from "./components/DesktopOnlyGuard"
@@ -287,6 +288,7 @@ function AppRoutes() {
                     <Route path="roadmaps/:id" element={<ProtectedRoute><RoadmapDetail /></ProtectedRoute>} />
                     <Route path="trophy-room" element={<ProtectedRoute><TrophyRoom /></ProtectedRoute>} />
                     <Route path="xp-store" element={<ProtectedRoute><XPStore /></ProtectedRoute>} />
+                    <Route path="help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
                     {/* 404 Catch-all */}
                     <Route path="*" element={<NotFound />} />
                 </Route>

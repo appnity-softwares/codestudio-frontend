@@ -63,7 +63,7 @@ export default function Community() {
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Search developers..."
-                            className="pl-8 w-full sm:w-[250px] bg-surface/50 border-white/10 focus:border-primary/50 transition-all"
+                            className="pl-8 w-full sm:w-[250px] bg-surface/50 border-border focus:border-primary/50 transition-all"
                             value={search}
                             onChange={handleSearch}
                             onFocus={() => search.length > 1 && setShowSuggestions(true)}
@@ -82,7 +82,7 @@ export default function Community() {
                                                 setShowSuggestions(false);
                                             }}
                                         >
-                                            <Avatar className="h-8 w-8 border border-white/10">
+                                            <Avatar className="h-8 w-8 border border-border">
                                                 <AvatarImage src={user.image} />
                                                 <AvatarFallback className="text-[10px]">{user.username[0]}</AvatarFallback>
                                             </Avatar>
@@ -106,7 +106,7 @@ export default function Community() {
                         <SelectTrigger className="w-full sm:w-[150px]">
                             <SelectValue placeholder="Sort by" />
                         </SelectTrigger>
-                        <SelectContent className="bg-surface border-white/10">
+                        <SelectContent className="bg-surface border-border">
                             <SelectItem value="all">All Users</SelectItem>
                             <SelectItem value="recommended">Assuming you like this platform</SelectItem>
                             <SelectItem value="active">Recently Active</SelectItem>

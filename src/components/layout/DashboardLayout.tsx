@@ -18,10 +18,11 @@ export function DashboardLayout() {
         location.pathname.includes('/practice/');
 
     const isCreatePage = location.pathname === '/create';
+    const isHelpPage = location.pathname === '/help';
 
-    const hideDock = isArenaRoom && !isMobile;
-    const hideToolbelt = (isArenaRoom || isCreatePage) && !isMobile;
-    const hideFloatingButtons = (isArenaRoom || isCreatePage) && !isMobile;
+    const hideDock = (isArenaRoom || isHelpPage) && !isMobile;
+    const hideToolbelt = (isArenaRoom || isCreatePage || isHelpPage) && !isMobile;
+    const hideFloatingButtons = (isArenaRoom || isCreatePage || isHelpPage) && !isMobile;
 
     return (
         <div className="relative h-screen w-screen bg-canvas overflow-hidden selection:bg-primary/20 text-primary font-sans">
@@ -49,7 +50,7 @@ export function DashboardLayout() {
 
                 {/* Column 3: Context Toolbelt (Desktop Only) */}
                 {!isMobile && !hideToolbelt && (
-                    <div className="hidden xl:block w-[280px] 2xl:w-[320px] flex-shrink-0 border-l border-white/5 bg-canvas/30 backdrop-blur-sm">
+                    <div className="hidden xl:block w-[280px] 2xl:w-[320px] flex-shrink-0 border-l border-border bg-canvas/30 backdrop-blur-sm">
                         <Toolbelt />
                     </div>
                 )}

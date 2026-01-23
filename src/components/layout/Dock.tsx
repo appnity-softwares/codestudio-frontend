@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     Home,
@@ -15,8 +14,11 @@ import {
     MessageSquare,
     BookOpen,
     Award,
-    ShoppingBag
+    ShoppingBag,
+    Check
 } from "lucide-react";
+import { claimQuestReward } from "@/store/slices/userSlice";
+import { useBadgeCelebration } from "@/context/BadgeContext";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -32,10 +34,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
 import { feedAPI, authAPI, leaderboardAPI, systemAPI } from "@/lib/api";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Logo } from "@/components/ui/Logo";
 import { AuraAvatar } from "@/components/AuraAvatar";
+
 import { useQuery } from "@tanstack/react-query";
+import { useDispatch, useSelector } from "react-redux";
+import { toggleSidebar } from "@/store/slices/uiSlice";
+import { RootState } from "@/store";
 
 export function Dock() {
     const location = useLocation();
@@ -43,6 +50,19 @@ export function Dock() {
     const { user, signOut } = useAuth();
     const queryClient = useQueryClient();
     const isAdmin = user?.role === 'ADMIN';
+
+    // Redux UI State
+    const dispatch = useDispatch();
+    const isCollapsed = useSelector((state: RootState) => state.ui.sidebarCollapsed);
+    const userXP = useSelector((state: RootState) => state.user.xp);
+    const userQuests = useSelector((state: RootState) => state.user.quests) || [];
+    const setIsCollapsed = () => dispatch(toggleSidebar());
+    const { celebrateXP } = useBadgeCelebration();
+
+    const handleClaimQuest = (questId: string) => {
+        dispatch(claimQuestReward(questId));
+        celebrateXP(20); // Bonus burst visual
+    };
 
     // System Config
     const { data: systemData } = useQuery({
@@ -73,16 +93,6 @@ export function Dock() {
         }
     };
 
-    // State for collapse, initialized from localStorage
-    const [isCollapsed, setIsCollapsed] = useState(() => {
-        const saved = localStorage.getItem("sidebar-collapsed");
-        return saved ? JSON.parse(saved) : false;
-    });
-
-    useEffect(() => {
-        localStorage.setItem("sidebar-collapsed", JSON.stringify(isCollapsed));
-    }, [isCollapsed]);
-
     const { data: lbData } = useQuery({
         queryKey: ['leaderboard', 'global'],
         queryFn: () => leaderboardAPI.getGlobal(),
@@ -105,7 +115,7 @@ export function Dock() {
     return (
         <aside
             className={cn(
-                "h-full z-40 flex flex-col border-r border-white/5 bg-[#08080a] backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative group/sidebar",
+                "h-full z-40 flex flex-col border-r border-border bg-surface/95 backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative group/sidebar",
                 isCollapsed ? "w-[80px]" : "w-[260px]"
             )}
         >
@@ -113,15 +123,15 @@ export function Dock() {
             <Link
                 to="/feed"
                 className={cn(
-                    "flex items-center h-20 px-6 mb-2 hover:bg-white/[0.02] transition-colors relative transition-all duration-300",
+                    "flex items-center h-20 px-6 mb-2 hover:bg-muted/50 transition-colors relative transition-all duration-300",
                     isCollapsed ? "justify-center" : "justify-start gap-4"
                 )}
             >
-                <div className="w-10 h-10 flex items-center justify-center shrink-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl border border-primary/10 group-hover:border-primary/30 transition-all duration-300">
+                <div className="w-10 h-10 flex items-center justify-center shrink-0 bg-primary/10 rounded-xl border border-primary/10 group-hover:border-primary/30 transition-all duration-300">
                     <Logo className="w-6 h-6" showText={false} />
                 </div>
                 {!isCollapsed && (
-                    <span className="font-black text-lg tracking-tight text-white/90 font-headline animate-in fade-in slide-in-from-left-4 duration-500">
+                    <span className="font-black text-lg tracking-tight text-foreground font-headline animate-in fade-in slide-in-from-left-4 duration-500">
                         Code<span className="text-primary italic">Studio</span>
                     </span>
                 )}
@@ -142,8 +152,8 @@ export function Dock() {
                                     "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
                                     isCollapsed ? "justify-center px-0 w-12 h-12 mx-auto" : "w-full",
                                     isActive
-                                        ? "bg-primary/10 text-primary shadow-[inset_0_0_20px_rgba(56,189,248,0.05)] border border-primary/10"
-                                        : "text-white/40 hover:text-white hover:bg-white/[0.03] border border-transparent"
+                                        ? "bg-primary/10 text-primary shadow-sm border border-primary/10"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
                                 )}
                             >
                                 {/* Active Accent Glow */}
@@ -154,7 +164,7 @@ export function Dock() {
                                 <item.icon className={cn(
                                     "shrink-0 transition-all duration-300 group-hover:scale-110",
                                     isCollapsed ? "w-5 h-5" : "w-[20px] h-[20px]",
-                                    isActive ? "text-primary drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]" : "group-hover:text-white"
+                                    isActive ? "text-primary drop-shadow-sm" : "group-hover:text-foreground"
                                 )} />
 
                                 {!isCollapsed && (
@@ -184,7 +194,7 @@ export function Dock() {
                                     <TooltipTrigger asChild>
                                         {LinkContent}
                                     </TooltipTrigger>
-                                    <TooltipContent side="right" className="flex items-center gap-2 bg-[#0c0c0e] text-white text-xs font-bold border-white/10 shadow-2xl px-3 py-2 rounded-lg">
+                                    <TooltipContent side="right" className="flex items-center gap-2 bg-popover text-popover-foreground text-xs font-bold border-border shadow-xl px-3 py-2 rounded-lg">
                                         <span>{item.label}</span>
                                     </TooltipContent>
                                 </Tooltip>
@@ -193,17 +203,82 @@ export function Dock() {
 
                         return <div key={item.path}>{LinkContent}</div>;
                     })}
+
+                    {/* Daily Quests Popover */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className={cn(
+                                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative w-full",
+                                    isCollapsed ? "justify-center px-0 w-12 h-12 mx-auto" : "justify-start text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                            >
+                                <Award className={cn(
+                                    "shrink-0 transition-all duration-300 group-hover:scale-110",
+                                    isCollapsed ? "w-5 h-5" : "w-[20px] h-[20px]",
+                                    "text-amber-500"
+                                )} />
+                                {!isCollapsed && <span className="text-[13px] font-bold tracking-tight">Daily Quests</span>}
+
+                                {/* Notification Dot if any quest is ready to claim */}
+                                {userQuests.some(q => q.progress >= q.total && !q.claimed) && (
+                                    <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent side="right" align="start" className="w-80 p-0 border-border bg-card/95 backdrop-blur-xl ml-4">
+                            <div className="p-4 border-b border-border">
+                                <h4 className="font-bold flex items-center gap-2">
+                                    <Award className="h-4 w-4 text-amber-500" />
+                                    Daily Quests
+                                </h4>
+                                <p className="text-xs text-muted-foreground">Complete tasks to earn XP.</p>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                {userQuests.map((quest) => (
+                                    <div key={quest.id} className="space-y-2">
+                                        <div className="flex justify-between items-center text-xs font-bold">
+                                            <span className={cn(quest.claimed ? "text-muted-foreground line-through" : "text-foreground")}>
+                                                {quest.label}
+                                            </span>
+                                            {quest.claimed ? (
+                                                <span className="text-emerald-500 flex items-center gap-1"><Check className="h-3 w-3" /> Done</span>
+                                            ) : quest.progress >= quest.total ? (
+                                                <Button
+                                                    size="sm"
+                                                    className="h-6 text-[10px] px-2 bg-primary/20 text-primary hover:bg-primary/30 border border-primary/20"
+                                                    onClick={() => handleClaimQuest(quest.id)}
+                                                >
+                                                    Claim
+                                                </Button>
+                                            ) : (
+                                                <span className="text-amber-500">+{quest.reward} XP</span>
+                                            )}
+                                        </div>
+                                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                            <div
+                                                className={cn("h-full transition-all duration-500", quest.claimed ? "bg-emerald-500" : "bg-amber-500")}
+                                                style={{ width: `${(quest.progress / quest.total) * 100}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+
                 </TooltipProvider>
 
                 {/* Global Leaderboard - Mini Widget */}
                 {!isCollapsed && topUsers.length > 0 && (
                     <div className="mt-8 px-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                         <div className="flex items-center justify-between mb-4">
-                            <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
                                 <Trophy className="h-3 w-3 text-primary" />
                                 Top Creators
                             </span>
-                            <div className="h-1 flex-1 bg-white/5 mx-3 rounded-full overflow-hidden">
+                            <div className="h-1 flex-1 bg-muted mx-3 rounded-full overflow-hidden">
                                 <motion.div
                                     className="h-full bg-primary"
                                     initial={{ width: 0 }}
@@ -217,7 +292,7 @@ export function Dock() {
                                 <Link
                                     to={`/u/${user.username}`}
                                     key={user.id}
-                                    className="flex items-center gap-3 group/lb hover:bg-white/[0.02] p-1.5 rounded-xl transition-all"
+                                    className="flex items-center gap-3 group/lb hover:bg-muted/50 p-1.5 rounded-xl transition-all"
                                 >
                                     <div className="relative shrink-0">
                                         <AuraAvatar
@@ -227,7 +302,7 @@ export function Dock() {
                                             size="sm"
                                         />
                                         <div className={cn(
-                                            "absolute -top-1.5 -left-1.5 w-4 h-4 rounded-md flex items-center justify-center text-[8px] font-black border border-white/10 shadow-lg",
+                                            "absolute -top-1.5 -left-1.5 w-4 h-4 rounded-md flex items-center justify-center text-[8px] font-black border border-border shadow-sm",
                                             idx === 0 ? "bg-amber-500 text-amber-950" :
                                                 idx === 1 ? "bg-slate-400 text-slate-950" : "bg-amber-700 text-amber-100"
                                         )}>
@@ -235,10 +310,10 @@ export function Dock() {
                                         </div>
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                        <span className="text-[11px] font-black text-white/80 truncate group-hover/lb:text-primary transition-colors">
+                                        <span className="text-[11px] font-black text-foreground truncate group-hover/lb:text-primary transition-colors">
                                             {user.username}
                                         </span>
-                                        <span className="text-[9px] font-bold text-white/30 uppercase tracking-tighter">
+                                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">
                                             {user.xp} <span className="text-[7px]">XP</span>
                                         </span>
                                     </div>
@@ -250,66 +325,66 @@ export function Dock() {
             </div>
 
             {/* Bottom: User Menu & Toggle */}
-            <div className="p-4 mt-auto space-y-4 bg-white/[0.01] border-t border-white/5">
+            <div className="p-4 mt-auto space-y-4 bg-muted/20 border-t border-border">
                 {/* User Menu */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className={cn(
-                            "w-full flex items-center gap-3 hover:bg-white/[0.03] transition-all h-auto py-3 group/user px-2 rounded-xl",
+                            "w-full flex items-center gap-3 hover:bg-muted/50 transition-all h-auto py-3 group/user px-2 rounded-xl",
                             isCollapsed ? "justify-center" : "justify-start px-3"
                         )}>
                             <div className="relative shrink-0">
                                 <AuraAvatar
                                     src={user?.image}
                                     username={user?.username || "user"}
-                                    xp={user?.xp || 0}
+                                    xp={userXP || user?.xp || 0}
                                     size="sm"
                                 />
-                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-[#08080a] rounded-full shadow-lg shadow-emerald-500/20 z-20" />
+                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-surface rounded-full shadow-sm z-20" />
                             </div>
                             {!isCollapsed && (
                                 <div className="flex flex-col items-start text-left overflow-hidden">
-                                    <span className="text-sm font-black truncate w-full text-white/90 tracking-tight">
+                                    <span className="text-sm font-black truncate w-full text-foreground tracking-tight">
                                         {user?.name || user?.username}
                                     </span>
-                                    <span className="text-[10px] font-bold text-white/30 truncate w-full uppercase tracking-wider">
+                                    <span className="text-[10px] font-bold text-muted-foreground truncate w-full uppercase tracking-wider">
                                         @{user?.username}
                                     </span>
                                 </div>
                             )}
-                            {!isCollapsed && <MoreHorizontal className="w-4 h-4 ml-auto text-white/20 group-hover/user:text-white/50 transition-colors" />}
+                            {!isCollapsed && <MoreHorizontal className="w-4 h-4 ml-auto text-muted-foreground group-hover/user:text-foreground transition-colors" />}
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" side="top" className="w-64 mb-3 bg-[#0c0c0e] border-white/10 shadow-2xl rounded-2xl p-2" sideOffset={12}>
+                    <DropdownMenuContent align="start" side="top" className="w-64 mb-3" sideOffset={12}>
                         <DropdownMenuLabel className="font-normal px-3 py-3">
                             <div className="flex flex-col space-y-1">
                                 <p className="text-xs font-black text-primary uppercase tracking-widest flex items-center justify-between">
                                     Active Account
-                                    {user?.xp !== undefined && (
+                                    {userXP !== undefined && (
                                         <span className="text-amber-500 flex items-center gap-1">
                                             <Trophy className="h-3 w-3" />
-                                            {user.xp} XP
+                                            {userXP} XP
                                         </span>
                                     )}
                                 </p>
-                                <p className="text-sm font-bold text-white mt-1 leading-none">{user?.name}</p>
-                                <p className="text-[10px] leading-none text-white/40 mt-1">{user?.email}</p>
+                                <p className="text-sm font-bold text-foreground mt-1 leading-none">{user?.name}</p>
+                                <p className="text-[10px] leading-none text-muted-foreground mt-1">{user?.email}</p>
                             </div>
                         </DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-white/5 mx-2" />
+                        <DropdownMenuSeparator />
                         <div className="p-1 space-y-1">
                             <DropdownMenuItem
                                 onClick={() => navigate('/profile/me')}
                                 onMouseEnter={() => handlePrefetch('/profile/me')}
-                                className="rounded-lg py-2.5 px-3 focus:bg-white/10 focus:text-white cursor-pointer transition-colors"
+                                className="rounded-lg py-2.5 px-3 cursor-pointer"
                             >
                                 <UserIcon className="mr-3 h-4 w-4 text-primary" /> <span className="text-[13px] font-bold">Your Profile</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate('/settings')} className="rounded-lg py-2.5 px-3 focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                            <DropdownMenuItem onClick={() => navigate('/settings')} className="rounded-lg py-2.5 px-3 cursor-pointer">
                                 <Settings className="mr-3 h-4 w-4 text-purple-400" /> <span className="text-[13px] font-bold">Preferences</span>
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-white/5" />
-                            <DropdownMenuItem onClick={signOut} className="rounded-lg py-2.5 px-3 text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer transition-colors">
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={signOut} className="rounded-lg py-2.5 px-3 text-red-500 focus:text-red-500 cursor-pointer">
                                 <LogOut className="mr-3 h-4 w-4" /> <span className="text-[13px] font-bold">Sign Out</span>
                             </DropdownMenuItem>
                         </div>
@@ -317,13 +392,15 @@ export function Dock() {
                 </DropdownMenu>
 
                 <div className="flex flex-col gap-2">
+
+
                     {/* Toggle Button */}
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        onClick={setIsCollapsed}
                         className={cn(
-                            "w-full flex items-center bg-white/[0.02] hover:bg-white/[0.05] text-white/20 hover:text-white/60 transition-all h-9 rounded-xl border border-white/5",
+                            "w-full flex items-center bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-all h-9 rounded-xl border border-border",
                             isCollapsed ? "justify-center" : "justify-center"
                         )}
                     >
@@ -331,7 +408,7 @@ export function Dock() {
                     </Button>
 
                     {!isCollapsed && (
-                        <div className="pt-2 px-3 pb-2 text-[9px] text-white/10 font-black animate-in fade-in duration-700">
+                        <div className="pt-2 px-3 pb-2 text-[9px] text-muted-foreground/40 font-black animate-in fade-in duration-700">
                             <div className="flex items-center justify-between pt-2">
                                 <span className="tracking-[0.2em] uppercase">R3 Build</span>
                                 <a

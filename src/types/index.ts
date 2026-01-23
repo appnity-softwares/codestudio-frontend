@@ -19,6 +19,12 @@ export interface User {
     interests?: string[]
     visibility?: string
     onboardingCompleted?: boolean
+    level?: number
+    streak?: number
+    inventory?: string[]
+    equippedAura?: string | null
+    unlockedThemes?: string[]
+    influence?: number
 }
 
 export interface Snippet {

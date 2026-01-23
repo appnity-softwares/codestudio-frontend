@@ -313,22 +313,22 @@ export default function Profile() {
 
                 {/* Tabs */}
                 <Tabs defaultValue="snippets" className="space-y-4">
-                    <TabsList className="w-full grid grid-cols-3 bg-white/[0.03] border border-white/5 p-1 h-12 rounded-xl">
+                    <TabsList className="w-full grid grid-cols-3 bg-muted/30 border border-border p-1 h-12 rounded-xl">
                         <TabsTrigger
                             value="overview"
-                            className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+                            className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
                         >
                             <Terminal className="h-3.5 w-3.5" /> Info
                         </TabsTrigger>
                         <TabsTrigger
                             value="snippets"
-                            className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+                            className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
                         >
                             <Code className="h-3.5 w-3.5" /> Code
                         </TabsTrigger>
                         <TabsTrigger
                             value="badges"
-                            className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+                            className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
                         >
                             <Trophy className="h-3.5 w-3.5" /> Badges
                         </TabsTrigger>
@@ -355,7 +355,7 @@ export default function Profile() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="py-12 border border-dashed border-white/10 rounded-xl bg-surface/30 text-center px-6">
+                            <div className="py-12 border border-dashed border-border rounded-xl bg-surface/30 text-center px-6">
                                 <Terminal className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                                 <h4 className="text-base font-bold text-foreground mb-2">No Snippets Yet</h4>
                                 <p className="text-sm text-muted-foreground mb-4">
@@ -417,22 +417,44 @@ export default function Profile() {
             )}
 
             {/* 1. Identity Header */}
-            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center bg-surface border border-border p-6 rounded-2xl">
-                <Avatar className="h-24 w-24 border-4 border-canvas shadow-lg">
-                    <AvatarImage src={profileUser.image} className="object-cover" />
-                    <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                        {profileUser.username[0].toUpperCase()}
-                    </AvatarFallback>
-                </Avatar>
+            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center bg-surface border border-border p-6 rounded-2xl relative overflow-hidden">
+                {/* Aura Background Glow */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
 
-                <div className="flex-1 space-y-2">
+                <div className="relative">
+                    {/* Replace standard Avatar with AuraAvatar if available, else standard */}
+                    <Link to="/settings/avatars" className="block relative group">
+                        <Avatar className={cn("h-24 w-24 border-4 border-canvas shadow-lg transition-transform group-hover:scale-105",
+                            currentUser?.equippedAura === 'aura_neon_cyberpunk' && "ring-4 ring-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.6)]",
+                            currentUser?.equippedAura === 'aura_golden_master' && "ring-4 ring-amber-400 shadow-[0_0_30px_rgba(251,191,36,0.6)]",
+                            currentUser?.equippedAura === 'aura_void_walker' && "ring-4 ring-purple-600 shadow-[0_0_30px_rgba(147,51,234,0.6)]",
+                        )}>
+                            <AvatarImage src={profileUser.image} className="object-cover" />
+                            <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                                {profileUser.username[0].toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        {currentUser?.id === profileUser.id && (
+                            <div className="absolute bottom-0 right-0 bg-background border border-border p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Settings className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                        )}
+                    </Link>
+                </div>
+
+                <div className="flex-1 space-y-2 relative z-10">
                     <div className="flex flex-wrap items-center gap-3">
                         <h1 className="text-3xl font-bold font-headline text-foreground">
                             {profileUser.name || profileUser.username}
                         </h1>
                         <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase font-bold tracking-wider border border-primary/20">
-                            {profileUser.role || "Developer"}
+                            Level {profileUser.level || 1}
                         </span>
+                        {currentUser?.influence && currentUser.influence > 50 && (
+                            <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 text-[10px] uppercase font-bold tracking-wider border border-purple-500/20 flex items-center gap-1">
+                                <Shield className="h-3 w-3" /> High Influence
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground uppercase tracking-wider">
@@ -533,22 +555,22 @@ export default function Profile() {
 
             {/* TABS NAVIGATION */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="bg-white/[0.02] border border-white/5 p-1 h-14 rounded-2xl">
+                <TabsList className="bg-muted/30 border border-border p-1 h-14 rounded-2xl">
                     <TabsTrigger
                         value="overview"
-                        className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(56,189,248,0.3)] rounded-xl transition-all duration-300"
+                        className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-xl transition-all duration-300"
                     >
                         <Terminal className="h-3.5 w-3.5" /> Overview
                     </TabsTrigger>
                     <TabsTrigger
                         value="snippets"
-                        className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(56,189,248,0.3)] rounded-xl transition-all duration-300"
+                        className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-xl transition-all duration-300"
                     >
                         <Code className="h-3.5 w-3.5" /> Snippets
                     </TabsTrigger>
                     <TabsTrigger
                         value="badges"
-                        className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(56,189,248,0.3)] rounded-xl transition-all duration-300"
+                        className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-xl transition-all duration-300"
                     >
                         <Trophy className="h-3.5 w-3.5" /> Badges & Progress
                     </TabsTrigger>
@@ -623,7 +645,7 @@ export default function Profile() {
                                 <SnippetCard key={snippet.id} snippet={snippet} className="max-w-none mx-0 mb-0" />
                             ))}
                             {snippets.length === 0 && (
-                                <div className="col-span-full py-12 border border-dashed border-white/10 rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center px-6">
+                                <div className="col-span-full py-12 border border-dashed border-border rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center px-6">
                                     <div className="h-12 w-12 rounded-full bg-muted/20 flex items-center justify-center mb-4">
                                         <Terminal className="h-6 w-6 text-muted-foreground" />
                                     </div>
@@ -665,7 +687,7 @@ export default function Profile() {
                             ))}
                         </div>
                     ) : (
-                        <div className="py-20 border border-dashed border-white/10 rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center px-6">
+                        <div className="py-20 border border-dashed border-border rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center px-6">
                             <div className="h-16 w-16 rounded-full bg-muted/20 flex items-center justify-center mb-6">
                                 <Code className="h-8 w-8 text-muted-foreground" />
                             </div>

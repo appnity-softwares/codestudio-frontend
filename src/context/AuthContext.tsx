@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI, setToken, removeToken } from '@/lib/api';
 import { User } from '@/types';
+import { useDispatch } from 'react-redux';
+import { setUserData } from '@/store/slices/userSlice';
 
 interface AuthContextType {
     user: User | null;
@@ -19,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
 
     // Check for existing session on mount
     const hasChecked = React.useRef(false);
@@ -40,6 +43,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Double-check if we are still mounted/valid? (React handles state updates in unmounted components warning usually, but safe here)
                 setUser(response.user);
                 setIsAuthenticated(true);
+                // Sync to Redux
+                if (response.user) {
+                    dispatch(setUserData({
+                        xp: response.user.xp || 0,
+                        level: response.user.level || 1,
+                        streak: response.user.streak || 0,
+                        inventory: response.user.inventory || [],
+                        equippedAura: response.user.equippedAura || null,
+                        unlockedThemes: response.user.unlockedThemes || ['default'],
+                        influence: response.user.influence || 15
+                    }));
+                }
             } catch (error: any) {
                 console.warn('Auth check failed (Logged out):', error.message);
                 removeToken();
@@ -68,6 +83,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setToken(response.token);
             setUser(response.user);
             setIsAuthenticated(true);
+            // Sync to Redux
+            if (response.user) {
+                dispatch(setUserData({
+                    xp: response.user.xp || 0,
+                    level: response.user.level || 1,
+                    streak: response.user.streak || 0
+                }));
+            }
         } catch (error) {
             console.error('Sign in failed:', error);
             throw error;
@@ -80,6 +103,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setToken(response.token);
             setUser(response.user);
             setIsAuthenticated(true);
+            // Sync to Redux
+            if (response.user) {
+                dispatch(setUserData({
+                    xp: response.user.xp || 0,
+                    level: response.user.level || 1,
+                    streak: response.user.streak || 0
+                }));
+            }
         } catch (error) {
             console.error('Sign up failed:', error);
             throw error;
@@ -92,6 +123,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const response = await authAPI.me();
             setUser(response.user);
             setIsAuthenticated(true);
+            // Sync to Redux
+            if (response.user) {
+                dispatch(setUserData({
+                    xp: response.user.xp || 0,
+                    level: response.user.level || 1,
+                    streak: response.user.streak || 0
+                }));
+            }
         } catch (error) {
             console.error('Token validation failed:', error);
             removeToken();

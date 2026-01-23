@@ -61,41 +61,41 @@ const CATEGORY_CONFIG = {
     BUG: {
         icon: Bug,
         label: "Bug Report",
-        color: "text-red-400/80 bg-red-500/10 border-red-500/20",
+        color: "text-red-500 bg-red-500/10 border-red-500/20",
         tooltip: "Something is broken or not working as expected"
     },
     UX: {
         icon: Layout,
         label: "UX Issue",
-        color: "text-pink-400/80 bg-pink-500/10 border-pink-500/20",
+        color: "text-pink-500 bg-pink-500/10 border-pink-500/20",
         tooltip: "Usability, design, or experience feedback"
     },
     FEATURE: {
         icon: Sparkles,
         label: "Feature Request",
-        color: "text-emerald-400/80 bg-emerald-500/10 border-emerald-500/20",
+        color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
         tooltip: "New functionality or improvement request"
     },
     PERFORMANCE: {
         icon: Zap,
         label: "Performance",
-        color: "text-amber-400/80 bg-amber-500/10 border-amber-500/20",
+        color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
         tooltip: "Speed, latency, or optimization issues"
     },
     OTHER: {
         icon: MessageCircleCode,
         label: "General",
-        color: "text-blue-400/80 bg-blue-500/10 border-blue-500/20",
+        color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
         tooltip: "General feedback or suggestions"
     }
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon?: any }> = {
-    OPEN: { label: "Open", color: "bg-white/5 text-white/50 border-white/10" },
-    REVIEWING: { label: "Under Review", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-    PLANNED: { label: "Planned", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
-    SHIPPED: { label: "Shipped", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: CheckCircle2 },
-    CLOSED: { label: "Closed", color: "bg-white/5 text-white/30 border-white/5" }
+    OPEN: { label: "Open", color: "bg-muted text-muted-foreground border-border" },
+    REVIEWING: { label: "Under Review", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
+    PLANNED: { label: "Planned", color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
+    SHIPPED: { label: "Shipped", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: CheckCircle2 },
+    CLOSED: { label: "Closed", color: "bg-muted/50 text-muted-foreground border-border" }
 };
 
 const MAX_CHARS = 500;
@@ -113,7 +113,7 @@ export default function FeedbackWall() {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const isMobile = useIsMobile();
-    const { celebrate } = useBadgeCelebration();
+    const { celebrate, celebrateXP } = useBadgeCelebration();
 
     useEffect(() => {
         const hasVisited = localStorage.getItem("hasVisitedFeedbackWall");
@@ -121,6 +121,16 @@ export default function FeedbackWall() {
             setShowWelcome(true);
             localStorage.setItem("hasVisitedFeedbackWall", "true");
         }
+    }, []);
+
+    // Handle URL parameters for pre-filling (e.g. from Error Reports)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const urlContent = params.get('content');
+        const urlCategory = params.get('category');
+
+        if (urlContent) setContent(urlContent);
+        if (urlCategory) setCategory(urlCategory);
     }, []);
 
     const { data: messages = [], isLoading } = useQuery({
@@ -157,6 +167,9 @@ export default function FeedbackWall() {
             return res;
         },
         onSuccess: (res: any) => {
+            // Simulated XP Reward for Feedback
+            celebrateXP(15);
+
             if (res.newBadges && res.newBadges.length > 0) {
                 celebrate(res.newBadges);
             }
@@ -338,10 +351,10 @@ export default function FeedbackWall() {
 
     return (
         <TooltipProvider delayDuration={200}>
-            <div className="flex flex-col h-full bg-gradient-to-b from-[#0c0c0e] to-[#0a0a0c] overflow-hidden">
+            <div className="flex flex-col h-full bg-background overflow-hidden">
 
                 {/* Header - More Compact */}
-                <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.04] bg-[#0c0c0e]/95 backdrop-blur-xl sticky top-0 z-50">
+                <header className="flex-shrink-0 px-6 py-4 border-b border-border bg-background/95 backdrop-blur-xl sticky top-0 z-50">
                     <div className="max-w-5xl mx-auto">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -355,26 +368,26 @@ export default function FeedbackWall() {
                                 )}
                                 <div className="space-y-0.5">
                                     <div className="flex items-center gap-2">
-                                        <h1 className="text-base font-bold text-white/90">Feedback Wall</h1>
-                                        <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20 uppercase tracking-tighter">
+                                        <h1 className="text-base font-bold text-foreground">Feedback Wall</h1>
+                                        <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20 uppercase tracking-tighter">
                                             Live
                                         </span>
                                     </div>
-                                    <p className="text-[10px] text-white/30 hidden sm:block">Help us shape the future of CodeStudio.</p>
+                                    <p className="text-[10px] text-muted-foreground hidden sm:block">Help us shape the future of CodeStudio.</p>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-4">
-                                <div className="text-[10px] text-white/20 font-mono bg-white/5 px-2 py-1 rounded-md border border-white/5">
+                                <div className="text-[10px] text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md border border-border">
                                     {messages.length} ENTRIES
                                 </div>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <button onClick={() => setShowInfoModal(true)} className="p-1.5 rounded-full hover:bg-white/5 transition-colors">
-                                            <Info className="h-4 w-4 text-white/20" />
+                                        <button onClick={() => setShowInfoModal(true)} className="p-1.5 rounded-full hover:bg-muted transition-colors">
+                                            <Info className="h-4 w-4 text-muted-foreground" />
                                         </button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="bottom" className="bg-[#1a1a1e] border-white/10">Learn more</TooltipContent>
+                                    <TooltipContent side="bottom" className="bg-popover border-border text-popover-foreground">Learn more</TooltipContent>
                                 </Tooltip>
                             </div>
                         </div>
@@ -392,15 +405,15 @@ export default function FeedbackWall() {
                         {/* Empty State with CTA */}
                         {!isLoading && messages.length === 0 && (
                             <div className="text-center py-24">
-                                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-center">
-                                    <MessageCircleCode className="h-7 w-7 text-white/10" />
+                                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-muted border border-border flex items-center justify-center">
+                                    <MessageCircleCode className="h-7 w-7 text-muted-foreground" />
                                 </div>
-                                <h3 className="text-base font-medium text-white/30 mb-1">No feedback yet.</h3>
-                                <p className="text-sm text-white/15 mb-4">Be the first to help improve CodeStudio.</p>
+                                <h3 className="text-base font-medium text-muted-foreground mb-1">No feedback yet.</h3>
+                                <p className="text-sm text-muted-foreground/70 mb-4">Be the first to help improve CodeStudio.</p>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="text-xs border-white/10 text-white/50 hover:text-white hover:bg-white/5"
+                                    className="text-xs border-border text-muted-foreground hover:text-foreground hover:bg-muted"
                                     onClick={() => document.querySelector('textarea')?.focus()}
                                 >
                                     Share your first idea →
@@ -438,26 +451,26 @@ export default function FeedbackWall() {
                                         <div className={cn(
                                             "border transition-all shadow-sm",
                                             isMe
-                                                ? "rounded-2xl rounded-tr-sm bg-primary/[0.08] border-primary/20"
+                                                ? "rounded-2xl rounded-tr-sm bg-primary/10 border-primary/20"
                                                 : cn(
-                                                    "rounded-2xl rounded-tl-sm bg-white/[0.03] border-white/[0.06]",
-                                                    msg.status === "SHIPPED" && "border-emerald-500/30 bg-emerald-500/[0.01]"
+                                                    "rounded-2xl rounded-tl-sm bg-card border-border shadow-sm",
+                                                    msg.status === "SHIPPED" && "border-emerald-500/30 bg-emerald-500/5"
                                                 )
                                         )}>
                                             {/* Card Header - Dense */}
-                                            <div className="px-3.5 py-2 border-b border-white/[0.04]">
+                                            <div className="px-3.5 py-2 border-b border-border/50">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="flex items-center gap-2.5 min-w-0">
-                                                        <Avatar className="h-5 w-5 rounded-full border border-white/[0.08] flex-shrink-0">
+                                                        <Avatar className="h-5 w-5 rounded-full border border-border flex-shrink-0">
                                                             <AvatarImage src={msg.user.image} />
-                                                            <AvatarFallback className="text-[8px] font-semibold bg-white/[0.04] text-white/40">
+                                                            <AvatarFallback className="text-[8px] font-semibold bg-muted text-muted-foreground">
                                                                 {msg.user.username[0]?.toUpperCase()}
                                                             </AvatarFallback>
                                                         </Avatar>
-                                                        <span className="text-xs font-medium text-white/50 truncate">
+                                                        <span className="text-xs font-medium text-muted-foreground truncate">
                                                             {isMe ? "You" : msg.user.username}
                                                         </span>
-                                                        <span className="text-[10px] text-white/20 font-mono">
+                                                        <span className="text-[10px] text-muted-foreground/70 font-mono">
                                                             {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                                                         </span>
                                                         {(user?.role === "ADMIN" || isMe) && (
@@ -591,7 +604,7 @@ export default function FeedbackWall() {
                                             </div>
 
                                             {/* Feedback Content - Compact */}
-                                            <div className="px-3.5 py-1.5 text-[13px] text-white/80 leading-snug break-words">
+                                            <div className="px-3.5 py-1.5 text-[13px] text-foreground/80 leading-snug break-words">
                                                 <div className="prose prose-invert prose-sm max-w-none prose-p:my-0.5 prose-headings:my-1 prose-ul:my-0.5 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10">
                                                     <ReactMarkdown
                                                         remarkPlugins={[remarkGfm]}
@@ -622,7 +635,7 @@ export default function FeedbackWall() {
                                                                         isMobile ? "text-xs h-10 px-4" : "text-[11px] h-7 px-2.5",
                                                                         msg.hasReacted
                                                                             ? "bg-primary/15 text-primary border border-primary/20"
-                                                                            : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60",
+                                                                            : "bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted hover:text-foreground",
                                                                         user?.role !== 'ADMIN' && "opacity-50 cursor-not-allowed"
                                                                     )}
                                                                 >
@@ -630,7 +643,7 @@ export default function FeedbackWall() {
                                                                     <span>{msg.upvotes}</span>
                                                                 </button>
                                                             </TooltipTrigger>
-                                                            <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80">
+                                                            <TooltipContent side="top" className="bg-popover border-border text-popover-foreground">
                                                                 <p className="text-xs">{user?.role === 'ADMIN' ? 'Support this idea' : 'Voting restricted to admins'}</p>
                                                             </TooltipContent>
                                                         </Tooltip>
@@ -644,8 +657,8 @@ export default function FeedbackWall() {
                                                                     className={cn(
                                                                         "flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg transition-all",
                                                                         msg.hasDisagreed
-                                                                            ? "bg-red-500/15 text-red-400 border border-red-500/20"
-                                                                            : "bg-white/[0.03] text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/60",
+                                                                            ? "bg-red-500/15 text-red-500 border border-red-500/20"
+                                                                            : "bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted hover:text-foreground",
                                                                         user?.role !== 'ADMIN' && "opacity-50 cursor-not-allowed"
                                                                     )}
                                                                 >
@@ -663,7 +676,7 @@ export default function FeedbackWall() {
                                                             <TooltipTrigger asChild>
                                                                 <button
                                                                     disabled
-                                                                    className="flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg bg-white/[0.02] text-white/20 border border-transparent ml-auto cursor-not-allowed"
+                                                                    className="flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg bg-muted text-muted-foreground/50 border border-transparent ml-auto cursor-not-allowed"
                                                                 >
                                                                     <Clock className="h-3 w-3" />
                                                                     <span>Discuss</span>
@@ -693,7 +706,7 @@ export default function FeedbackWall() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 px-3 rounded-full bg-[#1a1a1e]/90 border-white/10 text-white/60 backdrop-blur-md shadow-xl hover:bg-[#1a1a1e] hover:text-white"
+                                className="h-8 px-3 rounded-full bg-background/90 border-border text-foreground backdrop-blur-md shadow-xl hover:bg-background"
                                 onClick={() => {
                                     setShouldAutoScroll(true);
                                     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -707,11 +720,11 @@ export default function FeedbackWall() {
                 }
 
                 {/* Input Area - Modern Professional Design */}
-                <div className="border-t border-white/[0.06] bg-gradient-to-t from-[#0a0a0c] to-[#0c0c0e] backdrop-blur-xl">
+                <div className="border-t border-border bg-background backdrop-blur-xl">
                     <div className="max-w-4xl mx-auto px-6 py-5">
                         <form onSubmit={handleSubmit}>
                             {/* Main Input Card */}
-                            <div className="bg-[#151518] border border-white/[0.06] rounded-2xl p-4 shadow-xl shadow-black/20">
+                            <div className="bg-card border border-border rounded-2xl p-4 shadow-xl shadow-black/5">
                                 {/* Textarea */}
                                 <Textarea
                                     value={content}
@@ -719,7 +732,7 @@ export default function FeedbackWall() {
                                     placeholder="Describe a bug, request a feature, or share feedback…"
                                     className={cn(
                                         "min-h-[80px] max-h-[160px] p-0 bg-transparent border-0 resize-none",
-                                        "text-sm text-white/90 placeholder:text-white/30 leading-relaxed",
+                                        "text-sm text-foreground placeholder:text-muted-foreground leading-relaxed",
                                         "focus-visible:ring-0 focus-visible:outline-none",
                                     )}
                                     onKeyDown={(e) => {
@@ -731,14 +744,14 @@ export default function FeedbackWall() {
                                 />
 
                                 {/* Bottom Bar */}
-                                <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/[0.06]">
+                                <div className="flex items-center justify-between pt-3 mt-3 border-t border-border">
                                     {/* Left: Category + Character Count */}
                                     <div className="flex items-center gap-3">
                                         <Select value={category} onValueChange={setCategory}>
-                                            <SelectTrigger className="h-9 px-3 border-white/[0.08] bg-white/[0.03] rounded-lg text-xs font-medium text-white/60 hover:bg-white/[0.06] hover:text-white/80 transition-colors focus:ring-1 focus:ring-primary/30 gap-2 min-w-[130px]">
+                                            <SelectTrigger className="h-9 px-3 border-border bg-muted/20 rounded-lg text-xs font-medium text-foreground hover:bg-muted/40 transition-colors focus:ring-1 focus:ring-primary/30 gap-2 min-w-[130px]">
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-[#1a1a1e] border-white/10 text-white">
+                                            <SelectContent className="bg-popover border-border text-popover-foreground">
                                                 {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
                                                     <SelectItem key={key} value={key} className="text-xs">
                                                         <div className="flex items-center gap-2">
@@ -750,11 +763,11 @@ export default function FeedbackWall() {
                                             </SelectContent>
                                         </Select>
 
-                                        <div className="h-4 w-px bg-white/[0.06]" />
+                                        <div className="h-4 w-px bg-border" />
 
                                         <span className={cn(
                                             "text-[11px] font-mono tabular-nums",
-                                            isOverLimit ? "text-red-400" : charCount > MAX_CHARS * 0.8 ? "text-amber-400/70" : "text-white/25"
+                                            isOverLimit ? "text-red-500" : charCount > MAX_CHARS * 0.8 ? "text-amber-500/70" : "text-muted-foreground/50"
                                         )}>
                                             {charCount}/{MAX_CHARS}
                                         </span>
@@ -768,7 +781,7 @@ export default function FeedbackWall() {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => { setEditingId(null); setContent(""); }}
-                                                className="h-9 px-3 text-xs text-white/40 hover:text-white"
+                                                className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground"
                                             >
                                                 Cancel
                                             </Button>
@@ -780,7 +793,7 @@ export default function FeedbackWall() {
                                                 "h-9 px-4 rounded-lg font-medium text-sm transition-all active:scale-[0.98]",
                                                 content.trim() && !isOverLimit
                                                     ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
-                                                    : "bg-white/[0.05] text-white/30 cursor-not-allowed"
+                                                    : "bg-muted text-muted-foreground cursor-not-allowed"
                                             )}
                                         >
                                             {postMutation.isPending || updateMutation.isPending ? (

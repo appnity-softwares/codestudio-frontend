@@ -1,201 +1,254 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { usersAPI } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { spendXP, equipAura } from "@/store/slices/userSlice";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Zap, Palmtree, Ghost, Rocket, Sparkles, CheckCircle2, Lock } from "lucide-react";
-import { motion } from "framer-motion";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { ShoppingBag, Sparkles, Palette, Zap, ArrowLeft, Trophy, Lock, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
-const ITEMS = [
+const STORE_ITEMS = [
     {
-        id: "theme-midnight",
-        name: "Midnight Nebula Theme",
-        description: "Deep cosmic aesthetics with purple accents.",
-        price: 2500,
-        icon: Ghost,
-        color: "from-purple-600 to-indigo-900"
+        id: 'aura_neon_cyberpunk',
+        name: 'Neon Cyberpunk',
+        description: 'A glowing cyan and magenta border for your avatar.',
+        type: 'AURA',
+        cost: 500,
+        previewClass: 'ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]'
     },
     {
-        id: "theme-matrix",
-        name: "Terminal Matrix Theme",
-        description: "Retro hacker vibes with green phosphor glow.",
-        price: 7500,
-        icon: Rocket,
-        color: "from-emerald-600 to-black"
+        id: 'aura_golden_master',
+        name: 'Golden Master',
+        description: 'Elite gold aura for top-tier developers.',
+        type: 'AURA',
+        cost: 1200,
+        previewClass: 'ring-2 ring-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.6)]'
     },
     {
-        id: "theme-sunset",
-        name: "Cyber Sunset Theme",
-        description: "Vibrant orange and pink synthwave aesthetics.",
-        price: 12000,
-        icon: Palmtree,
-        color: "from-orange-500 to-pink-600"
+        id: 'aura_void_walker',
+        name: 'Void Walker',
+        description: 'Deep purple shadows that pulse with dark energy.',
+        type: 'AURA',
+        cost: 2000,
+        previewClass: 'ring-2 ring-purple-600 shadow-[0_0_20px_rgba(147,51,234,0.4)]'
     },
     {
-        id: "aura-shield",
-        name: "Diamond Aura Reflector",
-        description: "A permanent shimmering shield around your avatar.",
-        price: 25000,
-        icon: Sparkles,
-        color: "from-cyan-400 to-blue-500"
+        id: 'theme_dracula',
+        name: 'Dracula Theme',
+        description: 'A dark theme for vampires and night owls.',
+        type: 'THEME',
+        cost: 300,
+        color: '#282a36'
     },
+    {
+        id: 'theme_monokai_pro',
+        name: 'Monokai Pro',
+        description: 'Professional, high-contrast colorful theme.',
+        type: 'THEME',
+        cost: 300,
+        color: '#2d2a2e'
+    },
+    {
+        id: 'boost_showcase_slot',
+        name: 'Feed Showcase Slot',
+        description: 'Pin one of your snippets to the top of the feed for 24h.',
+        type: 'BOOST',
+        cost: 150,
+        icon: Zap
+    }
 ];
 
 export default function XPStore() {
-    const { user } = useAuth();
-    const queryClient = useQueryClient();
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
     const { toast } = useToast();
-    const [selectedItem, setSelectedItem] = useState<any>(null);
+    const user = useSelector((state: RootState) => state.user);
+    const [activeTab, setActiveTab] = useState("auras");
 
-    const spendMutation = useMutation({
-        mutationFn: ({ itemId, amount }: { itemId: string, amount: number }) => usersAPI.spendXP(itemId, amount),
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ["user"] });
-            // Update local user state if needed, or just let re-fetch happen
+    const handlePurchase = (item: any) => {
+        if (user.xp < item.cost) {
             toast({
-                title: "Purchase Successful!",
-                description: `Unlocked ${selectedItem?.name}. ${data.xp} XP remaining.`,
-            });
-            setSelectedItem(null);
-        },
-        onError: (error: any) => {
-            toast({
-                title: "Transaction Failed",
-                description: error.message || "Insufficient XP or network error.",
+                title: "Insufficient XP",
+                description: `You need ${item.cost - user.xp} more XP to buy this.`,
                 variant: "destructive"
             });
+            return;
         }
-    });
 
-    const isUnlocked = (itemId: string) => user?.purchasedComponentIds?.includes(itemId);
+        dispatch(spendXP({ amount: item.cost, itemId: item.id, type: item.type as any }));
+
+        toast({
+            title: "Purchase Successful!",
+            description: `You acquired ${item.name}.`,
+        });
+    };
+
+    const handleEquip = (auraId: string) => {
+        dispatch(equipAura(auraId));
+        toast({ title: "Equipped!", description: "Your avatar style has been updated." });
+    };
+
+    const isOwned = (itemId: string) => user.inventory.includes(itemId);
 
     return (
-        <div className="container max-w-7xl mx-auto py-12 px-6 space-y-12 animate-in fade-in duration-700">
+        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 pb-24">
             {/* Header */}
-            <div className="flex flex-col md:flex-row items-start justify-between gap-8">
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-xl bg-primary/20 text-primary">
-                            <ShoppingBag className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-[0.3em] text-primary">XP Trading Floor</span>
-                    </div>
-                    <h1 className="text-5xl font-black tracking-tight font-headline text-white">
-                        Developer <span className="text-primary italic">XP Store</span>
-                    </h1>
-                    <p className="text-white/40 max-w-xl font-medium text-lg leading-relaxed">
-                        Spend your hard-earned logic points on premium aesthetics and profile artifacts.
-                        No credit cards, just code.
-                    </p>
-                </div>
-
-                {/* Balance Card */}
-                <div className="p-8 rounded-[2.5rem] bg-gradient-to-tr from-white/[0.05] to-transparent border border-white/10 backdrop-blur-xl min-w-[280px]">
-                    <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">Available Balance</div>
-                    <div className="flex items-end gap-3">
-                        <div className="text-5xl font-black text-white font-headline">{user?.xp || 0}</div>
-                        <div className="text-primary font-black mb-1.5 italic">XP</div>
-                    </div>
-                    <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
-                        <div className="text-[10px] font-bold text-white/30 uppercase">Vault Secure</div>
-                        <Zap className="w-4 h-4 text-primary animate-pulse" />
-                    </div>
-                </div>
-            </div>
-
-            {/* Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-                {ITEMS.map((item) => {
-                    const unlocked = isUnlocked(item.id);
-                    return (
-                        <motion.div
-                            key={item.id}
-                            whileHover={{ y: -5 }}
-                            className={cn(
-                                "group p-8 rounded-[3rem] border transition-all duration-500 overflow-hidden relative",
-                                unlocked ? "border-emerald-500/20 bg-emerald-500/[0.02]" : "border-white/5 bg-white/[0.02] hover:border-primary/30"
-                            )}
+            <div className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
+                <div className="container max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate('/feed')}
+                            className="rounded-xl border border-border hover:bg-muted"
                         >
-                            {/* Bg Decoration */}
-                            <div className={cn(
-                                "absolute top-0 right-0 w-64 h-64 blur-[100px] opacity-10 -translate-y-1/2 translate-x-1/2 pointer-events-none bg-gradient-to-br",
-                                item.color
-                            )} />
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <div>
+                            <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
+                                <ShoppingBag className="h-5 w-5 text-primary" />
+                                XP Store
+                            </h1>
+                            <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Marketplace</p>
+                        </div>
+                    </div>
 
-                            <div className="flex items-start justify-between relative z-10">
-                                <div className="space-y-4 flex-1">
-                                    <div className={cn(
-                                        "h-16 w-16 rounded-3xl flex items-center justify-center shadow-2xl",
-                                        "bg-gradient-to-br", item.color
-                                    )}>
-                                        <item.icon className="w-8 h-8 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-black text-white mb-2">{item.name}</h3>
-                                        <p className="text-white/40 font-medium text-sm leading-relaxed max-w-sm">
-                                            {item.description}
-                                        </p>
-                                    </div>
-                                </div>
+                    <div className="flex items-center gap-4 bg-muted/30 px-4 py-2 rounded-xl border border-border">
+                        <div className="text-right">
+                            <span className="block text-[10px] font-black uppercase text-muted-foreground tracking-wider">Available Balance</span>
+                            <span className="font-mono text-lg font-black text-cyan-400 tabular-nums">{user.xp} XP</span>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                            <Trophy className="h-4 w-4 text-cyan-500" />
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                                <div className="text-right flex flex-col items-end gap-4">
-                                    {unlocked ? (
-                                        <div className="flex items-center gap-2 text-emerald-400 font-black uppercase text-[10px] tracking-widest bg-emerald-500/10 px-4 py-2 rounded-full border border-emerald-500/20">
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Unlocked
+            <main className="container max-w-6xl mx-auto py-10 px-4">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+                    <TabsList className="bg-muted/40 p-1 border border-border rounded-xl h-auto">
+                        <TabsTrigger value="auras" className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all gap-2 text-sm font-bold">
+                            <Sparkles className="h-4 w-4" /> Auras
+                        </TabsTrigger>
+                        <TabsTrigger value="themes" className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all gap-2 text-sm font-bold">
+                            <Palette className="h-4 w-4" /> IDE Themes
+                        </TabsTrigger>
+                        <TabsTrigger value="boosts" className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all gap-2 text-sm font-bold">
+                            <Zap className="h-4 w-4" /> Boosts
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="auras" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {STORE_ITEMS.filter(i => i.type === 'AURA').map((item) => {
+                                const owned = isOwned(item.id);
+                                const equipped = user.equippedAura === item.id;
+
+                                return (
+                                    <div key={item.id} className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg flex flex-col">
+                                        <div className="h-32 bg-muted/30 flex items-center justify-center relative overflow-hidden">
+                                            <div className="absolute inset-0 bg-grid opacity-20" />
+                                            <div className={cn("h-16 w-16 rounded-full bg-background border-2 border-muted flex items-center justify-center transition-all duration-500 group-hover:scale-110", item.previewClass)}>
+                                                <span className="font-black text-xs text-muted-foreground/50">YOU</span>
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2 text-white font-black uppercase text-xl font-headline">
-                                            {item.price} <span className="text-primary text-xs italic">XP</span>
-                                        </div>
-                                    )}
+                                        <div className="p-6 flex-1 flex flex-col">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-bold text-lg">{item.name}</h3>
+                                                {!owned && (
+                                                    <Badge variant="outline" className="font-mono text-cyan-500 border-cyan-500/30 bg-cyan-500/5">
+                                                        {item.cost} XP
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-muted-foreground mb-6 flex-1">{item.description}</p>
 
-                                    <Button
-                                        disabled={unlocked || (user?.xp || 0) < item.price || spendMutation.isPending}
-                                        onClick={() => {
-                                            setSelectedItem(item);
-                                            spendMutation.mutate({ itemId: item.id, amount: item.price });
-                                        }}
-                                        className={cn(
-                                            "h-12 px-6 rounded-2xl font-black uppercase tracking-widest text-xs",
-                                            unlocked ? "bg-white/5 text-white/20 cursor-not-allowed" : "bg-white text-black hover:bg-white/90"
-                                        )}
-                                    >
-                                        {spendMutation.isPending && selectedItem?.id === item.id ? (
-                                            "Authorizing..."
-                                        ) : unlocked ? (
-                                            "In Collection"
-                                        ) : (user?.xp || 0) < item.price ? (
-                                            <div className="flex items-center gap-2"><Lock className="w-3 h-3" /> Locked</div>
-                                        ) : (
-                                            "Unlock Now"
-                                        )}
-                                    </Button>
+                                            {owned ? (
+                                                <Button
+                                                    className={cn("w-full font-bold", equipped ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20" : "")}
+                                                    variant={equipped ? "outline" : "secondary"}
+                                                    disabled={equipped}
+                                                    onClick={() => handleEquip(item.id)}
+                                                >
+                                                    {equipped ? <><Check className="mr-2 h-4 w-4" /> Equipped</> : "Equip Aura"}
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    className="w-full font-bold"
+                                                    onClick={() => handlePurchase(item)}
+                                                    disabled={user.xp < item.cost}
+                                                >
+                                                    {user.xp < item.cost ? <Lock className="mr-2 h-4 w-4" /> : null}
+                                                    Purchase
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="themes" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {STORE_ITEMS.filter(i => i.type === 'THEME').map((item) => {
+                                const owned = isOwned(item.id);
+                                return (
+                                    <div key={item.id} className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg flex flex-col">
+                                        <div className="h-32 flex items-center justify-center relative border-b border-border" style={{ backgroundColor: item.color }}>
+                                            <div className="font-mono text-xs text-white/50 bg-black/20 px-3 py-1 rounded-md">
+                                                const theme = "{item.name}";
+                                            </div>
+                                        </div>
+                                        <div className="p-6 flex-1 flex flex-col">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-bold text-lg">{item.name}</h3>
+                                                {!owned && <Badge variant="outline" className="font-mono text-cyan-500 border-cyan-500/30 bg-cyan-500/5">{item.cost} XP</Badge>}
+                                            </div>
+                                            <p className="text-sm text-muted-foreground mb-6 flex-1">{item.description}</p>
+
+                                            {owned ? (
+                                                <Button variant="secondary" disabled className="w-full font-bold opacity-50">
+                                                    Unlocked (Select in Editor)
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    className="w-full font-bold"
+                                                    onClick={() => handlePurchase(item)}
+                                                    disabled={user.xp < item.cost}
+                                                >
+                                                    {user.xp < item.cost ? <Lock className="mr-2 h-4 w-4" /> : null}
+                                                    Unlock Theme
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="boosts" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <Card className="bg-gradient-to-br from-card to-muted/20 border-border">
+                            <div className="p-10 flex flex-col items-center text-center">
+                                <div className="h-16 w-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-4 ring-1 ring-amber-500/50">
+                                    <Zap className="h-8 w-8 text-amber-500" />
                                 </div>
+                                <h3 className="text-2xl font-black mb-2">Power-Ups Coming Soon</h3>
+                                <p className="text-muted-foreground max-w-md mx-auto mb-8">
+                                    We are fine-tuning the economy for showcasing and boosters. Showcase slots will allow you to pin your work to the global feed.
+                                </p>
+                                <Button disabled variant="outline">Restocking...</Button>
                             </div>
-                        </motion.div>
-                    );
-                })}
-            </div>
-
-            {/* Why XP Store? */}
-            <div className="p-10 rounded-[3rem] bg-primary/5 border border-primary/10 flex flex-col md:flex-row items-center gap-10">
-                <div className="h-24 w-24 shrink-0 rounded-[2rem] bg-primary/20 flex items-center justify-center">
-                    <Sparkles className="w-10 h-10 text-primary" />
-                </div>
-                <div className="space-y-2 text-center md:text-left">
-                    <h3 className="text-xl font-black text-white">How do I earn XP?</h3>
-                    <p className="text-white/40 font-medium leading-relaxed">
-                        XP is granted for solving practice problems (+50), publishing popular snippets (+10 / view),
-                        and winning arena contests (+1000). Your logic has real value in this ecosystem.
-                    </p>
-                </div>
-            </div>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </main>
         </div>
     );
-}
-
-function cn(...classes: any[]) {
-    return classes.filter(Boolean).join(' ');
 }

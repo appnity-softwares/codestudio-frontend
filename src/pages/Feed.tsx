@@ -14,11 +14,31 @@ import localforage from "localforage";
 
 type FeedBucket = 'trending' | 'new' | 'editor';
 
-// ... (previous imports)
+import { useDispatch, useSelector } from "react-redux";
+import { setFeedBucket, setSearchQuery, setFeedFilter } from "@/store/slices/feedSlice";
+import { RootState } from "@/store";
 
 export default function Feed() {
     const isMobile = useIsMobile();
-    const [bucket, setBucket] = useState<FeedBucket>('trending');
+    const dispatch = useDispatch();
+
+    // Select state from Redux
+    const { viewBucket, searchQuery, filters } = useSelector((state: RootState) => state.feed);
+    const bucket = viewBucket;
+    const search = searchQuery;
+    const language = filters.language;
+    const type = filters.type;
+    const difficulty = filters.difficulty;
+
+    // Local cached snippets just for display smoothing
+    const [cachedSnippets, setCachedSnippets] = useState<any[]>([]);
+
+    // Helpers to dispatch actions
+    const setBucket = (val: FeedBucket) => dispatch(setFeedBucket(val));
+    const setSearch = (val: string) => dispatch(setSearchQuery(val));
+    const setLanguage = (val: string) => dispatch(setFeedFilter({ key: 'language', value: val }));
+    const setType = (val: string) => dispatch(setFeedFilter({ key: 'type', value: val }));
+    const setDifficulty = (val: string) => dispatch(setFeedFilter({ key: 'difficulty', value: val }));
 
     // System Config
     const { data: systemData } = useQuery({
@@ -56,12 +76,6 @@ export default function Feed() {
             }
         }
     }, [bannerVisible, bannerTitle]);
-
-    const [search, setSearch] = useState("");
-    const [language, setLanguage] = useState("all");
-    const [type, setType] = useState("all");
-    const [difficulty, setDifficulty] = useState("all");
-    const [cachedSnippets, setCachedSnippets] = useState<any[]>([]);
 
     // Load from cache on mount
     useEffect(() => {
@@ -131,7 +145,7 @@ export default function Feed() {
                         exit={{ height: 0, opacity: 0, marginBottom: 0 }}
                         className="overflow-hidden"
                     >
-                        <div className="relative p-6 rounded-[2rem] bg-gradient-to-br from-primary/20 via-[#0c0c0e] to-purple-500/10 border border-primary/20 shadow-2xl backdrop-blur-xl group overflow-hidden">
+                        <div className="relative p-6 rounded-[2rem] bg-gradient-to-br from-primary/10 via-card to-purple-500/10 border border-primary/20 shadow-2xl backdrop-blur-xl group overflow-hidden">
                             {/* Decorative Blobs */}
                             <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[100px] rounded-full group-hover:bg-primary/30 transition-all duration-1000" />
                             <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/20 blur-[100px] rounded-full group-hover:bg-purple-500/30 transition-all duration-1000" />
@@ -141,7 +155,7 @@ export default function Feed() {
                                     <Sparkles className="h-8 w-8 text-primary animate-pulse" />
                                 </div>
                                 <div className="flex-1 text-center md:text-left">
-                                    <h2 className="text-xl font-black text-white mb-2 flex items-center gap-2 justify-center md:justify-start uppercase tracking-tight">
+                                    <h2 className="text-xl font-black text-foreground mb-2 flex items-center gap-2 justify-center md:justify-start uppercase tracking-tight">
                                         {bannerTitle}
                                         {bannerBadge && (
                                             <span className="text-[10px] bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full font-bold">{bannerBadge}</span>
@@ -149,7 +163,7 @@ export default function Feed() {
                                     </h2>
                                     <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                                         {bannerItems.map((item, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 text-xs font-bold text-white/60">
+                                            <div key={idx} className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
                                                 <div className={cn(
                                                     "h-2 w-2 rounded-full",
                                                     idx % 3 === 0 ? "bg-emerald-500" : idx % 3 === 1 ? "bg-blue-500" : "bg-amber-500"
@@ -165,7 +179,7 @@ export default function Feed() {
                                             href={bannerLink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-6 py-2.5 bg-white text-black text-xs font-black rounded-xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/10"
+                                            className="px-6 py-2.5 bg-primary text-primary-foreground text-xs font-black rounded-xl hover:scale-105 active:scale-95 transition-all shadow-xl"
                                         >
                                             READ MORE
                                         </a>
@@ -176,8 +190,8 @@ export default function Feed() {
                                             localStorage.setItem(`dismissed_banner_${bannerTitle}`, 'true');
                                         }}
                                         className={cn(
-                                            "px-6 py-2.5 bg-white text-black text-xs font-black rounded-xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/10",
-                                            bannerLink && "bg-transparent text-white border border-white/20 hover:bg-white/10"
+                                            "px-6 py-2.5 bg-card text-foreground text-xs font-black rounded-xl hover:scale-105 active:scale-95 transition-all shadow-sm border border-border",
+                                            bannerLink && "bg-transparent text-foreground border border-border hover:bg-muted"
                                         )}
                                     >
                                         GOT IT!
@@ -213,14 +227,14 @@ export default function Feed() {
 
                     {/* Filter Bar */}
                     <div className={cn(
-                        "flex flex-col gap-4 bg-surface/50 rounded-xl border border-border/50 shadow-sm backdrop-blur-sm",
+                        "flex flex-col gap-4 bg-muted/30 rounded-xl border border-border shadow-sm backdrop-blur-sm",
                         isMobile ? "p-3 mx-4" : "p-4 md:flex-row items-center justify-between"
                     )}>
                         <div className="relative w-full md:w-72">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search snippets..."
-                                className="pl-10 h-10 text-sm bg-black/20 border-white/10 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50 rounded-lg text-white"
+                                className="pl-10 h-10 text-sm bg-background border-border focus:border-primary/50 transition-all placeholder:text-muted-foreground/50 rounded-lg text-foreground"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
@@ -228,7 +242,7 @@ export default function Feed() {
 
                         <div className="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
                             <Select value={type} onValueChange={setType}>
-                                <SelectTrigger className="w-[110px] h-10 text-xs uppercase font-extrabold tracking-wider bg-black/20 border-white/10 text-white hover:border-primary/50 transition-colors">
+                                <SelectTrigger className="w-[110px] h-10 text-xs uppercase font-extrabold tracking-wider bg-background border-border text-foreground hover:border-primary/50 transition-colors">
                                     <SelectValue placeholder="Type" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -241,7 +255,7 @@ export default function Feed() {
                             </Select>
 
                             <Select value={difficulty} onValueChange={setDifficulty}>
-                                <SelectTrigger className="w-[110px] h-10 text-xs uppercase font-extrabold tracking-wider bg-black/20 border-white/10 text-white hover:border-primary/50 transition-colors">
+                                <SelectTrigger className="w-[110px] h-10 text-xs uppercase font-extrabold tracking-wider bg-background border-border text-foreground hover:border-primary/50 transition-colors">
                                     <SelectValue placeholder="Diff" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -253,7 +267,7 @@ export default function Feed() {
                             </Select>
 
                             <Select value={language} onValueChange={setLanguage}>
-                                <SelectTrigger className="w-[120px] h-10 text-xs uppercase font-extrabold tracking-wider bg-black/20 border-white/10 text-white hover:border-primary/50 transition-colors">
+                                <SelectTrigger className="w-[120px] h-10 text-xs uppercase font-extrabold tracking-wider bg-background border-border text-foreground hover:border-primary/50 transition-colors">
                                     <SelectValue placeholder="Language" />
                                 </SelectTrigger>
                                 <SelectContent>

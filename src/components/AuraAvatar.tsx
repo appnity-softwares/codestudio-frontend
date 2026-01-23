@@ -85,13 +85,13 @@ export function AuraAvatar({ src, username, xp, size = "md", className }: AuraAv
                 />
             </div>
 
-            {/* Level Badge */}
-            <div className="absolute -bottom-1 right-1 z-20">
+            {/* Level Badge - Moved to Top Right */}
+            <div className="absolute -top-1 -right-2 z-20">
                 <div className={cn(
-                    "px-1.5 py-0.5 rounded-md text-[8px] font-black text-white shadow-lg border border-white/10",
+                    "px-1.5 py-0.5 rounded-full text-[8px] font-black text-white shadow-lg border border-white/20 flex items-center gap-0.5",
                     xp >= 10000 ? "bg-cyan-500" : xp >= 5000 ? "bg-amber-500" : "bg-primary"
                 )}>
-                    {xp} XP
+                    {xp} <span className="text-[6px] opacity-80">XP</span>
                 </div>
             </div>
         </div>

@@ -35,18 +35,18 @@ export function Toolbelt() {
     const showInterfaceEngine = settings['feature_interface_engine'] !== "false";
 
     return (
-        <aside className="h-full w-full bg-[#08080a]/50 backdrop-blur-3xl flex flex-col transition-all duration-500">
+        <aside className="h-full w-full bg-surface/90 backdrop-blur-3xl flex flex-col transition-all duration-500 border-l border-border">
             {/* 1. System Status Header */}
-            <div className="h-20 border-b border-white/5 flex items-center px-6 gap-4 bg-white/[0.02]">
+            <div className="h-20 border-b border-border flex items-center px-6 gap-4 bg-muted/30">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
                         <div className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">System Node: Online</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/90">System Node: Online</span>
                     </div>
-                    <div className="text-[9px] font-mono text-white/20 uppercase tracking-widest pl-4">
+                    <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest pl-4">
                         Build v2.1.0-Stable
                     </div>
                 </div>
@@ -62,11 +62,11 @@ export function Toolbelt() {
                 {/* 2. System Theme Control */}
                 {showInterfaceEngine && (
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2.5 text-[11px] font-black text-white/40 uppercase tracking-[0.2em]">
-                            <Monitor className="w-4 h-4 text-blue-400 opacity-50" />
+                        <div className="flex items-center gap-2.5 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                            <Monitor className="w-4 h-4 text-blue-400 opacity-70" />
                             <span>Interface Engine</span>
                         </div>
-                        <div className="flex p-1 bg-white/[0.03] rounded-xl border border-white/5">
+                        <div className="flex p-1 bg-muted/40 rounded-xl border border-border">
                             {[
                                 { id: 'light', icon: Sun, label: 'Light' },
                                 { id: 'dark', icon: Moon, label: 'Dark' },
@@ -78,8 +78,8 @@ export function Toolbelt() {
                                     className={cn(
                                         "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all duration-300",
                                         theme === t.id
-                                            ? "bg-primary text-white shadow-lg shadow-primary/20"
-                                            : "text-white/30 hover:text-white/60 hover:bg-white/5"
+                                            ? "bg-primary text-primary-foreground shadow-md"
+                                            : "text-muted-foreground hover:text-foreground hover:bg-surface"
                                     )}
                                 >
                                     <t.icon className="w-3.5 h-3.5" />
@@ -93,34 +93,34 @@ export function Toolbelt() {
                 {/* 3. Quick Actions */}
                 <div className="space-y-5">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5 text-[11px] font-black text-white/40 uppercase tracking-[0.2em]">
-                            <Activity className="w-4 h-4 text-primary opacity-50" />
+                        <div className="flex items-center gap-2.5 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                            <Activity className="w-4 h-4 text-primary opacity-70" />
                             <span>System Utility</span>
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         <Link to="/create" className="group">
-                            <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_0_20px_rgba(56,189,248,0.1)] transition-all duration-300 text-center flex flex-col items-center justify-center gap-2 h-full relative overflow-hidden">
+                            <div className="p-5 rounded-2xl bg-muted/40 border border-border hover:border-primary/50 hover:bg-primary/5 hover:shadow-sm transition-all duration-300 text-center flex flex-col items-center justify-center gap-2 h-full relative overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 <TerminalIcon className="w-6 h-6 text-primary group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" />
-                                <span className="text-[11px] font-black text-white group-hover:text-primary transition-colors tracking-tight">New Snippet</span>
+                                <span className="text-[11px] font-black text-foreground group-hover:text-primary transition-colors tracking-tight">New Snippet</span>
                             </div>
                         </Link>
-                        <button
-                            onClick={() => setIsGuideOpen(true)}
+                        <Link
+                            to="/help"
                             className="group"
                         >
-                            <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-emerald-500/50 hover:bg-emerald-500/5 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)] transition-all duration-300 text-center flex flex-col items-center justify-center gap-2 h-full w-full relative overflow-hidden">
+                            <div className="p-5 rounded-2xl bg-muted/40 border border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 hover:shadow-sm transition-all duration-300 text-center flex flex-col items-center justify-center gap-2 h-full w-full relative overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <HelpCircle className="w-6 h-6 text-emerald-400 group-hover:scale-110 group-hover:-rotate-6 transition-all duration-300" />
-                                <span className="text-[11px] font-black text-white group-hover:text-emerald-400 transition-colors tracking-tight">System Help</span>
+                                <HelpCircle className="w-6 h-6 text-emerald-500 group-hover:scale-110 group-hover:-rotate-6 transition-all duration-300" />
+                                <span className="text-[11px] font-black text-foreground group-hover:text-emerald-500 transition-colors tracking-tight">System Help</span>
                             </div>
-                        </button>
+                        </Link>
                         <Link to="/badges" className="block col-span-2 group">
-                            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all duration-300 flex items-center justify-center gap-3 shadow-sm relative overflow-hidden">
+                            <div className="p-4 rounded-xl bg-muted/30 border border-border hover:border-amber-500/50 hover:bg-amber-500/5 transition-all duration-300 flex items-center justify-center gap-3 shadow-sm relative overflow-hidden">
                                 <Medal className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
-                                <span className="text-[11px] font-black text-white/50 group-hover:text-amber-500 transition-colors tracking-wider uppercase">Reputation & Badges</span>
-                                <ExternalLink className="w-3 h-3 ml-auto text-white/10 group-hover:text-amber-500 transition-colors" />
+                                <span className="text-[11px] font-black text-muted-foreground group-hover:text-amber-500 transition-colors tracking-wider uppercase">Reputation & Badges</span>
+                                <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground group-hover:text-amber-500 transition-colors" />
                             </div>
                         </Link>
                     </div>
@@ -128,50 +128,50 @@ export function Toolbelt() {
 
                 {/* 4. Execution Runtime Info */}
                 <div className="space-y-5">
-                    <div className="flex items-center gap-2.5 text-[11px] font-black text-white uppercase tracking-[0.2em]">
-                        <Cpu className="w-4 h-4 text-purple-400 opacity-50" />
+                    <div className="flex items-center gap-2.5 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                        <Cpu className="w-4 h-4 text-purple-400 opacity-70" />
                         <span>Execution Engine</span>
                     </div>
-                    <div className="p-6 bg-white/[0.02] rounded-2xl border border-white/5 space-y-4 shadow-2xl relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.02] to-transparent pointer-events-none" />
+                    <div className="p-6 bg-muted/30 rounded-2xl border border-border space-y-4 shadow-sm relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.05] to-transparent pointer-events-none" />
 
                         <div className="flex justify-between items-center group/item">
-                            <span className="text-[11px] font-bold text-white/30 group-hover/item:text-white/50 transition-colors">Core Engine</span>
-                            <span className="text-[11px] font-black text-white tracking-widest bg-white/5 px-2 py-0.5 rounded border border-white/5">PISTON V2.1</span>
+                            <span className="text-[11px] font-bold text-muted-foreground group-hover/item:text-foreground transition-colors">Core Engine</span>
+                            <span className="text-[11px] font-black text-foreground tracking-widest bg-muted/50 px-2 py-0.5 rounded border border-border">PISTON V2.1</span>
                         </div>
-                        <div className="w-full h-px bg-white/[0.03]" />
+                        <div className="w-full h-px bg-border" />
 
                         <div className="space-y-3">
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
                                     <div className="w-1 h-1 rounded-full bg-blue-400 shadow-[0_0_4px_rgba(96,165,250,0.5)]" />
-                                    <span className="text-[11px] font-bold text-white/40">Python Runtime</span>
+                                    <span className="text-[11px] font-bold text-muted-foreground">Python Runtime</span>
                                 </div>
-                                <span className="text-[10px] font-mono text-white/80">Active</span>
+                                <span className="text-[10px] font-mono text-foreground/80">Active</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
                                     <div className="w-1 h-1 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.5)]" />
-                                    <span className="text-[11px] font-bold text-white/40">Node.js Engine</span>
+                                    <span className="text-[11px] font-bold text-muted-foreground">Node.js Engine</span>
                                 </div>
-                                <span className="text-[10px] font-mono text-white/80">Active</span>
+                                <span className="text-[10px] font-mono text-foreground/80">Active</span>
                             </div>
                         </div>
 
-                        <div className="mt-4 pt-4 border-t border-white/[0.03] flex items-center justify-center gap-2">
+                        <div className="mt-4 pt-4 border-t border-border flex items-center justify-center gap-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[9px] text-white/20 font-black uppercase tracking-[0.2em]">Sandboxed Isolated Shell</span>
+                            <span className="text-[9px] text-muted-foreground/60 font-black uppercase tracking-[0.2em]">Sandboxed Isolated Shell</span>
                         </div>
                     </div>
                 </div>
 
                 <Link to="/feedback" className="block group">
-                    <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-indigo-500/10 border border-primary/20 relative overflow-hidden transition-all hover:scale-[1.02]">
+                    <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-indigo-500/5 border border-primary/20 relative overflow-hidden transition-all hover:scale-[1.02] shadow-sm">
                         <div className="absolute top-0 right-0 p-4 translate-x-2 -translate-y-2 opacity-10 group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-30 transition-all duration-500">
-                            <ShieldCheck className="w-12 h-12" />
+                            <ShieldCheck className="w-12 h-12 text-foreground" />
                         </div>
-                        <h4 className="text-[11px] font-black text-white uppercase tracking-widest mb-1">Feedback Wall</h4>
-                        <p className="text-[10px] text-white/40 font-medium leading-relaxed">
+                        <h4 className="text-[11px] font-black text-foreground uppercase tracking-widest mb-1">Feedback Wall</h4>
+                        <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
                             Contribute to the roadmap. Report bugs or request core engine features.
                         </p>
                     </div>

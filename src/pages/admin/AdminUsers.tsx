@@ -52,6 +52,9 @@ export default function AdminUsers() {
         email: "",
         role: "USER",
         trustScore: 100,
+        xp: 0,
+        level: 1, // Added level
+        endorsements: "",
         isBlocked: false,
     });
 
@@ -159,6 +162,9 @@ export default function AdminUsers() {
             email: user.email || "",
             role: user.role || "USER",
             trustScore: user.trustScore || 100,
+            xp: user.xp || 0,
+            level: user.level || 1,
+            endorsements: Array.isArray(user.endorsements) ? user.endorsements.join(", ") : "",
             isBlocked: user.isBlocked || false,
         });
         setEditDialogOpen(true);
@@ -166,9 +172,16 @@ export default function AdminUsers() {
 
     const handleUpdate = () => {
         if (!selectedUser) return;
+
+        // Transform endorsements back to array
+        const updates = {
+            ...editForm,
+            endorsements: editForm.endorsements.split(",").map(s => s.trim()).filter(Boolean)
+        };
+
         updateMutation.mutate({
             userId: selectedUser.id,
-            updates: editForm,
+            updates: updates,
         });
     };
 
@@ -197,7 +210,8 @@ export default function AdminUsers() {
                             <TableHead>User</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Role</TableHead>
-                            <TableHead>Trust Score</TableHead>
+                            <TableHead>Level / XP</TableHead>
+                            <TableHead>Influence</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Joined</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
@@ -238,7 +252,13 @@ export default function AdminUsers() {
                                             {user.role}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>{getTrustBadge(user.trustScore)}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-xs">Lvl {user.level || 1}</span>
+                                            <span className="text-[10px] text-muted-foreground">{user.xp?.toLocaleString()} XP</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>{getTrustBadge(user.influence || user.trustScore)}</TableCell>
                                     <TableCell>
                                         {user.isBlocked ? (
                                             <Badge variant="destructive">Suspended</Badge>
@@ -458,7 +478,7 @@ export default function AdminUsers() {
                             </Select>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="trust" className="text-right text-xs">Trust Score</Label>
+                            <Label htmlFor="trust" className="text-right text-xs">Trust (Influence)</Label>
                             <Input
                                 id="trust"
                                 type="number"
@@ -468,6 +488,43 @@ export default function AdminUsers() {
                                 onChange={(e) => setEditForm(prev => ({ ...prev, trustScore: parseInt(e.target.value) || 0 }))}
                                 className="col-span-3 h-8"
                             />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="level" className="text-right text-xs">Level</Label>
+                            <Input
+                                id="level"
+                                type="number"
+                                min="1"
+                                value={editForm.level}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, level: parseInt(e.target.value) || 1 }))}
+                                className="col-span-3 h-8"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="xp" className="text-right text-xs">XP Points</Label>
+                            <Input
+                                id="xp"
+                                type="number"
+                                min="0"
+                                value={editForm.xp}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, xp: parseInt(e.target.value) || 0 }))}
+                                className="col-span-3 h-8"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="endorsements" className="text-right text-xs mt-2">Addons (Endorsements)</Label>
+                            <div className="col-span-3">
+                                <Textarea
+                                    id="endorsements"
+                                    value={editForm.endorsements}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, endorsements: e.target.value }))}
+                                    placeholder="Comma separated tags (e.g. mentor, top-contributor)"
+                                    className="min-h-[60px] text-xs"
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                    Separate items with commas. Used for profile badges/influence.
+                                </p>
+                            </div>
                         </div>
                     </div>
 

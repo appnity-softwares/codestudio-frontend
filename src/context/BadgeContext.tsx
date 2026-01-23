@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SuccessBurst } from '../components/SuccessBurst';
+import { XPBurst } from '../components/XPBurst';
 import { Award, Star, Trophy, Zap, Shield, Target, Code, MessageSquare, CheckCircle2, Crown, Flame, Medal } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { useDispatch } from 'react-redux';
+import { addXP } from '@/store/slices/userSlice';
 
 const ICON_MAP: Record<string, any> = {
     "award": Award,
@@ -29,6 +32,7 @@ interface Badge {
 
 interface BadgeContextType {
     celebrate: (badges: Badge[]) => void;
+    celebrateXP: (amount: number) => void;
 }
 
 const BadgeContext = createContext<BadgeContextType | undefined>(undefined);
@@ -37,6 +41,12 @@ export function BadgeProvider({ children }: { children: React.ReactNode }) {
     const [activeBadges, setActiveBadges] = useState<Badge[]>([]);
     const [showBurst, setShowBurst] = useState(false);
 
+    // XP Celebration State
+    const [xpAmount, setXpAmount] = useState(0);
+    const [showXPBurst, setShowXPBurst] = useState(false);
+
+    const dispatch = useDispatch();
+
     const celebrate = useCallback((badges: Badge[]) => {
         if (!badges || badges.length === 0) return;
         setActiveBadges(badges);
@@ -44,10 +54,24 @@ export function BadgeProvider({ children }: { children: React.ReactNode }) {
         setTimeout(() => setShowBurst(false), 3000);
     }, []);
 
+    const celebrateXP = useCallback((amount: number) => {
+        if (amount <= 0) return;
+        setXpAmount(amount);
+        setShowXPBurst(true);
+        dispatch(addXP(amount));
+
+        // Reset after animation
+        setTimeout(() => {
+            setShowXPBurst(false);
+            setXpAmount(0);
+        }, 2000);
+    }, [dispatch]);
+
     return (
-        <BadgeContext.Provider value={{ celebrate }}>
+        <BadgeContext.Provider value={{ celebrate, celebrateXP }}>
             {children}
             <SuccessBurst active={showBurst} />
+            <XPBurst active={showXPBurst} amount={xpAmount} />
             <AnimatePresence>
                 {activeBadges.length > 0 && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">

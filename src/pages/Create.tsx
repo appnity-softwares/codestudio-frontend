@@ -56,7 +56,7 @@ export default function Create() {
     const navigate = useNavigate();
     const { toast } = useToast();
     const isMobile = useIsMobile();
-    const { celebrate } = useBadgeCelebration();
+    const { celebrate, celebrateXP } = useBadgeCelebration();
     const [loading, setLoading] = useState(false);
 
     // Ensure we start at the top on mount
@@ -263,6 +263,10 @@ export default function Create() {
             } else {
                 const res = await snippetsAPI.create(payload) as any;
                 toast({ title: "Published! 🚀", description: "Your code is now live on the feed." });
+
+                // Reward XP for creation
+                celebrateXP(50);
+
                 if (res.newBadges && res.newBadges.length > 0) {
                     celebrate(res.newBadges);
                 }
@@ -496,25 +500,30 @@ export default function Create() {
                                 Status: Draft<br />
                                 Local Persistence: Active
                             </p>
-                            <Button
-                                onClick={handleSubmit}
-                                disabled={loading}
-                                className={cn(
-                                    "relative overflow-hidden shadow-2xl px-10 h-14 rounded-2xl font-black transition-all active:scale-95 group min-w-[200px] text-[13px] uppercase tracking-wider",
-                                    (!isVisualLang && !executionResult)
-                                        ? "bg-white/10 text-white/40 border border-white/10 hover:bg-white/15"
-                                        : "bg-gradient-to-r from-primary via-blue-500 to-indigo-600 hover:shadow-primary/30 text-white"
-                                )}
-                            >
-                                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                                <span className="relative flex items-center justify-center gap-3">
-                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                                    <span>{editId ? "Update Snippet" : "Publish to Feed"}</span>
-                                    {!isVisualLang && !executionResult && (
-                                        <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse" title="Execution Required" />
+                            <div className="flex flex-col items-end gap-1">
+                                <Button
+                                    onClick={handleSubmit}
+                                    disabled={loading || (!isVisualLang && !executionResult)}
+                                    className={cn(
+                                        "relative overflow-hidden shadow-2xl px-10 h-14 rounded-2xl font-black transition-all active:scale-95 group min-w-[200px] text-[13px] uppercase tracking-wider",
+                                        (!isVisualLang && !executionResult)
+                                            ? "bg-white/5 text-white/20 border border-white/5 cursor-not-allowed grayscale"
+                                            : "bg-gradient-to-r from-primary via-blue-500 to-indigo-600 hover:shadow-primary/30 text-white"
                                     )}
-                                </span>
-                            </Button>
+                                >
+                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                                    <span className="relative flex items-center justify-center gap-3">
+                                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                        <span>{editId ? "Update Snippet" : "Publish to Feed"}</span>
+                                    </span>
+                                </Button>
+                                {!isVisualLang && !executionResult && (
+                                    <span className="text-[10px] text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1.5 animate-pulse">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                        Run code to enable publishing
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -537,15 +546,15 @@ export default function Create() {
                             value={snippetTitle}
                             maxLength={MAX_TITLE + 10}
                             onChange={e => setSnippetTitle(e.target.value)}
-                            className="h-16 bg-black/60 border-white/20 text-white text-xl font-bold rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-white/30 px-6 shadow-inner"
+                            className="h-16 bg-muted/20 border-border text-foreground text-xl font-bold rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-muted-foreground/50 px-6 shadow-inner"
                         />
                     </div>
                     <div className="space-y-4 relative z-10">
                         <div className="flex justify-between items-end">
-                            <Label className="text-[12px] font-black uppercase tracking-[0.2em] text-white/70 flex items-center gap-1">
+                            <Label className="text-[12px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-1">
                                 2. Description <span className="text-red-500/50 text-base font-bold">*</span>
                             </Label>
-                            <span className={cn("text-[10px] font-bold", snippetDesc.length > MAX_DESC ? "text-red-500" : "text-white/40")}>
+                            <span className={cn("text-[10px] font-bold", snippetDesc.length > MAX_DESC ? "text-red-500" : "text-muted-foreground/40")}>
                                 {snippetDesc.length} / {MAX_DESC}
                             </span>
                         </div>
@@ -554,28 +563,28 @@ export default function Create() {
                             value={snippetDesc}
                             maxLength={MAX_DESC + 20}
                             onChange={e => setSnippetDesc(e.target.value)}
-                            className="min-h-[64px] h-16 py-5 bg-black/60 border-white/20 text-white text-sm font-medium rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all resize-none placeholder:text-white/30 px-6 shadow-inner"
+                            className="min-h-[64px] h-16 py-5 bg-muted/20 border-border text-foreground text-sm font-medium rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all resize-none placeholder:text-muted-foreground/50 px-6 shadow-inner"
                         />
                     </div>
                 </div>
 
                 {/* Additional Settings Bar */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/[0.02] border border-white/5 p-6 rounded-2xl backdrop-blur-sm -mt-4 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-card border border-border p-6 rounded-2xl backdrop-blur-sm -mt-4 items-center shadow-sm">
                     <div className="flex flex-col gap-2">
                         <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70 ml-1">Reference Documentation URL (Optional)</Label>
                         <div className="relative group">
-                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white group-focus-within:text-primary transition-colors" />
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <Input
                                 placeholder="https://docs.microsoft.com/..."
                                 value={snippetRefUrl}
                                 onChange={e => setSnippetRefUrl(e.target.value)}
-                                className="pl-10 h-11 bg-black/40 border-white/10 text-white text-[13px] font-bold rounded-xl focus:border-primary/50 transition-all placeholder:text-white/40"
+                                className="pl-10 h-11 bg-muted/20 border-border text-foreground text-[13px] font-bold rounded-xl focus:border-primary/50 transition-all placeholder:text-muted-foreground/50"
                             />
                         </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1 text-right">Draft Status: Auto-Saving</Label>
-                        <p className="text-[10px] text-white/50 text-right">Content is cached locally in your current workspace.</p>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 ml-1 text-right">Draft Status: Auto-Saving</Label>
+                        <p className="text-[10px] text-muted-foreground/50 text-right">Content is cached locally in your current workspace.</p>
                     </div>
                 </div>
 
@@ -583,8 +592,8 @@ export default function Create() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
                     {/* Left Col: The Lab (Editor/Preview) */}
                     <div className="lg:col-span-8 space-y-6 flex flex-col">
-                        <Card className="flex-1 border-border/40 bg-black/60 shadow-2xl backdrop-blur-xl overflow-hidden rounded-2xl flex flex-col border border-white/5 min-h-[600px]">
-                            <div className="h-12 bg-white/[0.03] border-b border-white/5 px-4 flex items-center justify-between">
+                        <Card className="flex-1 bg-surface border-border shadow-2xl backdrop-blur-xl overflow-hidden rounded-2xl flex flex-col min-h-[600px]">
+                            <div className="h-12 bg-muted/30 border-b border-border px-4 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className="flex gap-1">
                                         <button
@@ -592,8 +601,8 @@ export default function Create() {
                                             className={cn(
                                                 "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
                                                 activeTab !== 'preview'
-                                                    ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105"
-                                                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                                                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+                                                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                                             )}
                                         >
                                             <Code2 className="h-3.5 w-3.5" />
