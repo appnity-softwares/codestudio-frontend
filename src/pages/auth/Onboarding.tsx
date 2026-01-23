@@ -8,10 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, Check, Code2, Rocket, Swords, RefreshCw, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Rocket, RefreshCw, Plus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { usersAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+
+import confetti from 'canvas-confetti';
+
+// ... (keep existing imports)
 
 const steps = [
     { id: 'profile', title: 'Profile Basics', description: 'Tell us a bit about yourself.' },
@@ -93,6 +97,32 @@ export default function Onboarding() {
     const handleFinish = async () => {
         setIsLoading(true);
         try {
+            // Trigger celebration
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            const frame = () => {
+                confetti({
+                    particleCount: 2,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#22d3ee', '#f472b6', '#fbbf24']
+                });
+                confetti({
+                    particleCount: 2,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#22d3ee', '#f472b6', '#fbbf24']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            };
+            frame();
+
             // Ensure we have at least a name and username for the backend
             const finalName = name.trim() || user?.name || "Member";
             const finalUsername = username.trim() || user?.username || `user_${Date.now().toString().slice(-6)}`;
@@ -114,11 +144,16 @@ export default function Onboarding() {
                 await updateUser({ onboardingCompleted: true, name: finalName, username: finalUsername, image });
             }
 
-            navigate('/feed'); // Redirect to feed instead of landing to avoid re-redirects
             toast({
                 title: "Welcome aboard! 🚀",
                 description: "Your profile has been set up.",
             });
+
+            // Delay navigation slightly to enjoy effects
+            setTimeout(() => {
+                navigate('/feed');
+            }, 1500);
+
         } catch (error: any) {
             toast({
                 title: "Error",
@@ -126,7 +161,6 @@ export default function Onboarding() {
                 variant: "destructive",
             });
             console.error(error);
-        } finally {
             setIsLoading(false);
         }
     };
@@ -275,41 +309,28 @@ export default function Onboarding() {
                     </div>
                 );
             case 2:
+                // New Single Button Layout
                 return (
-                    <div className="grid grid-cols-1 gap-4">
-                        <p className="text-sm text-muted-foreground mb-2">You're all set! Where would you like to go first?</p>
+                    <div className="flex flex-col items-center justify-center py-10 space-y-8 text-center animate-in fade-in zoom-in duration-500">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
+                            <Rocket className="relative w-20 h-20 text-primary animate-bounce-slow" />
+                        </div>
 
-                        <Button variant="outline" className="h-auto p-4 justify-start space-x-4 hover:border-primary hover:bg-primary/5 group" onClick={() => handleFinish().then(() => navigate('/create'))}>
-                            <div className="bg-blue-500/10 p-2 rounded-lg text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                                <Code2 className="h-6 w-6" />
-                            </div>
-                            <div className="text-left">
-                                <h3 className="font-semibold text-foreground">Create First Snippet</h3>
-                                <p className="text-xs text-muted-foreground">Share some code with the world.</p>
-                            </div>
-                            <ArrowRight className="ml-auto w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </Button>
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-black font-headline tracking-tight">You&#39;re All Set, {name || "Agent"}!</h3>
+                            <p className="text-muted-foreground max-w-sm mx-auto">
+                                Your developer identity has been forged. Prepare to enter the CodeStudio ecosystem.
+                            </p>
+                        </div>
 
-                        <Button variant="outline" className="h-auto p-4 justify-start space-x-4 hover:border-primary hover:bg-primary/5 group" onClick={() => handleFinish().then(() => navigate('/arena'))}>
-                            <div className="bg-red-500/10 p-2 rounded-lg text-red-500 group-hover:bg-red-500 group-hover:text-white transition-colors">
-                                <Swords className="h-6 w-6" />
-                            </div>
-                            <div className="text-left">
-                                <h3 className="font-semibold text-foreground">Enter the Arena</h3>
-                                <p className="text-xs text-muted-foreground">Compete in coding contests.</p>
-                            </div>
-                            <ArrowRight className="ml-auto w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </Button>
-
-                        <Button variant="outline" className="h-auto p-4 justify-start space-x-4 hover:border-primary hover:bg-primary/5 group" onClick={() => handleFinish().then(() => navigate('/feed'))}>
-                            <div className="bg-green-500/10 p-2 rounded-lg text-green-500 group-hover:bg-green-500 group-hover:text-white transition-colors">
-                                <Rocket className="h-6 w-6" />
-                            </div>
-                            <div className="text-left">
-                                <h3 className="font-semibold text-foreground">Explore Community</h3>
-                                <p className="text-xs text-muted-foreground">See what's trending today.</p>
-                            </div>
-                            <ArrowRight className="ml-auto w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Button
+                            size="lg"
+                            onClick={handleFinish}
+                            disabled={isLoading}
+                            className="w-full max-w-xs h-14 text-lg font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
+                        >
+                            {isLoading ? "Initializing..." : "Launch Dashboard"}
                         </Button>
                     </div>
                 );

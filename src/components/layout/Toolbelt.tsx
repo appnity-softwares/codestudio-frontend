@@ -172,7 +172,7 @@ export function Toolbelt() {
                         </div>
                         <h4 className="text-[11px] font-black text-foreground uppercase tracking-widest mb-1">Feedback Wall</h4>
                         <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
-                            Contribute to the roadmap. Report bugs or request core engine features.
+                            Feedback visibility is influenced by community votes and trust score.
                         </p>
                     </div>
                 </Link>

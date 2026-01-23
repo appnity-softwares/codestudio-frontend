@@ -180,10 +180,31 @@ export function Dock() {
                                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(56,189,248,0.8)] animate-pulse" />
                                 )}
 
-                                {!isActive && !isCollapsed && item.label === "Arena" && (
-                                    <span className="ml-auto bg-primary/20 text-primary text-[8px] font-black px-1.5 py-0.5 rounded-md border border-primary/20 animate-pulse">
-                                        NEW
-                                    </span>
+                                {!isActive && !isCollapsed && (
+                                    <>
+                                        {item.label === "Arena" && (
+                                            <span className="ml-auto bg-primary/20 text-primary text-[8px] font-black px-1.5 py-0.5 rounded-md border border-primary/20 animate-pulse">
+                                                NEW
+                                            </span>
+                                        )}
+                                        {(() => {
+                                            if (item.label === "Arena") return null; // Handled above for legacy support
+                                            try {
+                                                const badgeConfig = JSON.parse(settings['dock_badges'] || '{}');
+                                                const badgeText = badgeConfig[item.path];
+                                                if (badgeText) {
+                                                    return (
+                                                        <span className="ml-auto bg-amber-500/20 text-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded-md border border-amber-500/20 animate-pulse uppercase">
+                                                            {badgeText}
+                                                        </span>
+                                                    );
+                                                }
+                                            } catch (e) {
+                                                // ignore parsing error
+                                            }
+                                            return null;
+                                        })()}
+                                    </>
                                 )}
                             </Link>
                         );

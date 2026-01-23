@@ -696,6 +696,9 @@ export const playlistsAPI = {
         apiRequest<{ message: string }>(`/playlists/${id}/reorder`, { method: 'POST', body: JSON.stringify({ orders }) }),
     claim: (id: string) =>
         apiRequest<{ message: string; endorsement: string; xp: number; endorsements: string[] }>(`/playlists/${id}/claim`, { method: 'POST' }),
+
+    removeSnippet: (playlistId: string, snippetId: string) =>
+        apiRequest<{ message: string }>(`/playlists/${playlistId}/snippets/${snippetId}`, { method: 'DELETE' }),
 };
 
 export const systemAPI = {

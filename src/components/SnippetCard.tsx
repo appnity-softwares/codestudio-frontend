@@ -336,7 +336,7 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                             </div>
                         )
                     ) : viewMode === 'output' ? (
-                        <div className="absolute inset-0 bg-zinc-950 p-6 font-mono text-xs overflow-auto selection:bg-primary/30">
+                        <div className="absolute inset-0 bg-muted/30 dark:bg-zinc-950 p-6 font-mono text-xs overflow-auto selection:bg-primary/30 custom-scrollbar text-foreground">
                             {snippet.stdinHistory ? (
                                 <div className="space-y-1.5">
                                     {(() => {
@@ -346,18 +346,18 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                                                 <div key={i} className={cn(
                                                     "whitespace-pre-wrap break-all leading-relaxed",
                                                     line.type === 'input' ? "text-primary font-bold before:content-['>_'] before:mr-2" :
-                                                        line.type === 'error' ? "text-rose-400" : "text-emerald-300/90"
+                                                        line.type === 'error' ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"
                                                 )}>
                                                     {line.text}
                                                 </div>
                                             ));
                                         } catch (e) {
-                                            return <div className="text-emerald-400">{snippet.lastExecutionOutput || "Output Error"}</div>;
+                                            return <div className="text-emerald-600 dark:text-emerald-400">{snippet.lastExecutionOutput || "Output Error"}</div>;
                                         }
                                     })()}
                                 </div>
                             ) : (
-                                <div className="text-emerald-400 whitespace-pre-wrap font-mono leading-relaxed">
+                                <div className="text-emerald-600 dark:text-emerald-400 whitespace-pre-wrap font-mono leading-relaxed">
                                     {snippet.lastExecutionOutput || snippet.outputSnapshot || snippet.output || "Success (No output)"}
                                 </div>
                             )}
