@@ -13,6 +13,14 @@ import { PageLoader } from "./components/ui/PageLoader"
 
 // Pages (Lazy Loaded)
 const Landing = lazy(() => import("./pages/Landing"))
+
+// Helper for /profile/me
+const RedirectToProfile = () => {
+    const { user } = useAuth();
+    if (!user) return null;
+    return <Navigate to={`/u/${user.username}`} replace />;
+};
+
 const Feed = lazy(() => import("./pages/Feed"))
 const Arena = lazy(() => import("./pages/arena/Arena"))
 const EventDetail = lazy(() => import("./pages/arena/EventDetail"))
@@ -56,6 +64,10 @@ const PracticeList = lazy(() => import("./pages/PracticeList"))
 const PracticeWorkspace = lazy(() => import("./pages/PracticeWorkspace"))
 const Maintenance = lazy(() => import("./pages/Maintenance"))
 const AvatarPicker = lazy(() => import("./pages/AvatarPicker"))
+const RoadmapList = lazy(() => import("@/pages/roadmaps/RoadmapList"))
+const RoadmapDetail = lazy(() => import("@/pages/roadmaps/RoadmapDetail"))
+const TrophyRoom = lazy(() => import("@/pages/TrophyRoom"))
+const XPStore = lazy(() => import("@/pages/XPStore"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
 import { DesktopOnlyGuard } from "./components/DesktopOnlyGuard"
@@ -255,7 +267,9 @@ function AppRoutes() {
                             </ProtectedRoute>
                         }
                     />
-                    <Route path="profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+                    <Route path="profile/me" element={<ProtectedRoute><RedirectToProfile /></ProtectedRoute>} />
+
                     <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
                     <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                     <Route path="settings/avatars" element={<ProtectedRoute><AvatarPicker /></ProtectedRoute>} />
@@ -269,6 +283,10 @@ function AppRoutes() {
                     <Route path="snippets/:id" element={<ProtectedRoute><SnippetDetail /></ProtectedRoute>} />
                     <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
                     <Route path="badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
+                    <Route path="roadmaps" element={<ProtectedRoute><RoadmapList /></ProtectedRoute>} />
+                    <Route path="roadmaps/:id" element={<ProtectedRoute><RoadmapDetail /></ProtectedRoute>} />
+                    <Route path="trophy-room" element={<ProtectedRoute><TrophyRoom /></ProtectedRoute>} />
+                    <Route path="xp-store" element={<ProtectedRoute><XPStore /></ProtectedRoute>} />
                     {/* 404 Catch-all */}
                     <Route path="*" element={<NotFound />} />
                 </Route>

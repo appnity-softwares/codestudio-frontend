@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Search, ShieldCheck } from "lucide-react";
+import { Loader2, Search, ShieldCheck, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { AuraAvatar } from "@/components/AuraAvatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
@@ -111,6 +112,7 @@ export default function Community() {
                             <SelectItem value="active">Recently Active</SelectItem>
                             <SelectItem value="trust">Highest Trust</SelectItem>
                             <SelectItem value="snippets">Most Snippets</SelectItem>
+                            <SelectItem value="nearby">Nearby Developers</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -124,20 +126,30 @@ export default function Community() {
                         <Card key={user.id} className="hover:border-primary/50 transition-all cursor-pointer group" onClick={() => navigate(`/u/${user.username}`)}>
                             <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
                                 <div className="relative">
-                                    <Avatar className="h-20 w-20 border-2 border-muted group-hover:border-primary transition-colors">
-                                        <AvatarImage src={user.image} />
-                                        <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
-                                    </Avatar>
+                                    <AuraAvatar
+                                        src={user.image}
+                                        username={user.username}
+                                        xp={user.xp || 0}
+                                        size="lg"
+                                    />
                                     {user.trustScore >= 90 && (
-                                        <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5" title="High Trust">
+                                        <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 z-20" title="High Trust">
                                             <ShieldCheck className="h-5 w-5 text-green-500 fill-current" />
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="space-y-1 w-full">
+                                <div className="space-y-1 w-full text-center">
                                     <h3 className="font-semibold truncate w-full text-foreground group-hover:text-primary transition-colors" title={user.name}>{user.name}</h3>
-                                    <p className="text-xs text-muted-foreground font-mono">@{user.username}</p>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <p className="text-xs text-muted-foreground font-mono">@{user.username}</p>
+                                        {user.city && (
+                                            <div className="flex items-center gap-1 text-[10px] text-primary/60 font-bold uppercase tracking-widest">
+                                                <MapPin className="w-3 h-3" />
+                                                {user.city}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Skills Overview */}

@@ -29,8 +29,7 @@ export function FollowOnGitHubCard() {
                     <Button variant="outline" size="sm" asChild className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10 hover:text-white text-white/80 transition-all rounded-xl h-9">
                         <a href="https://github.com/jatin" target="_blank" rel="noopener noreferrer">
                             <Github className="mr-2 h-4 w-4" />
-                            @jatin
-                            <ExternalLink className="ml-auto h-3 w-3 opacity-50" />
+                            <ExternalLink className="ml-auto h-3 w-3 text-white" />
                         </a>
                     </Button>
                     <div className="grid grid-cols-2 gap-2">

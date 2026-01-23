@@ -40,7 +40,7 @@ export function DashboardLayout() {
                 )}>
                     {/* Optional: We can add a sticky header here if needed for breadcrumbs */}
                     <div className={cn(
-                        "flex-1 overflow-y-auto scrollbar-hide scroll-smooth-mobile",
+                        "flex-1 overflow-y-auto scroll-smooth-mobile",
                         isMobile && "pb-4" // Extra bottom padding on mobile
                     )}>
                         <Outlet />

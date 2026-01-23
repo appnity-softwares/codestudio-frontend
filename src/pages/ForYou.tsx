@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sparkles, Zap, RefreshCw, Star } from "lucide-react";
+import { Sparkles, RefreshCw, Star } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
 import { snippetsAPI } from "@/lib/api";
 import { SnippetCard } from "@/components/SnippetCard";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ export default function ForYou() {
                     <div className="space-y-8">
                         {[1, 2, 3].map(i => (
                             <div key={i} className="h-80 rounded-3xl bg-muted/50 animate-pulse border border-border/50 flex items-center justify-center">
-                                <Zap className="h-10 w-10 text-muted-foreground opacity-20" />
+                                <Logo showText={false} className="h-10 w-10 opacity-20 grayscale" />
                             </div>
                         ))}
                     </div>

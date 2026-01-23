@@ -133,6 +133,7 @@ export const changelogAPI = {
     getAll: () => apiRequest<{ entries: any[] }>('/changelog'),
 };
 
+
 // Snippets API
 export const snippetsAPI = {
     getAll: (params?: { search?: string; tag?: string; language?: string; author?: string; orderBy?: string; type?: string; difficulty?: string }) => {
@@ -143,6 +144,7 @@ export const snippetsAPI = {
     getSaved: () => Promise.resolve({ snippets: [] }), // Unavailable in MVP backend
 
     getById: (id: string) => apiRequest<{ snippet: any }>(`/snippets/${id}`),
+    getSimilar: (id: string) => apiRequest<{ snippets: any[] }>(`/snippets/${id}/similar`),
 
     create: (data: {
         title: string;
@@ -156,6 +158,7 @@ export const snippetsAPI = {
         type?: string;
         difficulty?: string;
         referenceUrl?: string;
+        stdinHistory?: string;
     }) =>
         apiRequest<{ snippet: any }>('/snippets', {
             method: 'POST',
@@ -172,6 +175,7 @@ export const snippetsAPI = {
         previewType?: string;
         referenceUrl?: string;
         annotations?: string;
+        stdinHistory?: string;
     }) =>
         apiRequest<{ snippet: any }>(`/snippets/${id}`, {
             method: 'PUT',
@@ -315,11 +319,16 @@ export const usersAPI = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
-    getBadges: (username: string) => apiRequest<{ badges: any[]; influence: any }>(`/users/${username}/badges`),
+    getBadges: (username: string) => apiRequest<{ badges: any[]; authority: any }>(`/users/${username}/badges`),
     getAvatars: () => apiRequest<{ avatars: any[] }>('/users/avatars'),
 
     // New Public/Community Methods
     getPublicProfile: (username: string) => apiRequest<{ user: any }>(`/public/users/${username}`),
+    spendXP: (itemId: string, amount: number) =>
+        apiRequest<{ message: string; xp: number; purchasedIds: string[] }>('/users/spend-xp', {
+            method: 'POST',
+            body: JSON.stringify({ itemId, amount }),
+        }),
 };
 
 export const communityAPI = {
@@ -462,7 +471,7 @@ export const submissionsAPI = {
 
 // Leaderboard API (Stubbed)
 export const leaderboardAPI = {
-    getGlobal: () => Promise.resolve({ users: [] as any[] }),
+    getGlobal: () => apiRequest<{ leaderboard: any[] }>('/leaderboard/global'),
 };
 
 export const registrationsAPI = {
@@ -666,9 +675,27 @@ export const adminAPI = {
 
     // Changelog
     getChangelogs: () => apiRequest<{ entries: any[] }>('/admin/changelog'),
-    createChangelog: (data: any) => apiRequest<{ entry: any; message: string }>('/admin/changelog', { method: 'POST', body: JSON.stringify(data) }),
-    updateChangelog: (id: string, data: any) => apiRequest<{ message: string }>('/admin/changelog/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+    createChangelog: (data: { version: string; title: string; description: string; releaseType?: string; order?: number; releasedAt?: string | Date }) => apiRequest<{ entry: any; message: string }>('/admin/changelog', { method: 'POST', body: JSON.stringify(data) }),
+    updateChangelog: (id: string, data: { version?: string; title?: string; description?: string; releaseType?: string; isPublished?: boolean; order?: number; releasedAt?: string | Date }) => apiRequest<{ message: string }>('/admin/changelog/' + id, { method: 'PUT', body: JSON.stringify(data) }),
     deleteChangelog: (id: string) => apiRequest<{ message: string }>('/admin/changelog/' + id, { method: 'DELETE' }),
+    reorderChangelogs: (orders: { id: string; order: number }[]) => apiRequest<{ message: string }>('/admin/changelog/reorder', { method: 'POST', body: JSON.stringify({ orders }) }),
+};
+
+export const playlistsAPI = {
+    getAll: (params?: { search?: string; authorId?: string }) => {
+        const query = new URLSearchParams(params as any).toString();
+        return apiRequest<{ playlists: any[] }>(`/playlists?${query}`);
+    },
+    getById: (id: string) => apiRequest<{ playlist: any }>(`/playlists/${id}`),
+    create: (data: { title: string; description?: string; thumbnail?: string; difficulty?: string }) =>
+        apiRequest<{ playlist: any }>('/playlists', { method: 'POST', body: JSON.stringify(data) }),
+    delete: (id: string) => apiRequest<{ message: string }>(`/playlists/${id}`, { method: 'DELETE' }),
+    addSnippet: (id: string, snippetId: string, order?: number) =>
+        apiRequest<{ message: string; item: any }>(`/playlists/${id}/snippets`, { method: 'POST', body: JSON.stringify({ snippetId, order }) }),
+    reorder: (id: string, orders: { id: string; order: number }[]) =>
+        apiRequest<{ message: string }>(`/playlists/${id}/reorder`, { method: 'POST', body: JSON.stringify({ orders }) }),
+    claim: (id: string) =>
+        apiRequest<{ message: string; endorsement: string; xp: number; endorsements: string[] }>(`/playlists/${id}/claim`, { method: 'POST' }),
 };
 
 export const systemAPI = {

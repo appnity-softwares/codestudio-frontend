@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Code2, Users, Trophy, Zap, Globe, Sparkles, ChevronRight, TrendingUp } from "lucide-react";
+import { ArrowRight, Code2, Users, Trophy, Globe, Sparkles, ChevronRight, TrendingUp } from "lucide-react";
 import SEO from "@/components/SeoMeta";
 import { useQuery } from "@tanstack/react-query";
 import { systemAPI } from "@/lib/api";
 import { ChangelogSection } from "@/components/ChangelogSection";
+import { Logo } from "@/components/ui/Logo";
 
 export default function Landing() {
     const { isAuthenticated, user } = useAuth();
@@ -40,10 +41,7 @@ export default function Landing() {
             <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#050505]/80 backdrop-blur-xl">
                 <div className="container max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/25">
-                            <Code2 className="h-5 w-5 text-white" />
-                        </div>
-                        <span className="font-bold text-lg tracking-tight">CodeStudio</span>
+                        <Logo />
                     </div>
 
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/60">
@@ -178,7 +176,7 @@ export default function Landing() {
                             color="text-blue-400"
                         />
                         <FeatureCard
-                            icon={Zap}
+                            icon={() => <Logo showText={false} className="scale-125" />}
                             title="Real-time Execution"
                             description="Run code in 40+ languages instantly with our high-performance execution engine and advanced test cases."
                             color="text-emerald-400"
@@ -338,10 +336,7 @@ export default function Landing() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
                         <div>
                             <div className="flex items-center gap-2 mb-6">
-                                <div className="h-6 w-6 rounded bg-primary/20 flex items-center justify-center">
-                                    <Code2 className="h-3.5 w-3.5 text-primary" />
-                                </div>
-                                <span className="font-bold">CodeStudio</span>
+                                <Logo />
                             </div>
                             <p className="text-sm text-white/40">
                                 Empowering developers worldwide to build better software through collaboration.
@@ -369,7 +364,7 @@ export default function Landing() {
                             <h4 className="font-bold mb-4">Connect</h4>
                             <div className="flex gap-4">
                                 <a href="#" className="text-white/40 hover:text-white transition-colors"><Globe className="h-5 w-5" /></a>
-                                <a href="#" className="text-white/40 hover:text-white transition-colors"><Zap className="h-5 w-5" /></a>
+                                <a href="#" className="text-white/40 hover:text-white transition-colors"><Logo showText={false} className="h-5 w-5 opacity-40 hover:opacity-100 transition-opacity" /></a>
                             </div>
                         </div>
                     </div>

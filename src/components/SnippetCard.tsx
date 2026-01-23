@@ -6,7 +6,7 @@ import { CodeBlock } from "./CodeBlock";
 import { ReactLivePreview } from "./preview/ReactLivePreview";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Check, Eye, GitFork, Edit, Trash2, ExternalLink, MessageSquare } from "lucide-react";
+import { Copy, Check, Eye, GitFork, Edit, Trash2, ExternalLink, MessageSquare, NotebookPen, MessageCircleCodeIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
@@ -33,7 +33,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowUpRight } from "lucide-react";
 
 // Helper Colors
 const typeColors: Record<string, string> = {
@@ -217,16 +216,42 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                                 className="flex flex-col gap-1.5 min-w-0 group/header relative"
                             >
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={cn(
-                                        "w-2 h-2 rounded-full shrink-0",
-                                        snippet.verified ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-primary"
-                                    )} />
+                                    {snippet.annotations && snippet.annotations !== "[]" ? (
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <MessageSquare className="h-4 w-4 text-primary animate-pulse shrink-0" />
+                                                </TooltipTrigger>
+                                                <TooltipContent className="bg-[#0c0c0e] border-white/10 text-white font-bold p-2 rounded-lg">
+                                                    Interactive Annotations Available
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    ) : (
+                                        <NotebookPen className={cn(
+                                            "h-4 w-4 shrink-0 transition-all",
+                                            snippet.verified ? "text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" : "text-primary/70"
+                                        )} />
+                                    )}
+
                                     {snippet.verified && (
-                                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">Verified</span>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">Verified</span>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="bg-[#0c0c0e] border border-emerald-500/20 text-white font-medium p-3 rounded-xl max-w-xs shadow-2xl">
+                                                    <div className="space-y-1">
+                                                        <p className="text-emerald-400 font-bold">Official Verification</p>
+                                                        <p className="text-[11px] text-white/70">This snippet has been reviewed by the CodeStudio team for performance, security, and best practices.</p>
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     )}
                                     <h3 className="text-lg font-bold text-white tracking-tight leading-snug break-words group-hover/header:text-primary transition-colors pr-6">
                                         {snippet.title}
-                                        <ArrowUpRight className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 opacity-0 group-hover/header:opacity-100 transition-all text-primary" />
+                                        <MessageCircleCodeIcon className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 opacity-0 group-hover/header:opacity-100 transition-all text-primary" />
                                     </h3>
                                 </div>
                                 {snippet.description && (
@@ -288,10 +313,31 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                             </div>
                         )
                     ) : viewMode === 'output' ? (
-                        <div className="absolute inset-0 bg-[#09090b] p-6 font-mono text-xs overflow-auto">
-                            <div className="text-emerald-400 whitespace-pre-wrap font-mono leading-relaxed">
-                                {snippet.lastExecutionOutput || snippet.outputSnapshot || snippet.output || "Success (No output)"}
-                            </div>
+                        <div className="absolute inset-0 bg-[#09090b] p-6 font-mono text-xs overflow-auto selection:bg-primary/30">
+                            {snippet.stdinHistory ? (
+                                <div className="space-y-1.5">
+                                    {(() => {
+                                        try {
+                                            const lines = JSON.parse(snippet.stdinHistory);
+                                            return lines.map((line: any, i: number) => (
+                                                <div key={i} className={cn(
+                                                    "whitespace-pre-wrap break-all leading-relaxed",
+                                                    line.type === 'input' ? "text-primary font-bold before:content-['>_'] before:mr-2" :
+                                                        line.type === 'error' ? "text-rose-400" : "text-emerald-300/90"
+                                                )}>
+                                                    {line.text}
+                                                </div>
+                                            ));
+                                        } catch (e) {
+                                            return <div className="text-emerald-400">{snippet.lastExecutionOutput || "Output Error"}</div>;
+                                        }
+                                    })()}
+                                </div>
+                            ) : (
+                                <div className="text-emerald-400 whitespace-pre-wrap font-mono leading-relaxed">
+                                    {snippet.lastExecutionOutput || snippet.outputSnapshot || snippet.output || "Success (No output)"}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="absolute inset-0 bg-[#0c0c0e]">
@@ -371,7 +417,7 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                                         href={snippet.referenceUrl.startsWith('http') ? snippet.referenceUrl : `https://${snippet.referenceUrl}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="p-2 text-white/40 hover:text-primary transition-all hover:bg-primary/10 rounded-full"
+                                        className="p-2 text-white hover:text-primary transition-all hover:bg-primary/10 rounded-full"
                                         title="External Docs"
                                     >
                                         <ExternalLink className="h-3.5 w-3.5" />
@@ -385,7 +431,7 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                 {/* C. FOOTER */}
                 <div className="p-4 bg-white/[0.02]">
                     <div className="flex items-center justify-between">
-                        <Link to={`/profile/${snippet.author?.username || snippet.authorId}`} className="flex items-center gap-2.5 group/author">
+                        <Link to={`/u/${snippet.author?.username || snippet.authorId}`} className="flex items-center gap-2.5 group/author">
                             <Avatar className="h-8 w-8 border border-white/10">
                                 <AvatarImage src={snippet.author?.image} />
                                 <AvatarFallback className="text-xs bg-white/5 text-white/50">{snippet.author?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>

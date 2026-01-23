@@ -313,14 +313,39 @@ export default function Profile() {
 
                 {/* Tabs */}
                 <Tabs defaultValue="snippets" className="space-y-4">
-                    <TabsList className="w-full grid grid-cols-2 bg-surface border border-border">
-                        <TabsTrigger value="snippets" className="gap-2 touch-target">
-                            <Code className="h-4 w-4" /> Snippets
+                    <TabsList className="w-full grid grid-cols-3 bg-white/[0.03] border border-white/5 p-1 h-12 rounded-xl">
+                        <TabsTrigger
+                            value="overview"
+                            className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+                        >
+                            <Terminal className="h-3.5 w-3.5" /> Info
                         </TabsTrigger>
-                        <TabsTrigger value="badges" className="gap-2 touch-target">
-                            <Trophy className="h-4 w-4" /> Badges
+                        <TabsTrigger
+                            value="snippets"
+                            className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+                        >
+                            <Code className="h-3.5 w-3.5" /> Code
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="badges"
+                            className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+                        >
+                            <Trophy className="h-3.5 w-3.5" /> Badges
                         </TabsTrigger>
                     </TabsList>
+
+                    <TabsContent value="overview" className="space-y-4">
+                        {/* Mobile Overview Content */}
+                        <div className="bg-surface border border-border p-4 rounded-xl space-y-3">
+                            <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest">About Developer</h3>
+                            <p className="text-sm text-foreground leading-relaxed">{profileUser.bio || "No bio provided."}</p>
+                            <div className="pt-2 flex flex-wrap gap-2">
+                                {profileUser.preferredLanguages?.map((l: string) => (
+                                    <span key={l} className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold border border-primary/20">{l}</span>
+                                ))}
+                            </div>
+                        </div>
+                    </TabsContent>
 
                     <TabsContent value="snippets" className="space-y-4">
                         {snippets.length > 0 ? (
@@ -508,15 +533,24 @@ export default function Profile() {
 
             {/* TABS NAVIGATION */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="bg-surface border border-border">
-                    <TabsTrigger value="overview" className="gap-2">
-                        <Terminal className="h-4 w-4" /> Overview
+                <TabsList className="bg-white/[0.02] border border-white/5 p-1 h-14 rounded-2xl">
+                    <TabsTrigger
+                        value="overview"
+                        className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(56,189,248,0.3)] rounded-xl transition-all duration-300"
+                    >
+                        <Terminal className="h-3.5 w-3.5" /> Overview
                     </TabsTrigger>
-                    <TabsTrigger value="snippets" className="gap-2">
-                        <Code className="h-4 w-4" /> Snippets
+                    <TabsTrigger
+                        value="snippets"
+                        className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(56,189,248,0.3)] rounded-xl transition-all duration-300"
+                    >
+                        <Code className="h-3.5 w-3.5" /> Snippets
                     </TabsTrigger>
-                    <TabsTrigger value="badges" className="gap-2">
-                        <Trophy className="h-4 w-4" /> Badges & Progress
+                    <TabsTrigger
+                        value="badges"
+                        className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(56,189,248,0.3)] rounded-xl transition-all duration-300"
+                    >
+                        <Trophy className="h-3.5 w-3.5" /> Badges & Progress
                     </TabsTrigger>
                 </TabsList>
 

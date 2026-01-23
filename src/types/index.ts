@@ -8,6 +8,17 @@ export interface User {
     isBlocked?: boolean
     role?: "USER" | "ADMIN"
     createdAt: Date
+    xp?: number
+    city?: string
+    endorsements?: string[]
+    purchasedComponentIds?: string[]
+    githubUrl?: string
+    linkedinUrl?: string
+    instagramUrl?: string
+    preferredLanguages?: string[]
+    interests?: string[]
+    visibility?: string
+    onboardingCompleted?: boolean
 }
 
 export interface Snippet {

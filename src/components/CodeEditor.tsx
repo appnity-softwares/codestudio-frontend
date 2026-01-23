@@ -124,6 +124,9 @@ export function CodeEditor({
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
                 padding: { top: 20, bottom: 20 },
+                scrollbar: {
+                    alwaysConsumeMouseWheel: false,
+                },
                 readOnly: readOnly,
                 fontLigatures: true,
                 tabSize: 4,

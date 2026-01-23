@@ -88,6 +88,52 @@ export default function AdminSystem() {
         },
     ];
 
+    // Feature Toggles
+    const featureItems = [
+        {
+            key: "feature_sidebar_xp_store",
+            title: "XP Store Sidebar",
+            description: "Show the XP Store in the main sidebar.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_sidebar_trophy_room",
+            title: "Trophy Room Sidebar",
+            description: "Show the Trophy Room in the main sidebar.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_sidebar_practice",
+            title: "Practice Sidebar",
+            description: "Show Practice Challenges in the main sidebar.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_sidebar_feedback",
+            title: "Feedback Sidebar",
+            description: "Show Feedback Wall in the main sidebar.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_sidebar_roadmaps",
+            title: "Roadmaps Sidebar",
+            description: "Show Roadmaps in the main sidebar.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_sidebar_community",
+            title: "Community Sidebar",
+            description: "Show Community/Discover in the main sidebar.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_interface_engine",
+            title: "Interface Engine",
+            description: "Enable the theme switcher/customizer in the Toolbelt.",
+            icon: CheckCircle
+        }
+    ];
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -235,6 +281,112 @@ export default function AdminSystem() {
                         )}
                     </Card>
                 ))}
+            </div>
+
+            {/* System Announcement Banner */}
+            <Card>
+                <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Settings className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <CardTitle className="text-base">Global Announcement Banner</CardTitle>
+                                <CardDescription>Show a high-visibility update banner on the top of the feed.</CardDescription>
+                            </div>
+                        </div>
+                        <Switch
+                            checked={isEnabled("system_banner_visible")}
+                            onCheckedChange={() => toggleSetting("system_banner_visible")}
+                            disabled={updateMutation.isPending}
+                        />
+                    </div>
+                </CardHeader>
+                {isEnabled("system_banner_visible") && (
+                    <CardContent className="space-y-4 border-t border-border/50 pt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Title</label>
+                                <Input
+                                    defaultValue={settings["system_banner_title"] || ""}
+                                    placeholder="e.g. UPDATE V1.3: INTERACTIVE & GAMIFIED"
+                                    onBlur={(e) => {
+                                        if (e.target.value !== settings["system_banner_title"]) {
+                                            updateMutation.mutate({ key: "system_banner_title", value: e.target.value });
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Badge Text</label>
+                                <Input
+                                    defaultValue={settings["system_banner_badge"] || ""}
+                                    placeholder="e.g. LIVE NOW"
+                                    onBlur={(e) => {
+                                        if (e.target.value !== settings["system_banner_badge"]) {
+                                            updateMutation.mutate({ key: "system_banner_badge", value: e.target.value });
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Content Bullets (JSON)</label>
+                            <Input
+                                defaultValue={settings["system_banner_content"] || ""}
+                                placeholder='e.g. ["New XP System", "Bug Fixes", "Performance"]'
+                                className="font-mono text-xs"
+                                onBlur={(e) => {
+                                    if (e.target.value !== settings["system_banner_content"]) {
+                                        updateMutation.mutate({ key: "system_banner_content", value: e.target.value });
+                                    }
+                                }}
+                            />
+                            <p className="text-[10px] text-muted-foreground">Enter a JSON array of strings for bullet points.</p>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Action Link (Optional)</label>
+                            <Input
+                                defaultValue={settings["system_banner_link"] || ""}
+                                placeholder="e.g. /changelog or https://example.com"
+                                onBlur={(e) => {
+                                    if (e.target.value !== settings["system_banner_link"]) {
+                                        updateMutation.mutate({ key: "system_banner_link", value: e.target.value });
+                                    }
+                                }}
+                            />
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+
+            {/* Feature Configuration */}
+            <div>
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    Feature Configuration
+                </h2>
+                <div className="grid gap-4">
+                    {featureItems.map((item) => (
+                        <Card key={item.key}>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <item.icon className="h-5 w-5 text-muted-foreground" />
+                                        <div>
+                                            <CardTitle className="text-base">{item.title}</CardTitle>
+                                            <CardDescription>{item.description}</CardDescription>
+                                        </div>
+                                    </div>
+                                    <Switch
+                                        checked={isEnabled(item.key)}
+                                        onCheckedChange={() => toggleSetting(item.key)}
+                                        disabled={updateMutation.isPending}
+                                    />
+                                </div>
+                            </CardHeader>
+                        </Card>
+                    ))}
+                </div>
             </div>
 
             {/* Danger Zone */}

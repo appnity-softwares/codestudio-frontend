@@ -1,23 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI, setToken, removeToken } from '@/lib/api';
-
-interface User {
-    id: string;
-    name: string;
-    email: string;
-    username?: string;
-    image?: string;
-    bio?: string;
-    githubUrl?: string;
-    instagramUrl?: string;
-    linkedinUrl?: string;
-    role: 'USER' | 'ADMIN';
-    onboardingCompleted?: boolean;
-    preferredLanguages?: string[];
-    interests?: string[];
-    visibility?: string;
-}
+import { User } from '@/types';
 
 interface AuthContextType {
     user: User | null;

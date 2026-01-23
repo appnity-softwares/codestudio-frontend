@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { User, LogOut, Lock, Trash2, Shield, Link as LinkIcon, Image as ImageIcon, RefreshCw, Terminal } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -18,6 +18,7 @@ import { TagInput } from "@/components/ui/tag-input";
 export default function SettingsPage() {
     const { user, signOut, updateUser } = useAuth();
     const { toast } = useToast();
+    const navigate = useNavigate();
 
     const [isLoading, setIsLoading] = useState(false);
     const [name, setName] = useState("");
@@ -78,6 +79,7 @@ export default function SettingsPage() {
             });
             updateUser(response.user);
             toast({ title: "SYSTEM_UPDATE: SUCCESS", description: "Identity parameters updated." });
+            setTimeout(() => navigate("/profile/me"), 1500);
         } catch (error) {
             console.error(error);
             toast({ title: "SYSTEM_ERROR", description: "Write operation failed.", variant: "destructive" });

@@ -26,7 +26,7 @@ export const navSections = [
     {
         title: 'Shop',
         items: [
-            { label: 'Marketplace', href: '/marketplace', icon: ShoppingBag, secondaryIcon: Share },
+            { label: 'XP Store', href: '/xp-store', icon: ShoppingBag, secondaryIcon: Share },
         ],
     },
     {

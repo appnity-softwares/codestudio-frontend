@@ -22,6 +22,7 @@ import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { SnippetCard } from "@/components/SnippetCard";
+import { TagInput } from "@/components/ui/tag-input";
 import {
     Terminal as TerminalIcon,
     Info,
@@ -31,7 +32,8 @@ import {
     Loader2,
     Code2,
     Eye,
-    Globe
+    Globe,
+    ChevronLeft
 } from "lucide-react";
 
 const BOILERPLATES: Record<string, string> = {
@@ -60,6 +62,7 @@ export default function Create() {
     // Ensure we start at the top on mount
     useEffect(() => {
         window.scrollTo(0, 0);
+        setTimeout(() => titleInputRef.current?.focus(), 100);
     }, []);
 
     // Snippet State
@@ -79,6 +82,7 @@ export default function Create() {
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const terminalEndRef = useRef<HTMLDivElement>(null);
     const terminalInputRef = useRef<HTMLInputElement>(null);
+    const titleInputRef = useRef<HTMLInputElement>(null);
 
     const MAX_TITLE = 80;
     const MAX_DESC = 300;
@@ -118,9 +122,9 @@ export default function Create() {
         terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [terminalLines]);
 
-    // Focus terminal input when switching to terminal tab
+    // Focus terminal input when switching to terminal tab manually (not on mount)
     useEffect(() => {
-        if (activeTab === 'terminal') {
+        if (activeTab === 'terminal' && snippetTitle) { // Only focus if we've already interacted or filled title
             setTimeout(() => terminalInputRef.current?.focus(), 100);
         }
     }, [activeTab]);
@@ -192,6 +196,13 @@ export default function Create() {
                 setSnippetCode(snippet.code);
                 setSnippetTags(snippet.tags?.join(", ") || "");
                 setSnippetRefUrl(snippet.referenceUrl || "");
+                if (snippet.stdinHistory) {
+                    try {
+                        setTerminalLines(JSON.parse(snippet.stdinHistory));
+                    } catch (e) {
+                        console.error("Failed to parse stdinHistory", e);
+                    }
+                }
             } catch (error) {
                 toast({ variant: "destructive", title: "Error", description: "Failed to load snippet." });
             } finally {
@@ -242,6 +253,7 @@ export default function Create() {
                 outputSnapshot: executionResult ? (executionResult.stdout + (executionResult.stderr ? `\n[STDERR]\n${executionResult.stderr}` : "")) : "",
                 previewType: isVisualLang ? "WEB_PREVIEW_CENTER" : "TERMINAL",
                 referenceUrl: snippetRefUrl,
+                stdinHistory: JSON.stringify(terminalLines),
                 status: 'PUBLISHED'
             };
 
@@ -458,38 +470,48 @@ export default function Create() {
         <div className="container max-w-7xl mx-auto py-10 animate-in fade-in duration-500 min-h-screen px-4">
             <div className="flex flex-col gap-8">
                 {/* Sticky Header Information Area */}
-                <div className="sticky top-0 z-50 py-4 -mt-4 bg-canvas/80 backdrop-blur-xl border-b border-white/5 space-y-6">
+                <div className="sticky top-0 z-50 py-6 -mt-10 bg-canvas/60 backdrop-blur-3xl border-b border-white/5 space-y-6">
                     <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-black tracking-tight text-white font-headline">
-                                Create New <span className="text-primary italic">Snippet</span>
-                            </h1>
-                            <p className="text-white/50 text-sm font-medium italic">Build, test and publish your code to the universe.</p>
-                        </div>
-                        <div className="flex gap-4">
+                        <div className="flex items-center gap-6">
                             <Button
-                                variant="outline"
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => navigate(-1)}
-                                className="bg-white/5 border-white/10 hover:bg-white/10 text-white/70"
+                                className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary/50 text-white/50 hover:text-primary transition-all group/back"
                             >
-                                Cancel
+                                <ChevronLeft className="h-6 w-6 group-hover/back:-translate-x-1 transition-transform" />
                             </Button>
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Editor Laboratory</span>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                </div>
+                                <h1 className="text-3xl font-black tracking-tight text-white font-headline">
+                                    Create New <span className="text-primary italic">Snippet</span>
+                                </h1>
+                            </div>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                            <p className="hidden xl:block text-[10px] text-white/20 font-bold uppercase tracking-widest text-right mr-2">
+                                Status: Draft<br />
+                                Local Persistence: Active
+                            </p>
                             <Button
                                 onClick={handleSubmit}
                                 disabled={loading}
                                 className={cn(
-                                    "relative overflow-hidden shadow-xl px-8 font-bold transition-all active:scale-95 group min-w-[160px]",
+                                    "relative overflow-hidden shadow-2xl px-10 h-14 rounded-2xl font-black transition-all active:scale-95 group min-w-[200px] text-[13px] uppercase tracking-wider",
                                     (!isVisualLang && !executionResult)
-                                        ? "bg-white/10 text-white/40 border border-white/10"
-                                        : "bg-gradient-to-r from-primary to-indigo-500 hover:shadow-primary/40 text-white"
+                                        ? "bg-white/10 text-white/40 border border-white/10 hover:bg-white/15"
+                                        : "bg-gradient-to-r from-primary via-blue-500 to-indigo-600 hover:shadow-primary/30 text-white"
                                 )}
                             >
-                                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                                <span className="relative flex items-center justify-center">
-                                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                    <span>{editId ? "Update Snippet" : "Publish Content"}</span>
+                                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                                <span className="relative flex items-center justify-center gap-3">
+                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                    <span>{editId ? "Update Snippet" : "Publish to Feed"}</span>
                                     {!isVisualLang && !executionResult && (
-                                        <div className="ml-2 w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Run required" />
+                                        <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse" title="Execution Required" />
                                     )}
                                 </span>
                             </Button>
@@ -502,25 +524,26 @@ export default function Create() {
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none opacity-50" />
                     <div className="space-y-4 relative z-10">
                         <div className="flex justify-between items-end">
-                            <Label className="text-[12px] font-black uppercase tracking-[0.2em] text-white drop-shadow-md">
-                                1. Snippet Title <span className="text-primary italic ml-1">#Required</span>
+                            <Label className="text-[12px] font-black uppercase tracking-[0.2em] text-white/90 flex items-center gap-1">
+                                1. Snippet Title <span className="text-red-500 text-base font-bold">*</span>
                             </Label>
                             <span className={cn("text-[10px] font-bold", snippetTitle.length > MAX_TITLE ? "text-red-500" : "text-white/40")}>
                                 {snippetTitle.length} / {MAX_TITLE}
                             </span>
                         </div>
                         <Input
+                            ref={titleInputRef}
                             placeholder="e.g. Optimized Binary Search in Rust"
                             value={snippetTitle}
                             maxLength={MAX_TITLE + 10}
                             onChange={e => setSnippetTitle(e.target.value)}
-                            className="h-16 bg-black/60 border-white/20 text-white text-xl font-bold rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-white/20 px-6 shadow-inner"
+                            className="h-16 bg-black/60 border-white/20 text-white text-xl font-bold rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all placeholder:text-white/30 px-6 shadow-inner"
                         />
                     </div>
                     <div className="space-y-4 relative z-10">
                         <div className="flex justify-between items-end">
-                            <Label className="text-[12px] font-black uppercase tracking-[0.2em] text-white/90">
-                                2. Description <span className="text-white/30 font-medium ml-1 italic">(Recommended)</span>
+                            <Label className="text-[12px] font-black uppercase tracking-[0.2em] text-white/70 flex items-center gap-1">
+                                2. Description <span className="text-red-500/50 text-base font-bold">*</span>
                             </Label>
                             <span className={cn("text-[10px] font-bold", snippetDesc.length > MAX_DESC ? "text-red-500" : "text-white/40")}>
                                 {snippetDesc.length} / {MAX_DESC}
@@ -531,35 +554,28 @@ export default function Create() {
                             value={snippetDesc}
                             maxLength={MAX_DESC + 20}
                             onChange={e => setSnippetDesc(e.target.value)}
-                            className="min-h-[64px] h-16 py-5 bg-black/60 border-white/20 text-white text-sm font-medium rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all resize-none placeholder:text-white/20 px-6 shadow-inner"
+                            className="min-h-[64px] h-16 py-5 bg-black/60 border-white/20 text-white text-sm font-medium rounded-2xl focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all resize-none placeholder:text-white/30 px-6 shadow-inner"
                         />
                     </div>
                 </div>
 
                 {/* Additional Settings Bar */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white/[0.02] border border-white/5 p-6 rounded-2xl backdrop-blur-sm -mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/[0.02] border border-white/5 p-6 rounded-2xl backdrop-blur-sm -mt-4 items-center">
                     <div className="flex flex-col gap-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70 ml-1">Reference URL (Optional)</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70 ml-1">Reference Documentation URL (Optional)</Label>
                         <div className="relative group">
-                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-primary transition-colors" />
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white group-focus-within:text-primary transition-colors" />
                             <Input
                                 placeholder="https://docs.microsoft.com/..."
                                 value={snippetRefUrl}
                                 onChange={e => setSnippetRefUrl(e.target.value)}
-                                className="pl-10 h-11 bg-black/40 border-white/10 text-white text-xs rounded-xl focus:border-primary/50 transition-all placeholder:text-white/10"
+                                className="pl-10 h-11 bg-black/40 border-white/10 text-white text-[13px] font-bold rounded-xl focus:border-primary/50 transition-all placeholder:text-white/40"
                             />
                         </div>
                     </div>
-                    <div className="flex items-end gap-3 md:col-span-2">
-                        <Button
-                            variant="ghost"
-                            onClick={() => setShowPreviewModal(true)}
-                            className="h-11 px-6 text-xs font-bold text-white/70 hover:text-white hover:bg-white/5 border border-white/5 rounded-xl transition-all"
-                        >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Live Feed Preview
-                        </Button>
-                        <p className="text-[10px] text-white/30 italic pb-3">Preview exactly how your snippet will appear to others.</p>
+                    <div className="flex flex-col gap-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1 text-right">Draft Status: Auto-Saving</Label>
+                        <p className="text-[10px] text-white/50 text-right">Content is cached locally in your current workspace.</p>
                     </div>
                 </div>
 
@@ -622,6 +638,15 @@ export default function Create() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => setShowPreviewModal(true)}
+                                        className="h-9 px-4 text-[11px] font-bold text-white/50 hover:text-white hover:bg-white/5 border border-white/5 rounded-xl transition-all"
+                                    >
+                                        <Eye className="h-3.5 w-3.5 mr-2" />
+                                        FEED PREVIEW
+                                    </Button>
                                     <Button
                                         size="sm"
                                         variant="secondary"
@@ -724,13 +749,16 @@ export default function Create() {
                                 </Select>
                             </div>
                             <div className="space-y-2.5">
-                                <Label className="text-[11px] font-black uppercase tracking-widest text-white">Taxonomy Tags</Label>
-                                <Input
+                                <Label className="text-[11px] font-black uppercase tracking-widest text-white flex items-center gap-1">
+                                    Tags <span className="text-red-500/30 text-xs">*</span>
+                                </Label>
+                                <TagInput
+                                    tags={snippetTags.split(",").map(t => t.trim()).filter(Boolean)}
+                                    setTags={(tags: string[]) => setSnippetTags(tags.join(", "))}
                                     placeholder="e.g. react, ui, hooks"
-                                    value={snippetTags}
-                                    onChange={e => setSnippetTags(e.target.value)}
-                                    className="h-12 bg-black/40 border-white/10 text-white rounded-xl focus:border-primary/50 transition-all placeholder:text-white/20 shadow-lg"
+                                    className="bg-black/40 border-white/10 text-white rounded-xl min-h-[48px]"
                                 />
+                                <p className="text-[9px] text-white/20 italic">Press enter to add multiple tags.</p>
                             </div>
                         </div>
                     </div>
@@ -782,17 +810,46 @@ export default function Create() {
                             </div>
 
                             <form
-                                onSubmit={(e) => {
+                                onSubmit={async (e) => {
                                     e.preventDefault();
-                                    const form = e.currentTarget;
-                                    const input = form.elements.namedItem('terminalInput') as HTMLInputElement;
+                                    const input = (e.currentTarget.elements.namedItem('terminalInput') as HTMLInputElement);
                                     const val = input.value;
                                     if (!val) return;
 
-                                    const newStdin = stdIn ? stdIn + "\n" + val : val;
-                                    setStdIn(newStdin);
+                                    // 1. Record the input
+                                    const newLines = [...terminalLines, { type: 'input' as const, text: val }];
+                                    setTerminalLines(newLines);
                                     input.value = "";
-                                    handleRunCode(newStdin);
+
+                                    // 2. Prepare full Stdin from all recorded inputs
+                                    const allInputs = newLines
+                                        .filter(l => l.type === 'input')
+                                        .map(l => l.text)
+                                        .join('\n');
+
+                                    setStdIn(allInputs);
+
+                                    // 3. Run code and append result
+                                    setExecuting(true);
+                                    try {
+                                        const res = await snippetsAPI.execute({
+                                            language: snippetLang,
+                                            code: snippetCode,
+                                            stdin: allInputs
+                                        });
+                                        setExecutionResult(res.run);
+
+                                        // Append new output lines
+                                        setTerminalLines(prev => [
+                                            ...prev,
+                                            ...(res.run.stdout ? [{ type: 'output' as const, text: res.run.stdout }] : []),
+                                            ...(res.run.stderr ? [{ type: 'error' as const, text: res.run.stderr }] : [])
+                                        ]);
+                                    } catch (err) {
+                                        toast({ title: "Run Error", variant: "destructive", description: "Terminal disconnected." });
+                                    } finally {
+                                        setExecuting(false);
+                                    }
                                 }}
                                 className="p-4 bg-white/[0.02] border-t border-white/5 flex items-center gap-3 shrink-0 group focus-within:bg-white/[0.04] transition-all"
                             >
