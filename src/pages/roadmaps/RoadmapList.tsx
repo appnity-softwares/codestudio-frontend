@@ -6,11 +6,21 @@ import { Input } from "@/components/ui/input";
 import {
     Plus,
     Search,
-    Clock,
-    LayoutGrid,
     ChevronRight,
-    Loader2
+    Loader2,
+    Eye,
+    ListChecks,
+    Trash2,
+    Edit3,
+    MoreVertical
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -26,9 +36,18 @@ export default function RoadmapList() {
     const [search, setSearch] = useState("");
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
+    const { user } = useAuth();
     const { data, isLoading } = useQuery({
         queryKey: ["playlists", search],
         queryFn: () => playlistsAPI.getAll({ search }),
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: playlistsAPI.delete,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["playlists"] });
+            toast({ title: "Track Deleted", description: "The roadmap has been removed." });
+        },
     });
 
     const createMutation = useMutation({
@@ -53,7 +72,7 @@ export default function RoadmapList() {
     return (
         <div className="container max-w-7xl mx-auto py-10 px-6 space-y-10 animate-in fade-in duration-700">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 roadmap-header">
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
                         <div className="h-2 w-8 bg-primary rounded-full" />
@@ -140,51 +159,85 @@ export default function RoadmapList() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.1 }}
+                            className="relative"
                         >
-                            <Link to={`/roadmaps/${playlist.id}`} className="group block h-full">
-                                <div className="relative h-full p-8 rounded-[2rem] bg-gradient-to-br from-card to-transparent border border-border group-hover:border-primary/30 transition-all duration-500 overflow-hidden flex flex-col">
-                                    {/* Accent Decoration */}
-                                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-20 transition-opacity duration-700">
-                                        <Logo showText={false} className="w-24 h-24" />
+                            <div className="group h-full p-6 sm:p-8 rounded-[2rem] bg-gradient-to-br from-card to-transparent border border-border group-hover:border-primary/30 transition-all duration-500 overflow-hidden flex flex-col relative">
+                                {/* Actions Overlay */}
+                                {(user?.role === 'ADMIN' || user?.id === playlist.authorId) && (
+                                    <div className="absolute top-6 right-6 z-20">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full hover:bg-muted/50">
+                                                    <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="bg-card border-border">
+                                                <DropdownMenuItem className="text-xs font-bold gap-2 cursor-pointer">
+                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                    Edit Track
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => {
+                                                        if (confirm("Are you sure you want to delete this track?")) {
+                                                            deleteMutation.mutate(playlist.id);
+                                                        }
+                                                    }}
+                                                    className="text-xs font-bold gap-2 text-red-400 focus:text-red-400 cursor-pointer"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                    Delete Track
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
+                                )}
 
-                                    <div className="flex items-center gap-3 mb-6 relative z-10">
-                                        <div className={cn(
-                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                                            playlist.difficulty === 'BEGINNER' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                                playlist.difficulty === 'INTERMEDIATE' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                                                    'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                                        )}>
-                                            {playlist.difficulty}
-                                        </div>
-                                    </div>
+                                {/* Accent Decoration */}
+                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity duration-700 pointer-events-none">
+                                    <Logo showText={false} className="w-24 h-24" />
+                                </div>
 
-                                    <div className="space-y-3 mb-8 flex-1 relative z-10">
-                                        <h3 className="text-2xl font-black text-foreground group-hover:text-primary transition-colors font-headline leading-tight">
-                                            {playlist.title}
-                                        </h3>
-                                        <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
-                                            {playlist.description}
-                                        </p>
-                                    </div>
-
-                                    <div className="pt-6 border-t border-border flex items-center justify-between relative z-10">
-                                        <div className="flex items-center gap-4 text-[11px] font-bold text-muted-foreground/30 uppercase tracking-tight">
-                                            <div className="flex items-center gap-1.5">
-                                                <LayoutGrid className="w-3.5 h-3.5" />
-                                                {playlist.items?.length || 0} Steps
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock className="w-3.5 h-3.5" />
-                                                {playlist.viewsCount || 0} Views
-                                            </div>
-                                        </div>
-                                        <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center group-hover:bg-foreground group-hover:border-foreground transition-all duration-500">
-                                            <ChevronRight className="w-5 h-5 text-foreground group-hover:text-background transition-colors" />
-                                        </div>
+                                <div className="flex items-center gap-3 mb-4 sm:mb-6 relative z-10">
+                                    <div className={cn(
+                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                                        playlist.difficulty === 'BEGINNER' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                            playlist.difficulty === 'INTERMEDIATE' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                                'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                                    )}>
+                                        {playlist.difficulty}
                                     </div>
                                 </div>
-                            </Link>
+
+                                <Link to={`/roadmaps/${playlist.id}`} className="space-y-3 mb-6 sm:mb-8 flex-1 relative z-10 group/title">
+                                    <h3 className="text-xl sm:text-2xl font-black text-foreground group-hover/title:text-primary transition-colors font-headline leading-tight line-clamp-2">
+                                        {playlist.title}
+                                    </h3>
+                                    <p className="text-muted-foreground text-xs sm:text-sm line-clamp-2 leading-relaxed font-medium">
+                                        {playlist.description}
+                                    </p>
+                                </Link>
+
+                                <div className="pt-5 border-t border-border flex items-center justify-between relative z-10">
+                                    <div className="flex items-center gap-3 sm:gap-4 text-[11px] font-bold text-muted-foreground/40 uppercase tracking-tight">
+                                        <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded-lg">
+                                            <ListChecks className="w-3.5 h-3.5 text-primary" />
+                                            <span>{playlist.items?.length || 0}</span>
+                                            <span className="hidden sm:inline">Steps</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded-lg">
+                                            <Eye className="w-3.5 h-3.5 text-blue-400" />
+                                            <span>{playlist.viewsCount || 0}</span>
+                                            <span className="hidden sm:inline">Views</span>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        to={`/roadmaps/${playlist.id}`}
+                                        className="h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-border flex items-center justify-center hover:bg-foreground hover:border-foreground transition-all duration-300"
+                                    >
+                                        <ChevronRight className="w-5 h-5 text-foreground hover:text-background transition-colors" />
+                                    </Link>
+                                </div>
+                            </div>
                         </motion.div>
                     ))}
                 </div>

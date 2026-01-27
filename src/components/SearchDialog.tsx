@@ -122,7 +122,7 @@ export function SearchDialog() {
                             {searchResults.users?.length > 0 && (
                                 <CommandGroup heading="Users">
                                     {searchResults.users.map((user: any) => (
-                                        <CommandItem key={user.id} onSelect={() => runCommand(() => navigate(`/profile/${user.username}`))}>
+                                        <CommandItem key={user.id} onSelect={() => runCommand(() => navigate(`/u/${user.username}`))}>
                                             <User className="mr-2 h-4 w-4 text-green-400" />
                                             <div className="flex-1">
                                                 <div className="font-medium">@{user.username}</div>

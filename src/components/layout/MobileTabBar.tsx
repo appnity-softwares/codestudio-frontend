@@ -3,6 +3,7 @@ import { Home, Trophy, Globe, MessageSquare, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
+import { AuraAvatar } from "@/components/AuraAvatar";
 
 interface TabItem {
     icon: React.ComponentType<{ className?: string }>;
@@ -30,9 +31,9 @@ export function MobileTabBar() {
             return;
         }
 
-        // Handle profile tab specially - navigate to user's own profile
+        // Handle profile tab specially - navigate to user's own profile via /u/username
         if (tab.path === "/profile" && user?.username) {
-            navigate(`/profile/${user.username}`);
+            navigate(`/u/${user.username}`);
             return;
         }
 
@@ -41,7 +42,7 @@ export function MobileTabBar() {
 
     const isActiveTab = (tabPath: string) => {
         if (tabPath === "/profile") {
-            return location.pathname.startsWith("/profile");
+            return location.pathname.startsWith("/u/");
         }
         return location.pathname.startsWith(tabPath);
     };
@@ -77,12 +78,26 @@ export function MobileTabBar() {
                             )}
                         >
                             <div className="relative">
-                                <Icon
-                                    className={cn(
-                                        "h-6 w-6 transition-all",
-                                        isActive && "scale-110"
-                                    )}
-                                />
+                                {tab.label === "Profile" && isAuthenticated && user ? (
+                                    <AuraAvatar
+                                        src={user.image}
+                                        username={user.username || "user"}
+                                        xp={user.xp || 0}
+                                        size="sm"
+                                        hideBadge
+                                        className={cn(
+                                            "transition-all",
+                                            isActive && "ring-2 ring-primary ring-offset-2 ring-offset-[#0a0a0c]"
+                                        )}
+                                    />
+                                ) : (
+                                    <Icon
+                                        className={cn(
+                                            "h-6 w-6 transition-all",
+                                            isActive && "scale-110"
+                                        )}
+                                    />
+                                )}
                                 {isActive && (
                                     <motion.div
                                         layoutId="activeTabIndicator"

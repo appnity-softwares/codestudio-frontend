@@ -40,7 +40,7 @@ export const routes = {
     auth: {
         signIn: "/auth/signin",
     },
-    user: (userId: string) => `/user/${userId}`,
+    user: (username: string) => `/u/${username}`,
     blocked: "/blocked",
     dashboard: {
         components: "/dashboard/components",

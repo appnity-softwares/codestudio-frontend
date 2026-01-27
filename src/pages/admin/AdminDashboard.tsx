@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { adminAPI } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Flag, Trophy, Users, Activity, AlertTriangle, FileCode, ShieldAlert } from "lucide-react";
+import { Loader2, Flag, Trophy, Users, Activity, AlertTriangle, FileCode, ShieldAlert, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import SEO from "@/components/SeoMeta";
 
@@ -72,7 +72,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Secondary Metrics */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Link to="/admin/users">
                     <Card className="hover:border-red-300 transition-colors cursor-pointer">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -93,7 +93,9 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{metrics.totalSnippets || 0}</div>
-                        <p className="text-xs text-muted-foreground">Code snippets shared</p>
+                        <p className="text-xs text-muted-foreground">
+                            {metrics.newSnippetsToday ? `+${metrics.newSnippetsToday} today` : 'Code snippets shared'}
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -105,6 +107,19 @@ export default function AdminDashboard() {
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">{metrics.suspendedUsers || 0}</div>
                         <p className="text-xs text-muted-foreground">Currently blocked</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Acceptance Rate</CardTitle>
+                        <Zap className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">
+                            {metrics.submissionSuccessRate ? (metrics.submissionSuccessRate * 100).toFixed(1) : 0}%
+                        </div>
+                        <p className="text-xs text-muted-foreground">Global success rate</p>
                     </CardContent>
                 </Card>
             </div>

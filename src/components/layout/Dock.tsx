@@ -15,9 +15,11 @@ import {
     BookOpen,
     Award,
     ShoppingBag,
-    Check
+    Check,
+    Sparkles
 } from "lucide-react";
 import { claimQuestReward } from "@/store/slices/userSlice";
+import confetti from "canvas-confetti";
 import { useBadgeCelebration } from "@/context/BadgeContext";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -33,8 +35,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
-import { feedAPI, authAPI, leaderboardAPI, systemAPI } from "@/lib/api";
+import { feedAPI, authAPI, systemAPI } from "@/lib/api";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useToast } from "@/hooks/use-toast";
 
 import { Logo } from "@/components/ui/Logo";
 import { AuraAvatar } from "@/components/AuraAvatar";
@@ -50,6 +53,7 @@ export function Dock() {
     const { user, signOut } = useAuth();
     const queryClient = useQueryClient();
     const isAdmin = user?.role === 'ADMIN';
+    const { toast } = useToast();
 
     // Redux UI State
     const dispatch = useDispatch();
@@ -61,7 +65,15 @@ export function Dock() {
 
     const handleClaimQuest = (questId: string) => {
         dispatch(claimQuestReward(questId));
-        celebrateXP(20); // Bonus burst visual
+        celebrateXP(20); // Visual burst
+
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.8, x: 0.5 },
+            colors: ['#3b82f6', '#8b5cf6', '#fbbf24']
+        });
+        toast({ title: "Reward Claimed!", description: "XP added to your account." });
     };
 
     // System Config
@@ -93,16 +105,11 @@ export function Dock() {
         }
     };
 
-    const { data: lbData } = useQuery({
-        queryKey: ['leaderboard', 'global'],
-        queryFn: () => leaderboardAPI.getGlobal(),
-        staleTime: 60000,
-    });
-    const topUsers = lbData?.leaderboard?.slice(0, 3) || [];
 
     const navItems = [
         { icon: Home, label: "Feed", path: "/feed" },
-        { icon: Trophy, label: "Arena", path: "/arena" },
+        ...(isFeatureEnabled('feature_sidebar_leaderboard') ? [{ icon: Trophy, label: "Leaderboard", path: "/leaderboard" }] : []),
+        { icon: Sparkles, label: "Arena", path: "/arena" },
         ...(isFeatureEnabled('feature_sidebar_practice') ? [{ icon: Dumbbell, label: "Practice", path: "/practice" }] : []),
         ...(isFeatureEnabled('feature_sidebar_roadmaps') ? [{ icon: BookOpen, label: "Roadmaps", path: "/roadmaps" }] : []),
         ...(isFeatureEnabled('feature_sidebar_community') ? [{ icon: Globe, label: "Discover", path: "/community" }] : []),
@@ -115,7 +122,7 @@ export function Dock() {
     return (
         <aside
             className={cn(
-                "h-full z-40 flex flex-col border-r border-border bg-surface/95 backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative group/sidebar",
+                "h-full z-40 flex flex-col border-r border-border bg-surface/95 backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative group/sidebar dock-container",
                 isCollapsed ? "w-[80px]" : "w-[260px]"
             )}
         >
@@ -123,7 +130,7 @@ export function Dock() {
             <Link
                 to="/feed"
                 className={cn(
-                    "flex items-center h-20 px-6 mb-2 hover:bg-muted/50 transition-colors relative transition-all duration-300",
+                    "flex items-center h-20 px-6 mb-2 hover:bg-muted/50 transition-colors relative transition-all duration-300 dock-logo",
                     isCollapsed ? "justify-center" : "justify-start gap-4"
                 )}
             >
@@ -226,123 +233,71 @@ export function Dock() {
                     })}
 
                     {/* Daily Quests Popover */}
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                className={cn(
-                                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative w-full",
-                                    isCollapsed ? "justify-center px-0 w-12 h-12 mx-auto" : "justify-start text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                )}
-                            >
-                                <Award className={cn(
-                                    "shrink-0 transition-all duration-300 group-hover:scale-110",
-                                    isCollapsed ? "w-5 h-5" : "w-[20px] h-[20px]",
-                                    "text-amber-500"
-                                )} />
-                                {!isCollapsed && <span className="text-[13px] font-bold tracking-tight">Daily Quests</span>}
-
-                                {/* Notification Dot if any quest is ready to claim */}
-                                {userQuests.some(q => q.progress >= q.total && !q.claimed) && (
-                                    <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse" />
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent side="right" align="start" className="w-80 p-0 border-border bg-card/95 backdrop-blur-xl ml-4">
-                            <div className="p-4 border-b border-border">
-                                <h4 className="font-bold flex items-center gap-2">
-                                    <Award className="h-4 w-4 text-amber-500" />
-                                    Daily Quests
-                                </h4>
-                                <p className="text-xs text-muted-foreground">Complete tasks to earn XP.</p>
-                            </div>
-                            <div className="p-4 space-y-4">
-                                {userQuests.map((quest) => (
-                                    <div key={quest.id} className="space-y-2">
-                                        <div className="flex justify-between items-center text-xs font-bold">
-                                            <span className={cn(quest.claimed ? "text-muted-foreground line-through" : "text-foreground")}>
-                                                {quest.label}
-                                            </span>
-                                            {quest.claimed ? (
-                                                <span className="text-emerald-500 flex items-center gap-1"><Check className="h-3 w-3" /> Done</span>
-                                            ) : quest.progress >= quest.total ? (
-                                                <Button
-                                                    size="sm"
-                                                    className="h-6 text-[10px] px-2 bg-primary/20 text-primary hover:bg-primary/30 border border-primary/20"
-                                                    onClick={() => handleClaimQuest(quest.id)}
-                                                >
-                                                    Claim
-                                                </Button>
-                                            ) : (
-                                                <span className="text-amber-500">+{quest.reward} XP</span>
-                                            )}
-                                        </div>
-                                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                                            <div
-                                                className={cn("h-full transition-all duration-500", quest.claimed ? "bg-emerald-500" : "bg-amber-500")}
-                                                style={{ width: `${(quest.progress / quest.total) * 100}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-
-                </TooltipProvider>
-
-                {/* Global Leaderboard - Mini Widget */}
-                {!isCollapsed && topUsers.length > 0 && (
-                    <div className="mt-8 px-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
-                                <Trophy className="h-3 w-3 text-primary" />
-                                Top Creators
-                            </span>
-                            <div className="h-1 flex-1 bg-muted mx-3 rounded-full overflow-hidden">
-                                <motion.div
-                                    className="h-full bg-primary"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: '40%' }}
-                                    transition={{ duration: 1.5, ease: "easeInOut" }}
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-3">
-                            {topUsers.map((user, idx) => (
-                                <Link
-                                    to={`/u/${user.username}`}
-                                    key={user.id}
-                                    className="flex items-center gap-3 group/lb hover:bg-muted/50 p-1.5 rounded-xl transition-all"
+                    {isFeatureEnabled('feature_quests_enabled') && (
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    className={cn(
+                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative w-full quest-card",
+                                        isCollapsed ? "justify-center px-0 w-12 h-12 mx-auto" : "justify-start text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                    )}
                                 >
-                                    <div className="relative shrink-0">
-                                        <AuraAvatar
-                                            src={user.image}
-                                            username={user.username}
-                                            xp={user.xp || 0}
-                                            size="sm"
-                                        />
-                                        <div className={cn(
-                                            "absolute -top-1.5 -left-1.5 w-4 h-4 rounded-md flex items-center justify-center text-[8px] font-black border border-border shadow-sm",
-                                            idx === 0 ? "bg-amber-500 text-amber-950" :
-                                                idx === 1 ? "bg-slate-400 text-slate-950" : "bg-amber-700 text-amber-100"
-                                        )}>
-                                            {idx + 1}
+                                    <Award className={cn(
+                                        "shrink-0 transition-all duration-300 group-hover:scale-110",
+                                        isCollapsed ? "w-5 h-5" : "w-[20px] h-[20px]",
+                                        "text-amber-500"
+                                    )} />
+                                    {!isCollapsed && <span className="text-[13px] font-bold tracking-tight">Daily Quests</span>}
+
+                                    {/* Notification Dot if any quest is ready to claim */}
+                                    {userQuests.some(q => q.progress >= q.total && !q.claimed) && (
+                                        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent side="right" align="start" className="w-80 p-0 border-border bg-card/95 backdrop-blur-xl ml-4">
+                                <div className="p-4 border-b border-border">
+                                    <h4 className="font-bold flex items-center gap-2">
+                                        <Award className="h-4 w-4 text-amber-500" />
+                                        Daily Quests
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">Complete tasks to earn XP.</p>
+                                </div>
+                                <div className="p-4 space-y-4">
+                                    {userQuests.map((quest) => (
+                                        <div key={quest.id} className="space-y-2">
+                                            <div className="flex justify-between items-center text-xs font-bold">
+                                                <span className={cn(quest.claimed ? "text-muted-foreground line-through" : "text-foreground")}>
+                                                    {quest.label}
+                                                </span>
+                                                {quest.claimed ? (
+                                                    <span className="text-emerald-500 flex items-center gap-1"><Check className="h-3 w-3" /> Done</span>
+                                                ) : quest.progress >= quest.total ? (
+                                                    <Button
+                                                        size="sm"
+                                                        className="h-6 text-[10px] px-2 bg-primary/20 text-primary hover:bg-primary/30 border border-primary/20"
+                                                        onClick={() => handleClaimQuest(quest.id)}
+                                                    >
+                                                        Claim
+                                                    </Button>
+                                                ) : (
+                                                    <span className="text-amber-500">+{quest.reward} XP</span>
+                                                )}
+                                            </div>
+                                            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className={cn("h-full transition-all duration-500", quest.claimed ? "bg-emerald-500" : "bg-amber-500")}
+                                                    style={{ width: `${(quest.progress / quest.total) * 100}%` }}
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="text-[11px] font-black text-foreground truncate group-hover/lb:text-primary transition-colors">
-                                            {user.username}
-                                        </span>
-                                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">
-                                            {user.xp} <span className="text-[7px]">XP</span>
-                                        </span>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    )}
+                </TooltipProvider>
             </div>
 
             {/* Bottom: User Menu & Toggle */}
@@ -351,7 +306,7 @@ export function Dock() {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className={cn(
-                            "w-full flex items-center gap-3 hover:bg-muted/50 transition-all h-auto py-3 group/user px-2 rounded-xl",
+                            "w-full flex items-center gap-3 hover:bg-muted/50 transition-all h-auto py-3 group/user px-2 rounded-xl user-xp-display",
                             isCollapsed ? "justify-center" : "justify-start px-3"
                         )}>
                             <div className="relative shrink-0">
@@ -368,9 +323,17 @@ export function Dock() {
                                     <span className="text-sm font-black truncate w-full text-foreground tracking-tight">
                                         {user?.name || user?.username}
                                     </span>
-                                    <span className="text-[10px] font-bold text-muted-foreground truncate w-full uppercase tracking-wider">
-                                        @{user?.username}
-                                    </span>
+                                    <div className="flex items-center gap-1.5 w-full">
+                                        <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden mt-0.5 max-w-[80px]">
+                                            <motion.div
+                                                className="h-full bg-primary"
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${((userXP || user?.xp || 0) % 1000) / 10}%` }}
+                                                transition={{ duration: 1, ease: "easeOut" }}
+                                            />
+                                        </div>
+                                        <span className="text-[9px] font-black text-primary uppercase">LVL {Math.floor((userXP || user?.xp || 0) / 1000) + 1}</span>
+                                    </div>
                                 </div>
                             )}
                             {!isCollapsed && <MoreHorizontal className="w-4 h-4 ml-auto text-muted-foreground group-hover/user:text-foreground transition-colors" />}
@@ -413,8 +376,6 @@ export function Dock() {
                 </DropdownMenu>
 
                 <div className="flex flex-col gap-2">
-
-
                     {/* Toggle Button */}
                     <Button
                         variant="ghost"

@@ -6,17 +6,31 @@ import { motion, AnimatePresence } from "framer-motion"
 import { navSections } from "@/lib/nav-config"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Code, Menu, X, Sparkles } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { useSidebar } from "@/context/SidebarContext"
+import { useQuery } from "@tanstack/react-query"
+import { systemAPI } from "@/lib/api"
 
 export function MobileSidebar() {
     const [open, setOpen] = useState(false)
     const location = useLocation()
     const pathname = location.pathname
     const { user, isAuthenticated } = useAuth();
-    const { isCollapsed } = useSidebar();
+    useSidebar(); // unused but keeping hook to ensure context exists
+
+    // Items already in MobileTabBar to filter out
+    const bottomNavPaths = ['/feed', '/arena', '/community', '/feedback', '/profile'];
+
+    const { data: systemData } = useQuery({
+        queryKey: ['system-status'],
+        queryFn: () => systemAPI.getPublicStatus(),
+        staleTime: 60000 * 5,
+    });
+    const settings = systemData?.settings || {};
+    const showNewBadge = settings['feature_sidebar_new_badge'] === 'true';
+    const newBadgeItems = ['XP Store', 'Challenges']; // Specific items to badge
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
@@ -57,6 +71,10 @@ export function MobileSidebar() {
                 </motion.div>
             </SheetTrigger>
             <SheetContent side="left" className="pr-0 glass-card border-r-0">
+                <SheetHeader className="sr-only">
+                    <SheetTitle>Navigation Menu</SheetTitle>
+                    <SheetDescription>Access platform tools and settings</SheetDescription>
+                </SheetHeader>
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -78,9 +96,13 @@ export function MobileSidebar() {
                         </h1>
                         <Sparkles className="w-4 h-4 text-primary ml-auto" />
                     </Link>
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-120px)] pr-4 no-scrollbar">
                         {navSections.map((section: any, sectionIndex: number) => {
-                            const sectionHasVisibleItems = section.items.some((link: any) => {
+                            const filteredItems = section.items.filter((link: any) => {
+                                // Filter out items already in bottom nav
+                                if (bottomNavPaths.some(p => link.href.startsWith(p))) return false;
+
+                                // Standard permission checks
                                 if (link.href.includes('[[username]]') && (!isAuthenticated || !user)) return false;
                                 if ((link.label === 'Admin' || link.href === '/admin') && user?.role !== 'ADMIN') return false;
                                 if ((link.label === 'Saved' || link.href === '/saved') && !isAuthenticated) return false;
@@ -90,7 +112,7 @@ export function MobileSidebar() {
                                 return true;
                             });
 
-                            if (!sectionHasVisibleItems) {
+                            if (filteredItems.length === 0) {
                                 return null;
                             }
 
@@ -105,16 +127,12 @@ export function MobileSidebar() {
                                     <h2 className="text-xs font-bold tracking-wider text-muted-foreground/70 px-3 mb-1 uppercase">
                                         {section.title}
                                     </h2>
-                                    {section.items.map((link: any, linkIndex: number) => {
+                                    {filteredItems.map((link: any, linkIndex: number) => {
                                         const href = link.href.includes('[[username]]')
                                             ? (user?.username ? link.href.replace('[[username]]', user.username) : null)
                                             : link.href;
 
                                         if (!href) return null;
-                                        if ((link.label === 'Admin' || link.href === '/admin') && user?.role !== 'ADMIN') return null;
-                                        if ((link.label === 'Saved' || link.href === '/saved') && !isAuthenticated) return null;
-                                        if ((link.label === 'Dashboard' || link.href === '/dashboard/components') && !isAuthenticated) return null;
-                                        if ((link.label === 'Settings' || link.href === '/settings') && !isAuthenticated) return null;
 
                                         const isActive = pathname === href || (href !== '/' && pathname.startsWith(href));
                                         const isMarketplace = link.label === 'Marketplace';
@@ -148,6 +166,11 @@ export function MobileSidebar() {
                                                     )}
                                                     <Icon className="h-4 w-4 relative z-10" />
                                                     <span className="flex-1 text-sm font-medium relative z-10">{link.label}</span>
+                                                    {showNewBadge && newBadgeItems.includes(link.label) && (
+                                                        <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] font-black uppercase tracking-tighter animate-pulse border border-primary/20">
+                                                            New
+                                                        </span>
+                                                    )}
                                                     {SecondaryIcon && <SecondaryIcon className="h-4 w-4 relative z-10" />}
                                                 </Link>
                                             </motion.div>

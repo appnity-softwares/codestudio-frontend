@@ -21,7 +21,7 @@ export function Logo({ className, showText = true }: { className?: string; showT
                     <img
                         src="/logo.svg"
                         alt="CodeStudio"
-                        className={`h-8 w-8 object-contain transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0 absolute'}`}
+                        className={`h-8 w-8 object-contain transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0 absolute'} dark:brightness-110 brightness-100 dark:drop-shadow-[0_0_8px_rgba(var(--primary),0.5)] drop-shadow-sm`}
                         onLoad={() => setImageLoaded(true)}
                         onError={() => setImageError(true)}
                     />

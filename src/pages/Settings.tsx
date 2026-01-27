@@ -14,11 +14,14 @@ import { useAuth } from "@/context/AuthContext";
 import { usersAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { TagInput } from "@/components/ui/tag-input";
+import { useDispatch } from "react-redux";
+import { setUserData } from "@/store/slices/userSlice";
 
 export default function SettingsPage() {
     const { user, signOut, updateUser } = useAuth();
     const { toast } = useToast();
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const [isLoading, setIsLoading] = useState(false);
     const [name, setName] = useState("");
@@ -78,6 +81,20 @@ export default function SettingsPage() {
                 visibility: publicProfile ? "PUBLIC" : "PRIVATE"
             });
             updateUser(response.user);
+            // Sync to Redux for instant global update
+            if (response.user) {
+                const { xp, level, streak, inventory, equippedAura, unlockedThemes, influence, avatar } = response.user;
+                dispatch(setUserData({
+                    xp: xp || 0,
+                    level: level || 1,
+                    streak: streak || 0,
+                    inventory: inventory || [],
+                    equippedAura: equippedAura || null,
+                    unlockedThemes: unlockedThemes || ['default'],
+                    influence: influence || 15,
+                    profileImage: avatar || image || null
+                }));
+            }
             toast({ title: "SYSTEM_UPDATE: SUCCESS", description: "Identity parameters updated." });
             setTimeout(() => navigate("/profile/me"), 1500);
         } catch (error) {

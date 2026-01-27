@@ -8,9 +8,10 @@ interface AuraAvatarProps {
     badgeCount?: number;
     size?: "sm" | "md" | "lg" | "xl";
     className?: string;
+    hideBadge?: boolean;
 }
 
-export function AuraAvatar({ src, username, xp, size = "md", className }: AuraAvatarProps) {
+export function AuraAvatar({ src, username, xp, size = "md", className, hideBadge }: AuraAvatarProps) {
     // Determine Aura Level
     const getAuraColor = () => {
         if (xp >= 10000) return "from-cyan-400 via-blue-500 to-purple-600"; // Diamond
@@ -74,7 +75,7 @@ export function AuraAvatar({ src, username, xp, size = "md", className }: AuraAv
 
             {/* Avatar Image */}
             <div className={cn(
-                "relative rounded-2xl overflow-hidden border-2 bg-[#0c0c0e] z-10",
+                "relative rounded-2xl overflow-hidden border-2 bg-[#0c0c0e] z-10 transition-all",
                 sizeClasses[size],
                 xp >= 5000 ? "border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]" : "border-white/10"
             )}>
@@ -85,15 +86,24 @@ export function AuraAvatar({ src, username, xp, size = "md", className }: AuraAv
                 />
             </div>
 
-            {/* Level Badge - Moved to Top Right */}
-            <div className="absolute -top-1 -right-2 z-20">
+            {/* Level Badge - Optimized for sm size */}
+            {!hideBadge && (
                 <div className={cn(
-                    "px-1.5 py-0.5 rounded-full text-[8px] font-black text-white shadow-lg border border-white/20 flex items-center gap-0.5",
-                    xp >= 10000 ? "bg-cyan-500" : xp >= 5000 ? "bg-amber-500" : "bg-primary"
+                    "absolute z-20 pointer-events-none",
+                    size === "sm" ? "-top-0.5 -right-1" : "-top-1 -right-2"
                 )}>
-                    {xp} <span className="text-[6px] opacity-80">XP</span>
+                    <div className={cn(
+                        "rounded-full font-black text-white shadow-xl border border-white/20 flex items-center justify-center",
+                        size === "sm" ? "px-1.5 h-3.5 min-w-[14px] text-[7px]" : "px-2 py-0.5 text-[9px]",
+                        xp >= 10000 ? "bg-cyan-500 shadow-cyan-500/40" :
+                            xp >= 5000 ? "bg-amber-500 shadow-amber-500/40" :
+                                "bg-primary shadow-primary/40"
+                    )}>
+                        {xp}
+                        {size !== "sm" && <span className="ml-0.5 text-[7px] opacity-70">XP</span>}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

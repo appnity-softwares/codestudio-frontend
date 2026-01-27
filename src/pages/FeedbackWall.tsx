@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { Send, ThumbsUp, ThumbsDown, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown, Info, Clock, Lock, Pin, FileText, MoreHorizontal, Eye, EyeOff, ChevronLeft } from "lucide-react";
+import { Send, ThumbsUp, ThumbsDown, Loader2, Sparkles, Zap, Bug, Layout, MessageCircleCode, CheckCircle2, ArrowDown, Info, Clock, Lock, Pin, MoreHorizontal, Eye, EyeOff, ChevronLeft } from "lucide-react";
+import { MobileSidebar } from "@/components/layout/MobileSidebar";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -24,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
@@ -357,23 +358,28 @@ export default function FeedbackWall() {
                 <header className="flex-shrink-0 px-6 py-4 border-b border-border bg-background/95 backdrop-blur-xl sticky top-0 z-50">
                     <div className="max-w-5xl mx-auto">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                {isMobile && (
-                                    <button
-                                        onClick={() => navigate(-1)}
-                                        className="p-1.5 rounded-full hover:bg-white/10 text-white/70"
-                                    >
-                                        <ChevronLeft className="h-5 w-5" />
-                                    </button>
-                                )}
-                                <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                                {isMobile ? (
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => navigate(-1)}
+                                            className="p-2 rounded-full hover:bg-muted text-muted-foreground mr-1"
+                                        >
+                                            <ChevronLeft className="h-5 w-5" />
+                                        </button>
+                                        <MobileSidebar />
+                                    </div>
+                                ) : null}
+                                <div className="flex flex-col">
                                     <div className="flex items-center gap-2">
-                                        <h1 className="text-base font-bold text-foreground">Feedback Wall</h1>
+                                        <h1 className="text-lg font-black font-headline italic tracking-tight uppercase leading-none">
+                                            Feed<span className="text-primary italic">Back</span>
+                                        </h1>
                                         <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20 uppercase tracking-tighter">
                                             Live
                                         </span>
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground hidden sm:block">Help us shape the future of CodeStudio.</p>
+                                    {!isMobile && <p className="text-[10px] text-muted-foreground mt-0.5">Help us shape the future of CodeStudio.</p>}
                                 </div>
                             </div>
 
@@ -426,7 +432,6 @@ export default function FeedbackWall() {
                             const isMe = user?.id === msg.userId;
                             const categoryConfig = CATEGORY_CONFIG[msg.category] || CATEGORY_CONFIG.OTHER;
                             const CategoryIcon = categoryConfig.icon;
-                            // Safe status access
                             const statusConfig = STATUS_CONFIG[msg.status] || STATUS_CONFIG.OPEN;
                             const StatusIcon = statusConfig.icon;
 
@@ -444,8 +449,8 @@ export default function FeedbackWall() {
                                 >
                                     <div className={cn(
                                         isMobile
-                                            ? "w-full" // Full width on mobile
-                                            : "w-[85%] max-w-[700px] min-w-[320px]", // More space on desktop, less vertical sprawl
+                                            ? "w-[92%]"
+                                            : "w-[85%] max-w-[700px] min-w-[320px]",
                                         isMe ? "ml-auto" : "mr-auto"
                                     )}>
                                         <div className={cn(
@@ -457,7 +462,6 @@ export default function FeedbackWall() {
                                                     msg.status === "SHIPPED" && "border-emerald-500/30 bg-emerald-500/5"
                                                 )
                                         )}>
-                                            {/* Card Header - Dense */}
                                             <div className="px-3.5 py-2 border-b border-border/50">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="flex items-center gap-2.5 min-w-0">
@@ -530,8 +534,6 @@ export default function FeedbackWall() {
                                                         )}
                                                     </div>
 
-
-                                                    {/* Status & Category Badges */}
                                                     <div className="flex items-center gap-2">
                                                         {msg.isPinned && (
                                                             <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded text-[10px] font-medium text-amber-500/80">
@@ -571,52 +573,18 @@ export default function FeedbackWall() {
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     </div>
-                                                    {msg.isAck && (
-                                                        <div className="mt-3 pt-3 border-t border-white/[0.04] flex items-center gap-1.5">
-                                                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/70" />
-                                                            <span className="text-[10px] font-semibold text-emerald-400/70 uppercase tracking-wider">
-                                                                Acknowledged by team
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {/* Shipped Logic - Special Styling */}
-                                                    {msg.status === "SHIPPED" && msg.changelogId ? (
-                                                        <a href={`/changelog#${msg.changelogId}`} className="block mt-4">
-                                                            <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 transition-colors group">
-                                                                <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
-                                                                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="text-xs font-medium text-emerald-400/90 mb-0.5">Shipped in Production</div>
-                                                                    <div className="text-[10px] text-emerald-400/50 flex items-center gap-1">
-                                                                        View Changelog <FileText className="h-3 w-3" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </a>
-                                                    ) : msg.isLocked && msg.status === "SHIPPED" ? (
-                                                        <div className="mt-3 pt-2 text-[10px] text-emerald-400/60 flex items-center gap-1.5 font-medium border-t border-emerald-500/10">
-                                                            <CheckCircle2 className="h-3 w-3" />
-                                                            This feature has been shipped!
-                                                        </div>
-                                                    ) : null}
                                                 </div>
                                             </div>
 
-                                            {/* Feedback Content - Compact */}
                                             <div className="px-3.5 py-1.5 text-[13px] text-foreground/80 leading-snug break-words">
                                                 <div className="prose prose-invert prose-sm max-w-none prose-p:my-0.5 prose-headings:my-1 prose-ul:my-0.5 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10">
-                                                    <ReactMarkdown
-                                                        remarkPlugins={[remarkGfm]}
-                                                    >
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                         {msg.content}
                                                     </ReactMarkdown>
                                                 </div>
                                             </div>
 
-                                            {/* Card Footer - Action Area */}
                                             <div className="px-3 py-1.5 border-t border-white/[0.04] flex items-center gap-1">
-                                                {/* Locked State */}
                                                 {msg.isLocked ? (
                                                     <div className="flex items-center gap-2 text-[10px] text-white/20 font-medium px-2 py-1">
                                                         <Lock className="h-3 w-3" />
@@ -624,7 +592,6 @@ export default function FeedbackWall() {
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        {/* Upvote */}
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
                                                                 <button
@@ -640,7 +607,7 @@ export default function FeedbackWall() {
                                                                     )}
                                                                 >
                                                                     <ThumbsUp className={cn(isMobile ? "h-4 w-4" : "h-3.5 w-3.5", msg.hasReacted && "fill-current")} />
-                                                                    <span>{msg.upvotes}</span>
+                                                                    <span className={isMobile ? "text-xs" : ""}>{msg.upvotes}</span>
                                                                 </button>
                                                             </TooltipTrigger>
                                                             <TooltipContent side="top" className="bg-popover border-border text-popover-foreground">
@@ -648,7 +615,6 @@ export default function FeedbackWall() {
                                                             </TooltipContent>
                                                         </Tooltip>
 
-                                                        {/* Downvote */}
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
                                                                 <button
@@ -671,22 +637,13 @@ export default function FeedbackWall() {
                                                             </TooltipContent>
                                                         </Tooltip>
 
-                                                        {/* Discuss (Disabled - Coming Soon) */}
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <button
-                                                                    disabled
-                                                                    className="flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg bg-muted text-muted-foreground/50 border border-transparent ml-auto cursor-not-allowed"
-                                                                >
-                                                                    <Clock className="h-3 w-3" />
-                                                                    <span>Discuss</span>
-                                                                </button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="top" className="bg-[#1a1a1e] border-white/10 text-white/80 max-w-[220px]">
-                                                                <p className="text-xs font-medium mb-1">Discussions coming soon</p>
-                                                                <p className="text-[10px] text-white/50">This will allow threaded conversations on feedback.</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
+                                                        <button
+                                                            disabled
+                                                            className="flex items-center gap-1.5 text-[11px] font-medium h-7 px-2.5 rounded-lg bg-muted text-muted-foreground/50 border border-transparent ml-auto cursor-not-allowed"
+                                                        >
+                                                            <Clock className="h-3 w-3" />
+                                                            <span>Discuss</span>
+                                                        </button>
                                                     </>
                                                 )}
                                             </div>
@@ -699,63 +656,68 @@ export default function FeedbackWall() {
                     </div>
                 </div>
 
-                {/* Scroll to Bottom */}
-                {
-                    !shouldAutoScroll && (
-                        <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-40">
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 px-3 rounded-full bg-background/90 border-border text-foreground backdrop-blur-md shadow-xl hover:bg-background"
-                                onClick={() => {
-                                    setShouldAutoScroll(true);
-                                    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-                                }}
-                            >
-                                <ArrowDown className="h-3.5 w-3.5 mr-1.5" />
-                                New feedback
-                            </Button>
-                        </div>
-                    )
-                }
+                {!shouldAutoScroll && (
+                    <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-40">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-9 px-4 rounded-full bg-primary text-primary-foreground border-primary backdrop-blur-md shadow-2xl hover:bg-primary/90 transition-all scale-110"
+                            onClick={() => {
+                                setShouldAutoScroll(true);
+                                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+                            }}
+                        >
+                            <ArrowDown className="h-4 w-4 mr-2 animate-bounce" />
+                            New feedback
+                        </Button>
+                    </div>
+                )}
 
-                {/* Input Area - Modern Professional Design */}
-                <div className="border-t border-border bg-background backdrop-blur-xl">
-                    <div className="max-w-4xl mx-auto px-6 py-5">
+                <div className="border-t border-border bg-background backdrop-blur-xl pb-safe">
+                    <div className={cn("max-w-4xl mx-auto", isMobile ? "px-3 py-3" : "px-6 py-5")}>
                         <form onSubmit={handleSubmit}>
-                            {/* Main Input Card */}
-                            <div className="bg-card border border-border rounded-2xl p-4 shadow-xl shadow-black/5">
-                                {/* Textarea */}
+                            <div className={cn(
+                                "bg-card border border-border shadow-2xl shadow-black/20 transition-all",
+                                isMobile ? "rounded-3xl p-3" : "rounded-2xl p-4"
+                            )}>
                                 <Textarea
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
-                                    placeholder="Describe a bug, request a feature, or share feedback…"
+                                    placeholder="Report a bug or suggest a feature..."
                                     className={cn(
-                                        "min-h-[80px] max-h-[160px] p-0 bg-transparent border-0 resize-none",
-                                        "text-sm text-foreground placeholder:text-muted-foreground leading-relaxed",
+                                        isMobile ? "min-h-[60px] max-h-[120px]" : "min-h-[80px] max-h-[160px]",
+                                        "p-1 bg-transparent border-0 resize-none",
+                                        "text-sm text-foreground placeholder:text-muted-foreground/50 leading-relaxed",
                                         "focus-visible:ring-0 focus-visible:outline-none",
                                     )}
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                        if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
                                             e.preventDefault();
                                             handleSubmit(e);
                                         }
                                     }}
                                 />
 
-                                {/* Bottom Bar */}
-                                <div className="flex items-center justify-between pt-3 mt-3 border-t border-border">
-                                    {/* Left: Category + Character Count */}
-                                    <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-between pt-2 mt-2 border-t border-border/50">
+                                    <div className="flex items-center gap-2">
                                         <Select value={category} onValueChange={setCategory}>
-                                            <SelectTrigger className="h-9 px-3 border-border bg-muted/20 rounded-lg text-xs font-medium text-foreground hover:bg-muted/40 transition-colors focus:ring-1 focus:ring-primary/30 gap-2 min-w-[130px]">
-                                                <SelectValue />
+                                            <SelectTrigger className="h-9 w-10 sm:w-auto sm:px-3 border-border bg-muted/20 rounded-xl text-muted-foreground hover:bg-muted/30 transition-colors focus:ring-0 gap-2 flex items-center justify-center sm:justify-start">
+                                                {(() => {
+                                                    const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG.OTHER;
+                                                    const Icon = config.icon;
+                                                    return (
+                                                        <>
+                                                            <Icon className="h-4 w-4" />
+                                                            <span className="hidden sm:inline text-[11px] font-bold uppercase tracking-wider">{config.label}</span>
+                                                        </>
+                                                    );
+                                                })()}
                                             </SelectTrigger>
                                             <SelectContent className="bg-popover border-border text-popover-foreground">
                                                 {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
-                                                    <SelectItem key={key} value={key} className="text-xs">
+                                                    <SelectItem key={key} value={key} className="text-[11px] font-bold">
                                                         <div className="flex items-center gap-2">
-                                                            <config.icon className="h-3.5 w-3.5" />
+                                                            <config.icon className="h-3 w-3" />
                                                             <span>{config.label}</span>
                                                         </div>
                                                     </SelectItem>
@@ -763,17 +725,14 @@ export default function FeedbackWall() {
                                             </SelectContent>
                                         </Select>
 
-                                        <div className="h-4 w-px bg-border" />
-
                                         <span className={cn(
-                                            "text-[11px] font-mono tabular-nums",
-                                            isOverLimit ? "text-red-500" : charCount > MAX_CHARS * 0.8 ? "text-amber-500/70" : "text-muted-foreground/50"
+                                            "text-[10px] font-mono tabular-nums font-bold",
+                                            isOverLimit ? "text-red-500" : charCount > MAX_CHARS * 0.8 ? "text-amber-500/70" : "text-muted-foreground/30"
                                         )}>
                                             {charCount}/{MAX_CHARS}
                                         </span>
                                     </div>
 
-                                    {/* Right: Submit Button */}
                                     <div className="flex items-center gap-2">
                                         {editingId && (
                                             <Button
@@ -781,7 +740,7 @@ export default function FeedbackWall() {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => { setEditingId(null); setContent(""); }}
-                                                className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground"
+                                                className="h-8 px-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground"
                                             >
                                                 Cancel
                                             </Button>
@@ -790,10 +749,10 @@ export default function FeedbackWall() {
                                             type="submit"
                                             disabled={!content.trim() || postMutation.isPending || updateMutation.isPending || isOverLimit}
                                             className={cn(
-                                                "h-9 px-4 rounded-lg font-medium text-sm transition-all active:scale-[0.98]",
+                                                "h-9 px-4 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-[0.98]",
                                                 content.trim() && !isOverLimit
-                                                    ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
-                                                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                                                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                                                    : "bg-muted text-muted-foreground/50 cursor-not-allowed"
                                             )}
                                         >
                                             {postMutation.isPending || updateMutation.isPending ? (
@@ -801,7 +760,7 @@ export default function FeedbackWall() {
                                             ) : (
                                                 <>
                                                     <Send className="h-3.5 w-3.5 mr-2" />
-                                                    {editingId ? "Update" : "Submit"}
+                                                    {editingId ? "Update" : "Send"}
                                                 </>
                                             )}
                                         </Button>
@@ -809,10 +768,9 @@ export default function FeedbackWall() {
                                 </div>
                             </div>
 
-                            {/* Helper Text - Desktop only */}
                             {!isMobile && (
-                                <div className="flex items-center justify-center gap-1.5 mt-3">
-                                    <span className="text-[10px] text-white/20">
+                                <div className="flex items-center justify-center gap-1.5 mt-3 opacity-30">
+                                    <span className="text-[10px] text-white">
                                         <kbd className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] font-mono text-[9px] mx-0.5">Enter</kbd>
                                         to submit
                                         <span className="mx-1.5">•</span>
@@ -821,35 +779,25 @@ export default function FeedbackWall() {
                                     </span>
                                 </div>
                             )}
+
+                            <p className="text-[9px] text-white/10 text-center mt-3 tracking-wide">
+                                Feedback visibility is influenced by community votes and trust score
+                            </p>
                         </form>
                     </div>
                 </div>
             </div>
 
-            {/* Footer Transparency Note */}
-            <div className="border-t border-white/[0.03] bg-[#08080a] px-6 py-2">
-                <p className="text-[9px] text-white/15 text-center max-w-4xl mx-auto tracking-wide">
-                    Feedback visibility is influenced by community votes and trust score
-                </p>
-            </div>
-
-            {/* Info Modal */}
             <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
                 <DialogContent className="bg-[#14141a] border-white/[0.08] text-white sm:max-w-md rounded-2xl">
                     <DialogHeader>
                         <DialogTitle className="text-lg">What is the Feedback Wall?</DialogTitle>
                     </DialogHeader>
                     <div className="text-sm text-white/60 space-y-4 py-4">
-                        <p>
-                            This is a public space to share ideas, report issues, and suggest improvements for CodeStudio.
-                        </p>
-                        <p>
-                            Feedback here helps us prioritize features and improve the platform based on real developer needs.
-                        </p>
+                        <p>This is a public space to share ideas, report issues, and suggest improvements for CodeStudio.</p>
+                        <p>Feedback here helps us prioritize features and improve the platform based on real developer needs.</p>
                         <div className="pt-3 border-t border-white/[0.06]">
-                            <p className="text-[11px] text-white/30 italic">
-                                Be constructive. Votes matter. Repeated spam may reduce trust score.
-                            </p>
+                            <p className="text-[11px] text-white/30 italic">Be constructive. Votes matter. Repeated spam may reduce trust score.</p>
                         </div>
                     </div>
                     <DialogFooter>
@@ -860,14 +808,11 @@ export default function FeedbackWall() {
                 </DialogContent>
             </Dialog>
 
-            {/* Welcome Dialog */}
             <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
                 <DialogContent className="bg-[#14141a] border-white/[0.08] text-white sm:max-w-md rounded-2xl">
                     <DialogHeader>
                         <DialogTitle className="text-lg">Welcome to Feedback Wall</DialogTitle>
-                        <DialogDescription className="text-white/40">
-                            Help shape the future of CodeStudio.
-                        </DialogDescription>
+                        <DialogDescription className="text-white/40">Help shape the future of CodeStudio.</DialogDescription>
                     </DialogHeader>
                     <div className="text-sm text-white/60 space-y-3 py-4">
                         <div className="flex items-start gap-3">
@@ -890,9 +835,7 @@ export default function FeedbackWall() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button onClick={() => setShowWelcome(false)} className="w-full rounded-xl h-10">
-                            Start Contributing
-                        </Button>
+                        <Button onClick={() => setShowWelcome(false)} className="w-full rounded-xl h-10">Start Contributing</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

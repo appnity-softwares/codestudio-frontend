@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-    Code, Users, Settings, Shield, Terminal, Trophy, Linkedin, Share2
+    Code, Users, Settings, Shield, Terminal, Trophy, Linkedin, Share2, Plus
 } from "lucide-react";
 import { ShareProfileModal } from "@/components/profile/ShareProfileModal";
 import { Badge } from "@/components/ui/badge";
@@ -284,6 +284,13 @@ export default function Profile() {
                                     <Settings className="h-4 w-4" /> Edit Profile
                                 </Button>
                             </Link>
+                            {currentUser?.id === profileUser.id && (
+                                <Link to="/create" className="w-full">
+                                    <Button size="sm" className="w-full gap-2 h-11 rounded-xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px]">
+                                        <Plus className="h-4 w-4" /> Create Snippet
+                                    </Button>
+                                </Link>
+                            )}
                             {currentUser?.role === 'ADMIN' && (
                                 <Link to="/admin" className="w-full">
                                     <Button variant="secondary" size="sm" className="w-full gap-2 h-11 rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10">

@@ -52,7 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         inventory: response.user.inventory || [],
                         equippedAura: response.user.equippedAura || null,
                         unlockedThemes: response.user.unlockedThemes || ['default'],
-                        influence: response.user.influence || 15
+                        influence: response.user.influence || 15,
+                        profileImage: response.user.avatar || null
                     }));
                 }
             } catch (error: any) {
@@ -88,7 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 dispatch(setUserData({
                     xp: response.user.xp || 0,
                     level: response.user.level || 1,
-                    streak: response.user.streak || 0
+                    streak: response.user.streak || 0,
+                    profileImage: response.user.avatar || null
                 }));
             }
         } catch (error) {
@@ -108,7 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 dispatch(setUserData({
                     xp: response.user.xp || 0,
                     level: response.user.level || 1,
-                    streak: response.user.streak || 0
+                    streak: response.user.streak || 0,
+                    profileImage: response.user.avatar || null
                 }));
             }
         } catch (error) {
@@ -128,7 +131,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 dispatch(setUserData({
                     xp: response.user.xp || 0,
                     level: response.user.level || 1,
-                    streak: response.user.streak || 0
+                    streak: response.user.streak || 0,
+                    profileImage: response.user.avatar || null
                 }));
             }
         } catch (error) {

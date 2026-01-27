@@ -12,7 +12,7 @@ import { ReactLivePreview } from "@/components/preview/ReactLivePreview";
 import { SnippetInteraction } from "@/components/SnippetInteraction";
 // import { CommentsSection } from "@/components/CommentsSection";
 import { formatDistanceToNow } from "date-fns";
-import { Copy, Terminal, Code2, Info, ArrowLeft, GitFork, ExternalLink, MessageSquare } from "lucide-react";
+import { Copy, Terminal, Code2, Info, ArrowLeft, GitFork, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/SeoMeta";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
@@ -347,17 +347,6 @@ export default function SnippetDetail() {
                             <h4 className="font-bold truncate">{snippet.author?.name || 'Anonymous'}</h4>
                             <p className="text-sm text-muted-foreground truncate">@{snippet.author?.username || 'user'}</p>
                         </div>
-                        {!isAuthor && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-xs font-bold gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
-                                onClick={() => navigate(`/chat/${snippet.author?.username}`)}
-                            >
-                                <MessageSquare className="h-3 w-3" />
-                                Message
-                            </Button>
-                        )}
                     </div>
 
                     {/* Info Tabs */}

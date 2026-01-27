@@ -1,17 +1,11 @@
 import {
     Home,
     Sparkles,
-
     Settings,
-    Bookmark,
-    // Bug,
-    Replace,
     User,
     ShoppingBag,
     ShieldCheck,
-    LayoutDashboard,
     Share,
-    MessageSquare,
 } from 'lucide-react';
 
 export const navSections = [
@@ -30,18 +24,9 @@ export const navSections = [
         ],
     },
     {
-        title: 'Tools',
-        items: [
-            { label: 'Convert', href: '/convert', icon: Replace },
-        ],
-    },
-    {
         title: 'Personal',
         items: [
-            { label: 'Profile', href: '/profile/[[username]]', icon: User },
-            { label: 'Chat', href: '/chat', icon: MessageSquare },
-            { label: 'Saved', href: '/saved', icon: Bookmark },
-            { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+            { label: 'Profile', href: '/u/[[username]]', icon: User },
             { label: 'Settings', href: '/settings', icon: Settings },
             { label: 'Admin', href: '/admin', icon: ShieldCheck },
         ],

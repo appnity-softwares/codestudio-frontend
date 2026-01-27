@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings, Power, AlertTriangle, CheckCircle, RefreshCw, BookOpen, ExternalLink } from "lucide-react";
+import { Settings, Power, AlertTriangle, CheckCircle, RefreshCw, BookOpen, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -128,10 +128,34 @@ export default function AdminSystem() {
             icon: CheckCircle
         },
         {
+            key: "feature_quests_enabled",
+            title: "Daily Quests",
+            description: "Enable the daily quests system and rewards popover.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_sidebar_leaderboard",
+            title: "Leaderboard Page",
+            description: "Show the Global Leaderboard in the main sidebar.",
+            icon: CheckCircle
+        },
+        {
             key: "feature_interface_engine",
             title: "Interface Engine",
             description: "Enable the theme switcher/customizer in the Toolbelt.",
             icon: CheckCircle
+        },
+        {
+            key: "feature_notifications_enabled",
+            title: "Global Notifications",
+            description: "Show/hide the notification bell in the global header.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_sidebar_new_badge",
+            title: "Sidebar 'New' Badge",
+            description: "Show a 'New' badge on the XP Store and Challenges tabs.",
+            icon: Sparkles
         }
     ];
 

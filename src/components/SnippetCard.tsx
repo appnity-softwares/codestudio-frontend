@@ -63,6 +63,7 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
     const [forking, setForking] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
+    const [isAltHeld, setIsAltHeld] = useState(false);
 
     // Fetch user's playlists only when dialog is open
     const { data: myPlaylists, isLoading: isLoadingPlaylists } = useQuery({
@@ -114,6 +115,20 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
         if (snippet?.id) {
             snippetsAPI.recordView(snippet.id).catch(console.error);
         }
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.altKey) setIsAltHeld(true);
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (!e.altKey) setIsAltHeld(false);
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
     }, [snippet?.id]);
 
     const isVisual = snippet.previewType?.startsWith('WEB_PREVIEW');
@@ -313,11 +328,18 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                     {/* View Mode Indicator */}
                     <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-100 sm:opacity-0 sm:group-hover/preview:opacity-100 transition-opacity">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-background/80 backdrop-blur px-2 py-1 rounded border border-border">
-                            {viewMode === 'preview' ? (isReact ? 'Live React' : isMarkdown ? 'Markdown' : 'Web Preview') : viewMode === 'output' ? 'Console' : 'Source'}
+                            {isAltHeld ? "⚡ Quick Look" : (viewMode === 'preview' ? (isReact ? 'Live React' : isMarkdown ? 'Markdown' : 'Web Preview') : viewMode === 'output' ? 'Console' : 'Source')}
                         </span>
                     </div>
 
-                    {viewMode === 'preview' ? (
+                    {isAltHeld ? (
+                        <div className="absolute inset-0 bg-background text-foreground animate-in fade-in zoom-in-95 duration-200">
+                            <div className="absolute inset-0 p-6 pointer-events-none">
+                                <div className="absolute inset-0 bg-primary/5 border-2 border-primary/20 rounded-2xl" />
+                            </div>
+                            <CodeBlock code={snippet.code} language={snippet.language} className="h-full w-full bg-transparent p-8 text-xs font-mono leading-relaxed custom-scrollbar overflow-auto" />
+                        </div>
+                    ) : viewMode === 'preview' ? (
                         isReact ? (
                             <div className={cn("absolute inset-0 overflow-auto bg-background flex p-4", alignment === 'center' ? "items-center justify-center" : "items-start justify-start")}>
                                 <ReactLivePreview code={snippet.code} />

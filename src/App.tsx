@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { ThemeProvider } from "./context/ThemeContext"
 import { AuthProvider, useAuth } from "./context/AuthContext"
 import { TooltipProvider } from "./components/ui/tooltip"
@@ -6,9 +6,10 @@ import { Toaster } from "./components/ui/toaster"
 import { DashboardLayout } from "./components/layout/DashboardLayout"
 import { SocketProvider } from "./context/SocketContext"
 import { BadgeProvider } from "./context/BadgeContext"
+import { PlatformTour } from "./components/PlatformTour"
 
 // Pages
-import { lazy, Suspense } from "react"
+import { lazy, Suspense, useEffect } from "react"
 import { PageLoader } from "./components/ui/PageLoader"
 
 // Pages (Lazy Loaded)
@@ -27,9 +28,6 @@ const EventDetail = lazy(() => import("./pages/arena/EventDetail"))
 const ContestEnvironment = lazy(() => import("./pages/arena/Environment"))
 const OfficialContest = lazy(() => import("./pages/arena/OfficialContest"))
 const ContestLeaderboard = lazy(() => import("./pages/arena/Leaderboard"))
-const FeedbackWall = lazy(() => import("./pages/FeedbackWall"))
-const Convert = lazy(() => import("./pages/Convert"))
-const Dashboard = lazy(() => import("./pages/Dashboard"))
 const Profile = lazy(() => import("./pages/Profile"))
 const Community = lazy(() => import("./pages/Community"))
 const ContestHistory = lazy(() => import("./pages/profile/ContestHistory").then(m => ({ default: m.ContestHistory })))
@@ -42,7 +40,6 @@ const ResetPassword = lazy(() => import("@/pages/auth/ResetPassword"))
 const OAuthCallback = lazy(() => import("./pages/auth/OAuthCallback"))
 const Create = lazy(() => import("./pages/Create"))
 const SnippetDetail = lazy(() => import("./pages/SnippetDetail"))
-const Chat = lazy(() => import("./pages/Chat"))
 const Badges = lazy(() => import("./pages/Badges"))
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"))
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"))
@@ -59,6 +56,7 @@ const AdminAvatars = lazy(() => import("./pages/admin/AdminAvatars"))
 const AdminRoles = lazy(() => import("./pages/admin/AdminRoles"))
 const AdminChangelog = lazy(() => import("./pages/admin/AdminChangelog"))
 const AdminPractice = lazy(() => import("./pages/admin/AdminPractice"))
+const AdminRoadmaps = lazy(() => import("./pages/admin/AdminRoadmaps"))
 const Changelog = lazy(() => import("./pages/Changelog"))
 const PracticeList = lazy(() => import("./pages/PracticeList"))
 const PracticeWorkspace = lazy(() => import("./pages/PracticeWorkspace"))
@@ -70,6 +68,9 @@ const TrophyRoom = lazy(() => import("@/pages/TrophyRoom"))
 const XPStore = lazy(() => import("@/pages/XPStore"))
 const Help = lazy(() => import("./pages/Help"))
 const NotFound = lazy(() => import("./pages/NotFound"))
+const Leaderboard = lazy(() => import("./pages/Leaderboard"))
+const FeedbackWall = lazy(() => import("./pages/FeedbackWall"))
+
 
 import { DesktopOnlyGuard } from "./components/DesktopOnlyGuard"
 
@@ -126,8 +127,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 // Global Maintenance Handler
-import { useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 function GlobalMaintenanceHandler() {
     const navigate = useNavigate();
@@ -251,23 +251,6 @@ function AppRoutes() {
                             </ProtectedRoute>
                         }
                     />
-                    <Route path="convert" element={<ProtectedRoute><Convert /></ProtectedRoute>} />
-                    <Route
-                        path="dashboard"
-                        element={
-                            <ProtectedRoute>
-                                <Dashboard />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="chat/:username?"
-                        element={
-                            <ProtectedRoute>
-                                <Chat />
-                            </ProtectedRoute>
-                        }
-                    />
 
                     <Route path="profile/me" element={<ProtectedRoute><RedirectToProfile /></ProtectedRoute>} />
 
@@ -278,6 +261,7 @@ function AppRoutes() {
 
                     {/* Community & Public Profile - Now Protected */}
                     <Route path="community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+                    <Route path="leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
                     <Route path="feedback" element={<ProtectedRoute><FeedbackWall /></ProtectedRoute>} />
                     <Route path="u/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
@@ -309,6 +293,7 @@ function AppRoutes() {
                     <Route path="audit-logs" element={<AuditLogs />} />
                     <Route path="changelog" element={<AdminChangelog />} />
                     <Route path="practice-problems" element={<AdminPractice />} />
+                    <Route path="roadmaps" element={<AdminRoadmaps />} />
                 </Route>
             </Routes>
         </Suspense>
@@ -316,6 +301,8 @@ function AppRoutes() {
 }
 
 
+
+import { SidebarProvider } from "./context/SidebarContext"
 
 function App() {
     return (
@@ -325,10 +312,13 @@ function App() {
                     <AuthProvider>
                         <SocketProvider>
                             <TooltipProvider>
-                                <BadgeProvider>
-                                    <AppRoutes />
-                                    <Toaster />
-                                </BadgeProvider>
+                                <SidebarProvider>
+                                    <BadgeProvider>
+                                        <AppRoutes />
+                                        <PlatformTour />
+                                        <Toaster />
+                                    </BadgeProvider>
+                                </SidebarProvider>
                             </TooltipProvider>
                         </SocketProvider>
                     </AuthProvider>

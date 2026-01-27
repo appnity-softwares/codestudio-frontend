@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface FeedState {
-    viewBucket: 'trending' | 'new' | 'editor';
+    viewBucket: 'trending' | 'new' | 'editor' | 'personal';
     searchQuery: string;
     filters: {
         type: string;
@@ -24,7 +24,7 @@ const feedSlice = createSlice({
     name: 'feed',
     initialState,
     reducers: {
-        setFeedBucket: (state, action: PayloadAction<'trending' | 'new' | 'editor'>) => {
+        setFeedBucket: (state, action: PayloadAction<'trending' | 'new' | 'editor' | 'personal'>) => {
             state.viewBucket = action.payload;
         },
         setSearchQuery: (state, action: PayloadAction<string>) => {

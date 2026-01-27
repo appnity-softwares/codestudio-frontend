@@ -127,8 +127,8 @@ export default function Badges() {
         )
     }
 
-    const { badges, influence } = data || {};
-    const currentScore = Number(influence?.score || 0);
+    const { badges, authority } = data || {};
+    const currentScore = Number(authority?.score || 0);
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-12 animate-in fade-in duration-500 pb-20">
@@ -138,7 +138,7 @@ export default function Badges() {
                     <div>
                         <h1 className="text-3xl font-bold font-headline">Achievements & Influence</h1>
                         <p className="text-muted-foreground mt-1">
-                            Your rank is <span className="text-white font-bold">{influence?.rank || 'Novice'}</span>.
+                            Your rank is <span className="text-white font-bold">{authority?.rank || 'Novice'}</span>.
                             Unlock exclusive perks as you climb the leaderboard.
                         </p>
                     </div>
@@ -156,9 +156,9 @@ export default function Badges() {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {[
-                        { label: "Trust Score", value: influence?.breakdown?.trust || 0, color: "text-white" },
-                        { label: "Snippet Points", value: `+${influence?.breakdown?.snippets || 0}`, color: "text-emerald-400" },
-                        { label: "Badge Points", value: `+${influence?.breakdown?.badges || 0}`, color: "text-purple-400" }
+                        { label: "Trust Score", value: authority?.breakdown?.trust || 0, color: "text-white" },
+                        { label: "Snippet Points", value: `+${authority?.breakdown?.snippets || 0}`, color: "text-emerald-400" },
+                        { label: "Badge Points", value: `+${authority?.breakdown?.badges || 0}`, color: "text-purple-400" }
                     ].map((stat, i) => (
                         <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
                             <span className="text-xs font-bold text-muted-foreground uppercase tracking-tight">{stat.label}</span>

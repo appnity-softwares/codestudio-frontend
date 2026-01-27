@@ -8,6 +8,7 @@ interface UserState {
     equippedAura: string | null;
     unlockedThemes: string[];
     influence: number;
+    profileImage: string | null;
     quests: { id: string; label: string; progress: number; total: number; reward: number; claimed: boolean }[];
 }
 
@@ -19,6 +20,7 @@ const initialState: UserState = {
     equippedAura: null,
     unlockedThemes: ['default'],
     influence: 15, // Starting trust score
+    profileImage: null,
     quests: [
         { id: 'q1', label: 'Solve 1 Medium Problem', progress: 0, total: 1, reward: 50, claimed: false },
         { id: 'q2', label: 'Fork 2 Snippets', progress: 0, total: 2, reward: 30, claimed: false },
@@ -30,7 +32,7 @@ const userSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        setUserData: (state, action: PayloadAction<{ xp: number; level: number; streak: number; inventory?: string[]; equippedAura?: string | null; unlockedThemes?: string[]; influence?: number }>) => {
+        setUserData: (state, action: PayloadAction<{ xp: number; level: number; streak: number; inventory?: string[]; equippedAura?: string | null; unlockedThemes?: string[]; influence?: number; profileImage?: string | null }>) => {
             state.xp = action.payload.xp;
             state.level = action.payload.level;
             state.streak = action.payload.streak;
@@ -38,6 +40,7 @@ const userSlice = createSlice({
             if (action.payload.equippedAura !== undefined) state.equippedAura = action.payload.equippedAura;
             if (action.payload.unlockedThemes) state.unlockedThemes = action.payload.unlockedThemes;
             if (action.payload.influence) state.influence = action.payload.influence;
+            if (action.payload.profileImage !== undefined) state.profileImage = action.payload.profileImage;
         },
         addXP: (state, action: PayloadAction<number>) => {
             state.xp += action.payload;

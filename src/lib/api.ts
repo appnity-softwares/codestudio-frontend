@@ -230,7 +230,7 @@ export const snippetsAPI = {
 
 // v1.2: Smart Feed API
 export const feedAPI = {
-    get: (bucket: 'trending' | 'new' | 'editor' = 'trending') =>
+    get: (bucket: 'trending' | 'new' | 'editor' | 'personal' = 'trending') =>
         apiRequest<{ snippets: any[]; bucket: string }>(`/feed?bucket=${bucket}`),
 };
 
@@ -679,6 +679,18 @@ export const adminAPI = {
     updateChangelog: (id: string, data: { version?: string; title?: string; description?: string; releaseType?: string; isPublished?: boolean; order?: number; releasedAt?: string | Date }) => apiRequest<{ message: string }>('/admin/changelog/' + id, { method: 'PUT', body: JSON.stringify(data) }),
     deleteChangelog: (id: string) => apiRequest<{ message: string }>('/admin/changelog/' + id, { method: 'DELETE' }),
     reorderChangelogs: (orders: { id: string; order: number }[]) => apiRequest<{ message: string }>('/admin/changelog/reorder', { method: 'POST', body: JSON.stringify({ orders }) }),
+
+    // Roadmaps
+    getRoadmaps: (page: number = 1, limit: number = 20, search: string = "", filter: string = "all") =>
+        apiRequest<{ roadmaps: any[]; pagination: any }>(`/admin/roadmaps?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&filter=${filter}`),
+    verifyRoadmap: (id: string, data: { isVerified: boolean; awardsEndorsement: string; completionBonusXP: number }) =>
+        apiRequest<{ message: string }>(`/admin/roadmaps/${id}/verify`, { method: 'POST', body: JSON.stringify(data) }),
+    deleteRoadmap: (id: string) =>
+        apiRequest<{ message: string }>(`/admin/roadmaps/${id}`, { method: 'DELETE' }),
+
+    // XP Grant
+    grantUserXP: (id: string, amount: number, reason: string) =>
+        apiRequest<{ message: string }>(`/admin/users/${id}/grant-xp`, { method: 'POST', body: JSON.stringify({ amount, reason }) }),
 };
 
 export const playlistsAPI = {
@@ -686,10 +698,13 @@ export const playlistsAPI = {
         const query = new URLSearchParams(params as any).toString();
         return apiRequest<{ playlists: any[] }>(`/playlists?${query}`);
     },
-    getById: (id: string) => apiRequest<{ playlist: any }>(`/playlists/${id}`),
+    getById: (id: string) => apiRequest<{ playlist: any; completedCount: number; totalCount: number }>(`/playlists/${id}`),
     create: (data: { title: string; description?: string; thumbnail?: string; difficulty?: string }) =>
         apiRequest<{ playlist: any }>('/playlists', { method: 'POST', body: JSON.stringify(data) }),
-    delete: (id: string) => apiRequest<{ message: string }>(`/playlists/${id}`, { method: 'DELETE' }),
+    update: (id: string, data: { title?: string; description?: string; thumbnail?: string; difficulty?: string; isPublished?: boolean }) =>
+        apiRequest<{ playlist: any }>(`/playlists/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) =>
+        apiRequest<{ message: string }>(`/playlists/${id}`, { method: 'DELETE' }),
     addSnippet: (id: string, snippetId: string, order?: number) =>
         apiRequest<{ message: string; item: any }>(`/playlists/${id}/snippets`, { method: 'POST', body: JSON.stringify({ snippetId, order }) }),
     reorder: (id: string, orders: { id: string; order: number }[]) =>
