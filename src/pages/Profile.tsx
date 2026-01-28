@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { calculateLevel } from "@/lib/xp";
+import { motion } from "framer-motion";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -58,6 +60,11 @@ export default function Profile() {
     });
 
     const profileUser = userResponse?.user ? { ...userResponse.user, isFollowing: userResponse.isFollowing } : null;
+
+    const levelInfo = useMemo(() => {
+        if (!profileUser) return null;
+        return calculateLevel(profileUser.xp || 0);
+    }, [profileUser?.xp]);
 
     // 2. Fetch Snippets
     const userId = profileUser?.id;
@@ -232,6 +239,11 @@ export default function Profile() {
                         <span className="inline-block px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase font-bold tracking-wider border border-primary/20">
                             {profileUser.role || "Developer"}
                         </span>
+                        {levelInfo && (
+                            <span className="ml-2 inline-block px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] uppercase font-bold tracking-wider border border-emerald-500/20">
+                                LVL {levelInfo.level}
+                            </span>
+                        )}
                     </div>
 
                     {profileUser.bio && (
@@ -454,9 +466,28 @@ export default function Profile() {
                         <h1 className="text-3xl font-bold font-headline text-foreground">
                             {profileUser.name || profileUser.username}
                         </h1>
-                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase font-bold tracking-wider border border-primary/20">
-                            Level {profileUser.level || 1}
-                        </span>
+                        {levelInfo && (
+                            <div className="flex flex-col gap-1.5 min-w-[140px]">
+                                <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase font-black tracking-widest border border-primary/20 shadow-[0_0_10px_rgba(var(--primary),0.1)]">
+                                        Level {levelInfo.level}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-muted-foreground/60 tabular-nums">
+                                        {Math.floor(levelInfo.currentXP)} / {levelInfo.nextLevelXP} XP
+                                    </span>
+                                </div>
+                                <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden border border-white/5 relative">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${levelInfo.progress}%` }}
+                                        transition={{ duration: 1.5, ease: [0.34, 1.56, 0.64, 1] }}
+                                        className="h-full bg-gradient-to-r from-primary via-purple-500 to-primary/80 relative"
+                                    >
+                                        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.3)_50%,transparent_100%)] animate-[shimmer_2s_infinite] w-[200%]" />
+                                    </motion.div>
+                                </div>
+                            </div>
+                        )}
                         {currentUser?.influence && currentUser.influence > 50 && (
                             <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 text-[10px] uppercase font-bold tracking-wider border border-purple-500/20 flex items-center gap-1">
                                 <Shield className="h-3 w-3" /> High Influence

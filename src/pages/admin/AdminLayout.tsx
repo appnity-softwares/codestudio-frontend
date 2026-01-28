@@ -1,14 +1,30 @@
 
 import { Outlet, NavLink } from "react-router-dom";
 import { LayoutDashboard, Trophy, Flag, ShieldAlert, FileText, LogOut, Users, Code, Settings, Megaphone, Zap, Image as ImageIcon, BookOpen, Menu } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { removeToken } from "@/lib/api";
+import { removeToken, systemAPI } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
 
 import { Logo } from "@/components/ui/Logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
 export default function AdminLayout() {
+    const { data: statusData } = useQuery({
+        queryKey: ["public-system-status"],
+        queryFn: () => systemAPI.getPublicStatus(),
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const settings = statusData?.settings || {};
+    const badgeConfigRaw = settings["sidebar_badges"] || "[]";
+    let badgeConfig: string[] = [];
+    try {
+        badgeConfig = JSON.parse(badgeConfigRaw);
+    } catch (e) {
+        badgeConfig = [];
+    }
 
     const navItems = [
         { to: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
@@ -56,7 +72,12 @@ export default function AdminLayout() {
                             "mr-3 h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110",
                             "opacity-80"
                         )} />
-                        {item.label}
+                        <span className="flex-1">{item.label}</span>
+                        {badgeConfig.includes(item.to) && (
+                            <Badge className="bg-white/20 text-white text-[9px] px-1.5 py-0 h-4 border-none font-bold uppercase tracking-tighter animate-pulse">
+                                New
+                            </Badge>
+                        )}
                     </NavLink>
                 ))}
             </nav>
@@ -67,10 +88,15 @@ export default function AdminLayout() {
                     <NavLink
                         key={item.to}
                         to={item.to}
-                        className="flex items-center px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all"
+                        className="flex items-center px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-all group"
                     >
                         <item.icon className="mr-3 h-4 w-4 opacity-50" />
-                        {item.label}
+                        <span className="flex-1">{item.label}</span>
+                        {badgeConfig.includes(item.to) && (
+                            <Badge className="bg-primary text-primary-foreground text-[8px] px-1 py-0 h-3.5 border-none font-black uppercase tracking-tighter animate-bounce group-hover:animate-none">
+                                New
+                            </Badge>
+                        )}
                     </NavLink>
                 ))}
 

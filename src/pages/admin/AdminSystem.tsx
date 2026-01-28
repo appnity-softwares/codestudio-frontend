@@ -1,5 +1,6 @@
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings, Power, AlertTriangle, CheckCircle, RefreshCw, BookOpen, ExternalLink, Sparkles } from "lucide-react";
+import { Settings, Power, AlertTriangle, CheckCircle, RefreshCw, BookOpen, ExternalLink, Sparkles, Layout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { adminAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function AdminSystem() {
+    const navigate = useNavigate();
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
@@ -150,12 +152,6 @@ export default function AdminSystem() {
             title: "Global Notifications",
             description: "Show/hide the notification bell in the global header.",
             icon: CheckCircle
-        },
-        {
-            key: "feature_sidebar_new_badge",
-            title: "Sidebar 'New' Badge",
-            description: "Show a 'New' badge on the XP Store and Challenges tabs.",
-            icon: Sparkles
         }
     ];
 
@@ -264,6 +260,43 @@ export default function AdminSystem() {
                     </Button>
                 </div>
             </Card>
+
+            {/* Granular Feature Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="bg-emerald-500/5 border-emerald-500/20 shadow-none rounded-2xl overflow-hidden group hover:bg-emerald-500/10 transition-colors cursor-pointer" onClick={() => navigate("/admin/badge-config")}>
+                    <div className="p-6 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                <Sparkles className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-foreground group-hover:text-emerald-500 transition-colors">Sidebar Badge Config</h3>
+                                <p className="text-sm text-muted-foreground mt-0.5">Manage 'NEW' badges for sidebar items.</p>
+                            </div>
+                        </div>
+                        <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform">
+                            <ExternalLink className="h-5 w-5 opacity-50" />
+                        </Button>
+                    </div>
+                </Card>
+
+                <Card className="bg-blue-500/5 border-blue-500/20 shadow-none rounded-2xl overflow-hidden group hover:bg-blue-500/10 transition-colors cursor-pointer" onClick={() => navigate("/admin/roles")}>
+                    <div className="p-6 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                <Layout className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-foreground group-hover:text-blue-500 transition-colors">Role Permissions</h3>
+                                <p className="text-sm text-muted-foreground mt-0.5">Configure access levels and role security.</p>
+                            </div>
+                        </div>
+                        <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform">
+                            <ExternalLink className="h-5 w-5 opacity-50" />
+                        </Button>
+                    </div>
+                </Card>
+            </div>
 
             {/* Deployment Zone */}
             <div className="space-y-4">

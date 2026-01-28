@@ -17,11 +17,11 @@ interface CodeBlockProps {
 
 export function CodeBlock({ code, language, className, annotations, onAddAnnotation, isAuthor }: CodeBlockProps) {
     const [mounted, setMounted] = useState(false);
-    const { theme } = useTheme();
+    const { resolvedTheme } = useTheme();
 
     useEffect(() => setMounted(true), []);
 
-    const prismTheme = theme === 'dark' ? themes.vsDark : themes.vsLight;
+    const prismTheme = resolvedTheme === 'dark' ? themes.vsDark : themes.vsLight;
 
     if (!mounted) {
         return (

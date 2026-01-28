@@ -83,7 +83,7 @@ export function CodeEditor({
     onPaste,
     readOnly = false
 }: CodeEditorProps) {
-    const { theme } = useTheme(); // 'dark' or 'light'
+    const { resolvedTheme } = useTheme(); // 'dark' or 'light'
     const editorRef = useRef<any>(null);
 
     const handleEditorDidMount: OnMount = (editor) => {
@@ -114,7 +114,7 @@ export function CodeEditor({
             height="100%"
             language={language.toLowerCase() === 'c++' ? 'cpp' : language.toLowerCase()}
             value={code}
-            theme={theme === "dark" ? "vs-dark" : "light"}
+            theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
             onChange={onChange}
             onMount={handleEditorDidMount}
             options={{

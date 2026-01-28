@@ -143,18 +143,20 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
     const hasPreview = isReact || isHTML || isVisual || isMarkdown || isMermaid;
 
     const [viewMode, setViewMode] = useState<'preview' | 'code' | 'output'>(() => {
-        if (hasPreview) return 'preview';
-        return 'output';
+        const isVisualFirst = isHTML || isMermaid || isReact;
+        if (isVisualFirst && hasPreview) return 'preview';
+        return 'code';
     });
 
-    // Sync view mode if it changes or if new output arrives
+    // Sync view mode if it changes
     useEffect(() => {
-        if (hasPreview) {
+        const isVisualFirst = isHTML || isMermaid || isReact;
+        if (isVisualFirst && hasPreview) {
             setViewMode('preview');
         } else {
-            setViewMode('output');
+            setViewMode('code');
         }
-    }, [hasPreview]);
+    }, [snippet.language, hasPreview, isHTML, isMermaid, isReact]);
 
     // Force output view if it's explicitly provided and we aren't in visual mode
     useEffect(() => {

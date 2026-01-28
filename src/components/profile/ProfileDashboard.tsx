@@ -1,11 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Bookmark, Users, TrendingUp, Clock, Code2 } from "lucide-react";
-// import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Heart, Bookmark, Users, TrendingUp, Clock, Code2, Sparkles } from "lucide-react";
 import { SnippetCard } from "@/components/SnippetCard";
 import { ActivityTimeline } from "./ActivityTimeline";
-// import { useQuery } from "@tanstack/react-query";
-// import { usersAPI } from "@/lib/api";
-// import { useAuth } from "@/context/AuthContext";
+import { calculateLevel } from "@/lib/xp";
+import { motion } from "framer-motion";
 
 interface ProfileDashboardProps {
     profileUser: any;
@@ -13,15 +11,11 @@ interface ProfileDashboardProps {
 }
 
 export function ProfileDashboard({ profileUser, dashboardSnippets }: ProfileDashboardProps) {
-    // const { user: currentUser } = useAuth();
-    // const isOwnProfile = currentUser?.id === profileUser?.id;
+    const levelInfo = calculateLevel(profileUser.xp || 0);
 
-    // MVP: Stats are disabled to prevent fake data/429s.
-    // const { data: stats, isLoading } = useQuery({ queryKey: ['user-stats'], queryFn: () => usersAPI.getStats(), enabled: isOwnProfile });
-
-    const followerCount = "--"; // stats?.followers ?? 0;
-    const likesReceived = "--"; // stats?.likesReceived ?? 0;
-    const savesReceived = "--"; // stats?.savesReceived ?? 0;
+    const followerCount = "--";
+    const likesReceived = "--";
+    const savesReceived = "--";
 
     const displayStats = [
         { label: "Likes Received", value: likesReceived, icon: Heart, color: "text-muted-foreground opacity-50 grayscale" },
@@ -29,11 +23,55 @@ export function ProfileDashboard({ profileUser, dashboardSnippets }: ProfileDash
         { label: "Followers", value: followerCount, icon: Users, color: "text-muted-foreground opacity-50 grayscale" },
     ];
 
-    // MVP: Fake chart data removed
-    // const chartData = ...
-
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Level Progress Stats */}
+            <div className="p-1 rounded-3xl bg-gradient-to-br from-primary/20 via-transparent to-purple-500/20 border border-white/5">
+                <Card className="border-none bg-black/40 backdrop-blur-3xl p-6 rounded-[1.4rem]">
+                    <div className="flex flex-col md:flex-row justify-between gap-6">
+                        <div className="space-y-4 flex-1">
+                            <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                    <Sparkles className="h-4 w-4 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Experience & Mastery</h3>
+                                    <p className="text-[10px] text-muted-foreground">Level up by contributing code and engaging with the community.</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-4xl font-black text-white italic">LVL {levelInfo.level}</span>
+                                    <span className="text-xs font-mono text-muted-foreground">
+                                        {Math.floor(levelInfo.currentXP)} / {levelInfo.nextLevelXP} XP (NEXT)
+                                    </span>
+                                </div>
+                                <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${levelInfo.progress}%` }}
+                                        transition={{ duration: 1.5, ease: "easeOut" }}
+                                        className="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 md:w-72">
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col justify-center">
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total XP</p>
+                                <p className="text-xl font-black text-white">{profileUser.xp || 0}</p>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col justify-center">
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Next Rank</p>
+                                <p className="text-xl font-black text-white">LVL {levelInfo.level + 1}</p>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {displayStats.map((stat) => (
                     <Card key={stat.label} className="border-none bg-white/5 backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg cursor-not-allowed">

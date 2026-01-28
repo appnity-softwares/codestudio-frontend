@@ -57,6 +57,7 @@ const AdminRoles = lazy(() => import("./pages/admin/AdminRoles"))
 const AdminChangelog = lazy(() => import("./pages/admin/AdminChangelog"))
 const AdminPractice = lazy(() => import("./pages/admin/AdminPractice"))
 const AdminRoadmaps = lazy(() => import("./pages/admin/AdminRoadmaps"))
+const AdminBadgeConfig = lazy(() => import("./pages/admin/AdminBadgeConfig"))
 const Changelog = lazy(() => import("./pages/Changelog"))
 const PracticeList = lazy(() => import("./pages/PracticeList"))
 const PracticeWorkspace = lazy(() => import("./pages/PracticeWorkspace"))
@@ -294,6 +295,7 @@ function AppRoutes() {
                     <Route path="changelog" element={<AdminChangelog />} />
                     <Route path="practice-problems" element={<AdminPractice />} />
                     <Route path="roadmaps" element={<AdminRoadmaps />} />
+                    <Route path="badge-config" element={<AdminBadgeConfig />} />
                 </Route>
             </Routes>
         </Suspense>

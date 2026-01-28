@@ -29,8 +29,13 @@ export function MobileSidebar() {
         staleTime: 60000 * 5,
     });
     const settings = systemData?.settings || {};
-    const showNewBadge = settings['feature_sidebar_new_badge'] === 'true';
-    const newBadgeItems = ['XP Store', 'Challenges']; // Specific items to badge
+    const badgeConfigRaw = settings['sidebar_badges'] || '[]';
+    let badgeConfig: string[] = [];
+    try {
+        badgeConfig = JSON.parse(badgeConfigRaw);
+    } catch (e) {
+        badgeConfig = [];
+    }
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
@@ -166,7 +171,7 @@ export function MobileSidebar() {
                                                     )}
                                                     <Icon className="h-4 w-4 relative z-10" />
                                                     <span className="flex-1 text-sm font-medium relative z-10">{link.label}</span>
-                                                    {showNewBadge && newBadgeItems.includes(link.label) && (
+                                                    {badgeConfig.includes(href) && (
                                                         <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] font-black uppercase tracking-tighter animate-pulse border border-primary/20">
                                                             New
                                                         </span>
