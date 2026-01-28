@@ -6,7 +6,7 @@ import { CodeBlock } from "./CodeBlock";
 import { ReactLivePreview } from "./preview/ReactLivePreview";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Check, Eye, GitFork, Edit, Trash2, ExternalLink, MessageSquare, NotebookPen, MessageCircleCodeIcon, ListPlus, Loader2 } from "lucide-react";
+import { Copy, Check, Eye, GitFork, Edit, Trash2, ExternalLink, MessageSquare, NotebookPen, ListPlus, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
@@ -233,6 +233,9 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
         }
     };
 
+    const [expanded, setExpanded] = useState(false);
+    const isLongDescription = (snippet.description || "").length > 100;
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -241,242 +244,14 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
             transition={{ duration: 0.4 }}
             onMouseEnter={handlePrefetch}
             className={cn(
-                "w-full max-w-xl mx-auto mb-10 px-4 sm:px-0 transition-all duration-500",
+                "w-full max-w-xl mx-auto mb-6 md:mb-10 px-0 transition-all duration-500",
                 className
             )}
         >
             <div className="relative group bg-card border border-border shadow-sm hover:shadow-md transition-all rounded-[1.5rem] overflow-hidden flex flex-col">
 
-                {/* A. HEADER */}
-                <div className="p-5 border-b border-border bg-muted/20">
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-start justify-between gap-4">
-                            <Link
-                                to={`/snippets/${snippet.id}`}
-                                className="flex flex-col gap-1.5 min-w-0 group/header relative"
-                            >
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    {snippet.annotations && snippet.annotations !== "[]" ? (
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <MessageSquare className="h-4 w-4 text-primary animate-pulse shrink-0" />
-                                                </TooltipTrigger>
-                                                <TooltipContent className="bg-popover border-border text-popover-foreground font-bold p-2 rounded-lg">
-                                                    Interactive Annotations Available
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    ) : (
-                                        <NotebookPen className={cn(
-                                            "h-4 w-4 shrink-0 transition-all",
-                                            snippet.verified ? "text-emerald-500 drop-shadow-sm" : "text-primary/70"
-                                        )} />
-                                    )}
-
-                                    {snippet.verified && (
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">Verified</span>
-                                                </TooltipTrigger>
-                                                <TooltipContent className="bg-popover border border-border text-popover-foreground font-medium p-3 rounded-xl max-w-xs shadow-xl">
-                                                    <div className="space-y-1">
-                                                        <p className="text-emerald-500 font-bold">Official Verification</p>
-                                                        <p className="text-[11px] text-muted-foreground">This snippet has been reviewed by the CodeStudio team for performance, security, and best practices.</p>
-                                                    </div>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    )}
-                                    <h3 className="text-lg font-bold text-foreground tracking-tight leading-snug break-words group-hover/header:text-primary transition-colors pr-6">
-                                        {snippet.title}
-                                        <MessageCircleCodeIcon className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 opacity-0 group-hover/header:opacity-100 transition-all text-primary" />
-                                    </h3>
-                                </div>
-                                {snippet.description && (
-                                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{snippet.description}</p>
-                                )}
-                            </Link>
-
-                            {/* Badges */}
-                            <div className="flex flex-col items-end gap-2 shrink-0">
-                                <div className="flex flex-wrap justify-end gap-1.5">
-                                    <span className="px-2 py-1 rounded-md bg-muted border border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{snippet.language}</span>
-                                    {snippet.annotations && snippet.annotations !== "[]" && (
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-wider text-primary animate-pulse">
-                                                        <MessageSquare className="h-3 w-3" />
-                                                        <span>annotated</span>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>This snippet has line-by-line explanations!</TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    )}
-                                    {snippet.type && (
-                                        <span className={cn("px-2 py-1 rounded-md bg-muted border border-border text-[10px] font-bold uppercase tracking-wider", typeColors[snippet.type] || "text-muted-foreground")}>{snippet.type}</span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* B. CONTENT (Aspect Block) */}
-                <div className="relative w-full h-[320px] sm:h-[400px] bg-muted/50 overflow-hidden group/preview border-b border-border">
-                    {/* View Mode Indicator */}
-                    <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-100 sm:opacity-0 sm:group-hover/preview:opacity-100 transition-opacity">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-background/80 backdrop-blur px-2 py-1 rounded border border-border">
-                            {isAltHeld ? "⚡ Quick Look" : (viewMode === 'preview' ? (isReact ? 'Live React' : isMarkdown ? 'Markdown' : 'Web Preview') : viewMode === 'output' ? 'Console' : 'Source')}
-                        </span>
-                    </div>
-
-                    {isAltHeld ? (
-                        <div className="absolute inset-0 bg-background text-foreground animate-in fade-in zoom-in-95 duration-200">
-                            <div className="absolute inset-0 p-6 pointer-events-none">
-                                <div className="absolute inset-0 bg-primary/5 border-2 border-primary/20 rounded-2xl" />
-                            </div>
-                            <CodeBlock code={snippet.code} language={snippet.language} className="h-full w-full bg-transparent p-8 text-xs font-mono leading-relaxed custom-scrollbar overflow-auto" />
-                        </div>
-                    ) : viewMode === 'preview' ? (
-                        isReact ? (
-                            <div className={cn("absolute inset-0 overflow-auto bg-background flex p-4", alignment === 'center' ? "items-center justify-center" : "items-start justify-start")}>
-                                <ReactLivePreview code={snippet.code} />
-                            </div>
-                        ) : isMermaid ? (
-                            <div className="absolute inset-0 bg-background overflow-hidden">
-                                <MermaidDiagram definition={snippet.code} />
-                            </div>
-                        ) : isMarkdown ? (
-                            <div className="absolute inset-0 bg-background p-8 overflow-auto prose prose-invert prose-sm max-w-none">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{snippet.code}</ReactMarkdown>
-                            </div>
-                        ) : (
-                            <div className="absolute inset-0 bg-white">
-                                <iframe srcDoc={getIframeSrc(snippet.code)} title="HTML Preview" className="w-full h-full border-0" sandbox="allow-scripts" />
-                            </div>
-                        )
-                    ) : viewMode === 'output' ? (
-                        <div className="absolute inset-0 bg-muted/30 dark:bg-zinc-950 p-6 font-mono text-xs overflow-auto selection:bg-primary/30 custom-scrollbar text-foreground">
-                            {snippet.stdinHistory ? (
-                                <div className="space-y-1.5">
-                                    {(() => {
-                                        try {
-                                            const lines = JSON.parse(snippet.stdinHistory);
-                                            return lines.map((line: any, i: number) => (
-                                                <div key={i} className={cn(
-                                                    "whitespace-pre-wrap break-all leading-relaxed",
-                                                    line.type === 'input' ? "text-primary font-bold before:content-['>_'] before:mr-2" :
-                                                        line.type === 'error' ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"
-                                                )}>
-                                                    {line.text}
-                                                </div>
-                                            ));
-                                        } catch (e) {
-                                            return <div className="text-emerald-600 dark:text-emerald-400">{snippet.lastExecutionOutput || "Output Error"}</div>;
-                                        }
-                                    })()}
-                                </div>
-                            ) : (
-                                <div className="text-emerald-600 dark:text-emerald-400 whitespace-pre-wrap font-mono leading-relaxed">
-                                    {snippet.lastExecutionOutput || snippet.outputSnapshot || snippet.output || "Success (No output)"}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="absolute inset-0 bg-background text-foreground">
-                            <CodeBlock code={snippet.code} language={snippet.language} className="h-full w-full bg-transparent p-6 text-xs font-mono leading-relaxed custom-scrollbar overflow-auto" />
-                        </div>
-                    )}
-
-                    {/* Execution Controls - Redesigned for maximum visibility and aesthetic */}
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-auto opacity-0 group-hover/preview:opacity-100 transition-all duration-300 translate-y-2 group-hover/preview:translate-y-0">
-                        <div className="bg-popover/90 border border-border shadow-xl rounded-full p-1.5 flex items-center gap-1 backdrop-blur-2xl ring-1 ring-white/10 dark:ring-white/10 ring-black/5">
-                            <div className="flex items-center rounded-full p-0.5 relative gap-1">
-                                {hasPreview && (
-                                    <button
-                                        onClick={() => setViewMode('preview')}
-                                        className={cn(
-                                            "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-full",
-                                            viewMode === 'preview' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                                        )}
-                                    >
-                                        {viewMode === 'preview' && (
-                                            <motion.div
-                                                layoutId={`activeTab-${snippet.id}`}
-                                                className="absolute inset-0 bg-primary rounded-full -z-10 shadow-lg"
-                                                transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                                            />
-                                        )}
-                                        Preview
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => setViewMode('output')}
-                                    className={cn(
-                                        "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-full",
-                                        viewMode === 'output' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    {viewMode === 'output' && (
-                                        <motion.div
-                                            layoutId={`activeTab-${snippet.id}`}
-                                            className="absolute inset-0 bg-primary rounded-full -z-10 shadow-lg"
-                                            transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                                        />
-                                    )}
-                                    Output
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('code')}
-                                    className={cn(
-                                        "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-full",
-                                        viewMode === 'code' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    {viewMode === 'code' && (
-                                        <motion.div
-                                            layoutId={`activeTab-${snippet.id}`}
-                                            className="absolute inset-0 bg-primary rounded-full -z-10 shadow-lg"
-                                            transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                                        />
-                                    )}
-                                    Source
-                                </button>
-                            </div>
-
-                            <div className="w-[1px] h-4 bg-border mx-1" />
-
-                            <div className="flex items-center gap-1 pr-1">
-                                <button
-                                    onClick={handleCopy}
-                                    className="p-2 text-muted-foreground hover:text-foreground transition-all hover:bg-muted rounded-full"
-                                    title="Copy Code"
-                                >
-                                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-                                </button>
-
-                                {snippet.referenceUrl && (
-                                    <a
-                                        href={snippet.referenceUrl.startsWith('http') ? snippet.referenceUrl : `https://${snippet.referenceUrl}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-2 text-muted-foreground hover:text-primary transition-all hover:bg-primary/10 rounded-full"
-                                        title="External Docs"
-                                    >
-                                        <ExternalLink className="h-3.5 w-3.5" />
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* C. FOOTER */}
-                <div className="p-4 bg-muted/20">
+                {/* A. HEADER (Formerly Footer) - Author & Actions */}
+                <div className="p-4 bg-muted/20 border-b border-border">
                     <div className="flex items-center justify-between">
                         <Link to={`/u/${snippet.author?.username || snippet.authorId}`} className="flex items-center gap-2.5 group/author">
                             <Avatar className="h-8 w-8 border border-border">
@@ -506,7 +281,7 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
 
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <div className="flex items-center gap-1.5">
+                                        <div className="flex items-center gap-1.5 cursor-default">
                                             <Eye className="h-3.5 w-3.5" />
                                             <span>{snippet.viewsCount || 0}</span>
                                         </div>
@@ -585,43 +360,294 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                         {/* Owner Actions */}
                         {isAuthenticated && user?.id === snippet.authorId && (
                             <div className="flex items-center gap-1 border-l border-border pl-4 ml-4">
-                                <button
-                                    onClick={() => navigate(`/create?edit=${snippet.id}`)}
-                                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-                                    title="Edit Snippet"
-                                >
-                                    <Edit className="h-4 w-4" />
-                                </button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <button
-                                            className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
-                                            title="Delete Snippet"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-popover border-border text-popover-foreground">
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Snippet?</AlertDialogTitle>
-                                            <AlertDialogDescription className="text-muted-foreground">
-                                                This action is permanent and cannot be undone.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel className="bg-muted border-border">Keep</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                onClick={handleDelete}
-                                                className="bg-red-500 hover:bg-red-600"
-                                                disabled={isDeleting}
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                onClick={() => navigate(`/create?edit=${snippet.id}`)}
+                                                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
                                             >
-                                                Delete Permanent
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                                                <Edit className="h-4 w-4" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Edit Snippet</TooltipContent>
+                                    </Tooltip>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <button
+                                                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors ml-1"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent className="bg-popover border-border text-popover-foreground">
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete Snippet?</AlertDialogTitle>
+                                                <AlertDialogDescription className="text-muted-foreground">
+                                                    This action is permanent and cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel className="bg-muted border-border">Keep</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={handleDelete}
+                                                    className="bg-red-500 hover:bg-red-600"
+                                                    disabled={isDeleting}
+                                                >
+                                                    Delete Permanent
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </TooltipProvider>
                             </div>
                         )}
+                    </div>
+                </div>
+
+                {/* B. CONTENT (Aspect Block) */}
+                <div className="relative w-full h-[320px] sm:h-[400px] bg-muted/50 overflow-hidden group/preview border-b border-border">
+                    {/* View Mode Indicator */}
+                    <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-100 sm:opacity-0 sm:group-hover/preview:opacity-100 transition-opacity">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-background/80 backdrop-blur px-2 py-1 rounded border border-border">
+                            {isAltHeld ? "⚡ Quick Look" : (viewMode === 'preview' ? (isReact ? 'Live React' : isMarkdown ? 'Markdown' : 'Web Preview') : viewMode === 'output' ? 'Console' : 'Source')}
+                        </span>
+                    </div>
+
+                    {isAltHeld ? (
+                        <div className="absolute inset-0 bg-background text-foreground animate-in fade-in zoom-in-95 duration-200">
+                            <div className="absolute inset-0 p-6 pointer-events-none">
+                                <div className="absolute inset-0 bg-primary/5 border-2 border-primary/20 rounded-2xl" />
+                            </div>
+                            <CodeBlock code={snippet.code} language={snippet.language} className="h-full w-full bg-transparent p-8 text-xs font-mono leading-relaxed custom-scrollbar overflow-auto" />
+                        </div>
+                    ) : viewMode === 'preview' ? (
+                        isReact ? (
+                            <div className={cn("absolute inset-0 overflow-auto bg-background flex p-4", alignment === 'center' ? "items-center justify-center" : "items-start justify-start")}>
+                                <ReactLivePreview code={snippet.code} />
+                            </div>
+                        ) : isMermaid ? (
+                            <div className="absolute inset-0 bg-background overflow-hidden">
+                                <MermaidDiagram definition={snippet.code} />
+                            </div>
+                        ) : isMarkdown ? (
+                            <div className="absolute inset-0 bg-background p-8 overflow-auto prose prose-invert prose-sm max-w-none">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{snippet.code}</ReactMarkdown>
+                            </div>
+                        ) : (
+                            <div className="absolute inset-0 bg-white">
+                                <iframe srcDoc={getIframeSrc(snippet.code)} title="HTML Preview" className="w-full h-full border-0" sandbox="allow-scripts" />
+                            </div>
+                        )
+                    ) : viewMode === 'output' ? (
+                        <div className="absolute inset-0 bg-muted/30 dark:bg-zinc-950 p-6 font-mono text-xs overflow-auto selection:bg-primary/30 custom-scrollbar text-foreground">
+                            {snippet.stdinHistory ? (
+                                <div className="space-y-1.5">
+                                    {(() => {
+                                        try {
+                                            const lines = JSON.parse(snippet.stdinHistory);
+                                            return lines.map((line: any, i: number) => (
+                                                <div key={i} className={cn(
+                                                    "whitespace-pre-wrap break-all leading-relaxed",
+                                                    line.type === 'input' ? "text-primary font-bold before:content-['>_'] before:mr-2" :
+                                                        line.type === 'error' ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"
+                                                )}>
+                                                    {line.text}
+                                                </div>
+                                            ));
+                                        } catch (e) {
+                                            return <div className="text-emerald-600 dark:text-emerald-400">{snippet.lastExecutionOutput || "Output Error"}</div>;
+                                        }
+                                    })()}
+                                </div>
+                            ) : (
+                                <div className="text-emerald-600 dark:text-emerald-400 whitespace-pre-wrap font-mono leading-relaxed">
+                                    {snippet.lastExecutionOutput || snippet.outputSnapshot || snippet.output || "Success (No output)"}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="absolute inset-0 bg-background text-foreground">
+                            <CodeBlock code={snippet.code} language={snippet.language} className="h-full w-full bg-transparent p-6 text-xs font-mono leading-relaxed custom-scrollbar overflow-auto" />
+                        </div>
+                    )}
+
+                    {/* Execution Controls - ALWAYS VISIBLE (Removing opacity-0 group-hover logic) */}
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-auto translate-y-0">
+                        <div className="bg-popover/90 border border-border shadow-xl rounded-full p-1.5 flex items-center gap-1 backdrop-blur-2xl ring-1 ring-white/10 dark:ring-white/10 ring-black/5">
+                            <div className="flex items-center rounded-full p-0.5 relative gap-1">
+                                <TooltipProvider>
+                                    {hasPreview && (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    onClick={() => setViewMode('preview')}
+                                                    className={cn(
+                                                        "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-full",
+                                                        viewMode === 'preview' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                                                    )}
+                                                >
+                                                    {viewMode === 'preview' && (
+                                                        <motion.div
+                                                            layoutId={`activeTab-${snippet.id}`}
+                                                            className="absolute inset-0 bg-primary rounded-full -z-10 shadow-lg"
+                                                            transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                                                        />
+                                                    )}
+                                                    Preview
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>View rendered result</TooltipContent>
+                                        </Tooltip>
+                                    )}
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                onClick={() => setViewMode('output')}
+                                                className={cn(
+                                                    "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-full",
+                                                    viewMode === 'output' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                                                )}
+                                            >
+                                                {viewMode === 'output' && (
+                                                    <motion.div
+                                                        layoutId={`activeTab-${snippet.id}`}
+                                                        className="absolute inset-0 bg-primary rounded-full -z-10 shadow-lg"
+                                                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                                                    />
+                                                )}
+                                                Output
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>View console/logs</TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                onClick={() => setViewMode('code')}
+                                                className={cn(
+                                                    "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-full",
+                                                    viewMode === 'code' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                                                )}
+                                            >
+                                                {viewMode === 'code' && (
+                                                    <motion.div
+                                                        layoutId={`activeTab-${snippet.id}`}
+                                                        className="absolute inset-0 bg-primary rounded-full -z-10 shadow-lg"
+                                                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                                                    />
+                                                )}
+                                                Source
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>View source code</TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+
+                            <div className="w-[1px] h-4 bg-border mx-1" />
+
+                            <div className="flex items-center gap-1 pr-1">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                onClick={handleCopy}
+                                                className="p-2 text-muted-foreground hover:text-foreground transition-all hover:bg-muted rounded-full"
+                                            >
+                                                {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Copy to clipboard</TooltipContent>
+                                    </Tooltip>
+
+                                    {snippet.referenceUrl && (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <a
+                                                    href={snippet.referenceUrl.startsWith('http') ? snippet.referenceUrl : `https://${snippet.referenceUrl}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 text-muted-foreground hover:text-primary transition-all hover:bg-primary/10 rounded-full"
+                                                >
+                                                    <ExternalLink className="h-3.5 w-3.5" />
+                                                </a>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Open Reference</TooltipContent>
+                                        </Tooltip>
+                                    )}
+                                </TooltipProvider>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* C. FOOTER (Formerly Header) - Title & Description */}
+                <div className="p-5 bg-card">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-start justify-between gap-4">
+                            <Link
+                                to={`/snippets/${snippet.id}`}
+                                className="flex flex-col gap-1.5 min-w-0 group/header relative flex-1"
+                            >
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {snippet.annotations && snippet.annotations !== "[]" ? (
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <MessageSquare className="h-4 w-4 text-primary animate-pulse shrink-0" />
+                                                </TooltipTrigger>
+                                                <TooltipContent className="bg-popover border-border text-popover-foreground font-bold p-2 rounded-lg">
+                                                    Interactive Annotations Available
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    ) : (
+                                        <NotebookPen className={cn(
+                                            "h-4 w-4 shrink-0 transition-all",
+                                            snippet.verified ? "text-emerald-500 drop-shadow-sm" : "text-primary/70"
+                                        )} />
+                                    )}
+
+                                    {snippet.verified && (
+                                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">Verified</span>
+                                    )}
+                                    <h3 className="text-xl font-bold text-foreground tracking-tight leading-snug break-words group-hover/header:text-primary transition-colors pr-6">
+                                        {snippet.title}
+                                    </h3>
+                                </div>
+                                {snippet.description && (
+                                    <div className="text-base font-normal text-muted-foreground leading-relaxed">
+                                        {isLongDescription && !expanded ? (
+                                            <>
+                                                {snippet.description.slice(0, 100)}...{" "}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        setExpanded(true);
+                                                    }}
+                                                    className="text-primary font-bold text-xs hover:underline ml-1"
+                                                >
+                                                    Read More
+                                                </button>
+                                            </>
+                                        ) : (
+                                            snippet.description
+                                        )}
+                                    </div>
+                                )}
+                            </Link>
+
+                            {/* Tags/Badges */}
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                                <div className="flex flex-wrap justify-end gap-1.5">
+                                    <span className="px-2 py-1 rounded-md bg-muted border border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{snippet.language}</span>
+                                    {snippet.type && (
+                                        <span className={cn("px-2 py-1 rounded-md bg-muted border border-border text-[10px] font-bold uppercase tracking-wider", typeColors[snippet.type] || "text-muted-foreground")}>{snippet.type}</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

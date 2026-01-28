@@ -63,22 +63,22 @@ const GUIDE_SECTIONS = [
 export function SystemGuideModal({ isOpen, onClose }: SystemGuideModalProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl bg-[#0c0c0e]/95 backdrop-blur-2xl border-white/10 shadow-2xl p-0 overflow-hidden">
-                <div className="grid grid-cols-1 md:grid-cols-5 h-full">
+            <DialogContent className="max-w-4xl max-h-[90vh] md:h-auto bg-[#0c0c0e]/95 backdrop-blur-2xl border-white/10 shadow-2xl p-0 overflow-hidden flex flex-col md:block">
+                <div className="flex flex-col md:grid md:grid-cols-5 h-full overflow-hidden">
                     {/* Sidebar */}
-                    <div className="md:col-span-2 bg-white/[0.02] border-r border-white/5 p-8 flex flex-col justify-between">
+                    <div className="md:col-span-2 bg-white/[0.02] border-b md:border-b-0 md:border-r border-white/5 p-6 md:p-8 flex flex-col justify-between shrink-0">
                         <div>
-                            <div className="flex items-center gap-3 mb-8">
+                            <div className="flex items-center gap-3 mb-4 md:mb-8">
                                 <div className="p-2 rounded-xl bg-primary/20 text-primary">
-                                    <Code2 className="w-6 h-6" />
+                                    <Code2 className="w-5 h-5 md:w-6 md:h-6" />
                                 </div>
-                                <h2 className="text-xl font-black text-white tracking-tight font-headline">SYSTEM <span className="text-primary italic">MANUAL</span></h2>
+                                <h2 className="text-lg md:text-xl font-black text-white tracking-tight font-headline">SYSTEM <span className="text-primary italic">MANUAL</span></h2>
                             </div>
-                            <p className="text-sm text-white/40 font-medium leading-relaxed mb-8">
+                            <p className="text-sm text-white/40 font-medium leading-relaxed mb-4 md:mb-8 hidden md:block">
                                 Welcome to CodeStudio. This environment is designed to reward logic, community contribution, and competitive excellence.
                             </p>
                         </div>
-                        <div className="space-y-4">
+                        <div className="space-y-4 hidden md:block">
                             <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
                                 <div className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">PRO TIP</div>
                                 <p className="text-[10px] text-white/50 leading-relaxed font-bold">
@@ -89,15 +89,18 @@ export function SystemGuideModal({ isOpen, onClose }: SystemGuideModalProps) {
                     </div>
 
                     {/* Main Content */}
-                    <div className="md:col-span-3 p-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                        <div className="space-y-8">
+                    <div className="md:col-span-3 p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1 relative flex flex-col">
+                        <div className="space-y-6 md:space-y-8 pb-20 md:pb-0">
+                            <p className="text-sm text-white/40 font-medium leading-relaxed md:hidden">
+                                Welcome to CodeStudio. This environment is designed to reward logic, community contribution, and competitive excellence.
+                            </p>
                             {GUIDE_SECTIONS.map((section, idx) => (
                                 <motion.div
                                     key={section.title}
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: idx * 0.1 }}
-                                    className="space-y-4"
+                                    className="space-y-3 md:space-y-4"
                                 >
                                     <div className="flex items-center gap-3">
                                         <section.icon className={`w-5 h-5 ${section.color}`} />
@@ -115,10 +118,10 @@ export function SystemGuideModal({ isOpen, onClose }: SystemGuideModalProps) {
                             ))}
                         </div>
 
-                        <div className="mt-12 pt-8 border-t border-white/5 flex justify-end">
+                        <div className="mt-auto pt-6 border-t border-white/5 flex justify-end sticky bottom-0 bg-[#0c0c0e] md:bg-transparent pb-4 md:pb-0 z-10 w-full">
                             <button
                                 onClick={onClose}
-                                className="px-6 py-2.5 rounded-xl bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-white/90 transition-all active:scale-95"
+                                className="w-full md:w-auto px-6 py-3 md:py-2.5 rounded-xl bg-white text-black font-black uppercase text-xs md:text-[10px] tracking-widest hover:bg-white/90 transition-all active:scale-95 shadow-xl"
                             >
                                 Acknowledge & Initialize
                             </button>

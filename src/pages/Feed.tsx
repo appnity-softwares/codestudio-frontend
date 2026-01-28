@@ -222,7 +222,7 @@ export default function Feed() {
                 )}
             </AnimatePresence>
 
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
                 {/* Main Feed Column - Full Width */}
                 <div className="space-y-6">
                     {/* v1.3: Responsive Tab Navigation */}
