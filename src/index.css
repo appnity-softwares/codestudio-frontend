@@ -105,7 +105,27 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased selection:bg-purple-500/30 text-[16px] leading-relaxed;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30 selection:text-foreground text-[16px] leading-relaxed;
+  }
+
+  /* Unified Focus System */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* HUD-style focus for interactive elements */
+  button:focus-visible,
+  a:focus-visible {
+    @apply ring-offset-4;
+  }
+
+  /* Global Interactive Smoothing */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    @apply transition-all duration-200 ease-in-out;
   }
 
   h1,

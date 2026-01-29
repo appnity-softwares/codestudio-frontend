@@ -54,12 +54,15 @@ const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"))
 const AdminSubmissions = lazy(() => import("./pages/admin/AdminSubmissions"))
 const AdminSystem = lazy(() => import("./pages/admin/AdminSystem"))
 const AdminAvatars = lazy(() => import("./pages/admin/AdminAvatars"))
+const AdminAuraCreator = lazy(() => import("./pages/admin/AdminAuraCreator"))
 const AdminRoles = lazy(() => import("./pages/admin/AdminRoles"))
 const AdminChangelog = lazy(() => import("./pages/admin/AdminChangelog"))
 const AdminPractice = lazy(() => import("./pages/admin/AdminPractice"))
 const AdminRoadmaps = lazy(() => import("./pages/admin/AdminRoadmaps"))
 const AdminBadgeConfig = lazy(() => import("./pages/admin/AdminBadgeConfig"))
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"))
+const AdminChat = lazy(() => import("./pages/admin/AdminChat"))
+const AdminAppeals = lazy(() => import("./pages/admin/AdminAppeals"))
 const Changelog = lazy(() => import("./pages/Changelog"))
 const PracticeList = lazy(() => import("./pages/PracticeList"))
 const PracticeWorkspace = lazy(() => import("./pages/PracticeWorkspace"))
@@ -74,10 +77,13 @@ const NotFound = lazy(() => import("./pages/NotFound"))
 const Leaderboard = lazy(() => import("./pages/Leaderboard"))
 const FeedbackWall = lazy(() => import("./pages/FeedbackWall"))
 const Messages = lazy(() => import("./pages/Messages"))
+const Notifications = lazy(() => import("./pages/Notifications"))
+
 
 
 
 import { DesktopOnlyGuard } from "./components/DesktopOnlyGuard"
+import { FeatureGuard } from "./components/FeatureGuard"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthError, MaintenanceError } from "./lib/api";
@@ -208,15 +214,15 @@ function AppRoutes() {
                                     <Route path="arena/env/:id" element={<ProtectedRoute><DesktopOnlyGuard featureName="Contest Environment"><ContestEnvironment /></DesktopOnlyGuard></ProtectedRoute>} />
                                     <Route path="arena/official/:id" element={<ProtectedRoute><OfficialContest /></ProtectedRoute>} />
                                     <Route path="contest/:id/*" element={<ProtectedRoute><DesktopOnlyGuard featureName="Live Contest"><ContestEnvironment /></DesktopOnlyGuard></ProtectedRoute>} />
-                                    <Route path="practice" element={<ProtectedRoute><PracticeList /></ProtectedRoute>} />
-                                    <Route path="practice/:id" element={<ProtectedRoute><DesktopOnlyGuard featureName="Practice Arena"><PracticeWorkspace /></DesktopOnlyGuard></ProtectedRoute>} />
+                                    <Route path="practice" element={<ProtectedRoute><FeatureGuard featureKey="feature_sidebar_practice"><PracticeList /></FeatureGuard></ProtectedRoute>} />
+                                    <Route path="practice/:id" element={<ProtectedRoute><FeatureGuard featureKey="feature_sidebar_practice"><DesktopOnlyGuard featureName="Practice Arena"><PracticeWorkspace /></DesktopOnlyGuard></FeatureGuard></ProtectedRoute>} />
                                     <Route path="profile/me" element={<ProtectedRoute><RedirectToProfile /></ProtectedRoute>} />
                                     <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
                                     <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                                     <Route path="settings/avatars" element={<ProtectedRoute><AvatarPicker /></ProtectedRoute>} />
-                                    <Route path="community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
-                                    <Route path="leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-                                    <Route path="feedback" element={<ProtectedRoute><FeedbackWall /></ProtectedRoute>} />
+                                    <Route path="community" element={<ProtectedRoute><FeatureGuard featureKey="feature_sidebar_community"><Community /></FeatureGuard></ProtectedRoute>} />
+                                    <Route path="leaderboard" element={<ProtectedRoute><FeatureGuard featureKey="feature_sidebar_leaderboard"><Leaderboard /></FeatureGuard></ProtectedRoute>} />
+                                    <Route path="feedback" element={<ProtectedRoute><FeatureGuard featureKey="feature_sidebar_feedback"><FeedbackWall /></FeatureGuard></ProtectedRoute>} />
                                     <Route path="u/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                                     <Route path="social/requests" element={<ProtectedRoute><LinkRequests /></ProtectedRoute>} />
                                     <Route path="snippets/:id" element={<ProtectedRoute><SnippetDetail /></ProtectedRoute>} />
@@ -224,8 +230,9 @@ function AppRoutes() {
                                     <Route path="badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
                                     <Route path="roadmaps" element={<ProtectedRoute><RoadmapList /></ProtectedRoute>} />
                                     <Route path="roadmaps/:id" element={<ProtectedRoute><RoadmapDetail /></ProtectedRoute>} />
-                                    <Route path="trophy-room" element={<ProtectedRoute><TrophyRoom /></ProtectedRoute>} />
-                                    <Route path="xp-store" element={<ProtectedRoute><XPStore /></ProtectedRoute>} />
+                                    <Route path="trophy-room" element={<ProtectedRoute><FeatureGuard featureKey="feature_sidebar_trophy_room"><TrophyRoom /></FeatureGuard></ProtectedRoute>} />
+                                    <Route path="xp-store" element={<ProtectedRoute><FeatureGuard featureKey="feature_sidebar_xp_store"><XPStore /></FeatureGuard></ProtectedRoute>} />
+                                    <Route path="notifications" element={<ProtectedRoute><FeatureGuard featureKey="feature_notifications_enabled"><Notifications /></FeatureGuard></ProtectedRoute>} />
                                     <Route path="help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
                                     <Route path="messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
                                     <Route path="*" element={<NotFound />} />
@@ -246,6 +253,7 @@ function AppRoutes() {
                     <Route path="flags" element={<FlagReview />} />
                     <Route path="system" element={<AdminSystem />} />
                     <Route path="avatars" element={<AdminAvatars />} />
+                    <Route path="auras" element={<AdminAuraCreator />} />
                     <Route path="roles" element={<AdminRoles />} />
                     <Route path="audit-logs" element={<AuditLogs />} />
                     <Route path="changelog" element={<AdminChangelog />} />
@@ -253,6 +261,8 @@ function AppRoutes() {
                     <Route path="roadmaps" element={<AdminRoadmaps />} />
                     <Route path="badge-config" element={<AdminBadgeConfig />} />
                     <Route path="reports" element={<AdminReports />} />
+                    <Route path="chat" element={<AdminChat />} />
+                    <Route path="appeals" element={<AdminAppeals />} />
                 </Route>
             </Routes>
         </Suspense>
@@ -263,6 +273,7 @@ function AppRoutes() {
 
 import { SidebarProvider } from "./context/SidebarContext"
 import { ChatProvider } from "./context/ChatContext"
+import { PresenceProvider } from "./context/PresenceContext"
 
 function App() {
     return (
@@ -274,10 +285,12 @@ function App() {
                             <TooltipProvider>
                                 <SidebarProvider>
                                     <ChatProvider>
-                                        <BadgeProvider>
-                                            <AppRoutes />
-                                            <Toaster />
-                                        </BadgeProvider>
+                                        <PresenceProvider>
+                                            <BadgeProvider>
+                                                <AppRoutes />
+                                                <Toaster />
+                                            </BadgeProvider>
+                                        </PresenceProvider>
                                     </ChatProvider>
                                 </SidebarProvider>
                             </TooltipProvider>

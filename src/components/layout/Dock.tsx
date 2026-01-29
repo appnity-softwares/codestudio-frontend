@@ -16,7 +16,8 @@ import {
     Award,
     ShoppingBag,
     Check,
-    Sparkles
+    Sparkles,
+    Megaphone
 } from "lucide-react";
 import { claimQuestReward } from "@/store/slices/userSlice";
 import confetti from "canvas-confetti";
@@ -124,7 +125,7 @@ export function Dock() {
         ...(isFeatureEnabled('feature_sidebar_community') ? [{ icon: Globe, label: "Discover", path: "/community" }] : []),
         ...(isFeatureEnabled('feature_sidebar_trophy_room') ? [{ icon: Award, label: "Trophy Room", path: "/trophy-room" }] : []),
         ...(isFeatureEnabled('feature_sidebar_xp_store') ? [{ icon: ShoppingBag, label: "XP Store", path: "/xp-store" }] : []),
-        ...(isFeatureEnabled('feature_sidebar_feedback') ? [{ icon: ShieldCheck, label: "Feedback Wall", path: "/feedback" }] : []),
+        ...(isFeatureEnabled('feature_sidebar_feedback') ? [{ icon: Megaphone, label: "Feedback Wall", path: "/feedback" }] : []),
         { icon: MessageSquare, label: "Messages", path: "/messages", badge: totalUnread > 0 ? totalUnread : undefined },
         ...(isAdmin ? [{ icon: ShieldCheck, label: "Admin Panel", path: "/admin" }] : [])
     ];
@@ -206,13 +207,7 @@ export function Dock() {
 
                                 {!isActive && !isCollapsed && (
                                     <>
-                                        {item.label === "Arena" && (
-                                            <span className="ml-auto bg-primary/20 text-primary text-[8px] font-black px-1.5 py-0.5 rounded-md border border-primary/20 animate-pulse">
-                                                NEW
-                                            </span>
-                                        )}
                                         {(() => {
-                                            if (item.label === "Arena") return null; // Handled above for legacy support
                                             try {
                                                 const badgeConfig = JSON.parse(settings['dock_badges'] || '{}');
                                                 const badgeText = badgeConfig[item.path];

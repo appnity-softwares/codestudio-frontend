@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, ChevronLeft, ChevronRight, AlertTriangle, Ban, Unlock, Edit2, Trash2 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, AlertTriangle, Ban, Unlock, Edit2, Trash2, Trophy, Coins } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ export default function AdminUsers() {
     const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [grantXPDialogOpen, setGrantXPDialogOpen] = useState(false);
 
     // Form State
     const [editForm, setEditForm] = useState({
@@ -72,6 +73,8 @@ export default function AdminUsers() {
     const [suspendReason, setSuspendReason] = useState("");
     const [suspendType, setSuspendType] = useState<"TEMPORARY" | "PERMANENT">("TEMPORARY");
     const [suspendHours, setSuspendHours] = useState(24);
+    const [grantXPAmount, setGrantXPAmount] = useState(100);
+    const [grantXPReason, setGrantXPReason] = useState("Activity Bonus");
 
     // Debounce search input
     useEffect(() => {
@@ -135,6 +138,21 @@ export default function AdminUsers() {
             queryClient.invalidateQueries({ queryKey: ["admin-users"] });
             setSelectedIds([]);
             setDeleteDialogOpen(false);
+        },
+        onError: (error: any) => {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        },
+    });
+
+    // Grant XP mutation
+    const grantXPMutation = useMutation({
+        mutationFn: (data: { userId: string; amount: number; reason: string }) =>
+            adminAPI.grantXP(data.userId, data.amount, data.reason),
+        onSuccess: () => {
+            toast({ title: "XP Granted", description: `Successfully granted XP points.` });
+            queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            setGrantXPDialogOpen(false);
+            setGrantXPReason("Activity Bonus");
         },
         onError: (error: any) => {
             toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -219,6 +237,28 @@ export default function AdminUsers() {
         });
     };
 
+    const handleGrantXP = async () => {
+        if ((!selectedUser && selectedIds.length === 0) || !grantXPAmount) return;
+
+        if (selectedIds.length > 0) {
+            // Bulk Grant
+            for (const userId of selectedIds) {
+                await grantXPMutation.mutateAsync({
+                    userId,
+                    amount: grantXPAmount,
+                    reason: grantXPReason
+                });
+            }
+            setSelectedIds([]);
+        } else if (selectedUser) {
+            grantXPMutation.mutate({
+                userId: selectedUser.id,
+                amount: grantXPAmount,
+                reason: grantXPReason
+            });
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -227,6 +267,9 @@ export default function AdminUsers() {
                     {selectedIds.length > 0 && (
                         <div className="flex items-center gap-2 mr-4 p-1 px-3 bg-muted rounded-lg border border-border/50 animate-in fade-in slide-in-from-right-2">
                             <span className="text-xs font-bold">{selectedIds.length} selected</span>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10" onClick={() => setGrantXPDialogOpen(true)}>
+                                Bulk Grant XP
+                            </Button>
                             <Button size="sm" variant="ghost" className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10" onClick={() => setDeleteDialogOpen(true)}>
                                 Bulk Delete
                             </Button>
@@ -325,6 +368,19 @@ export default function AdminUsers() {
                                                 onClick={() => handleEditOpen(user)}
                                             >
                                                 <Edit2 className="h-4 w-4" />
+                                            </Button>
+
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="text-primary hover:bg-primary/5"
+                                                onClick={() => {
+                                                    setSelectedUser(user);
+                                                    setGrantXPDialogOpen(true);
+                                                }}
+                                                title="Grant XP"
+                                            >
+                                                <Coins className="h-4 w-4" />
                                             </Button>
 
                                             {user.isBlocked ? (
@@ -546,7 +602,14 @@ export default function AdminUsers() {
                                 type="number"
                                 min="1"
                                 value={editForm.level}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, level: parseInt(e.target.value) || 1 }))}
+                                onChange={(e) => {
+                                    const level = parseInt(e.target.value) || 1;
+                                    setEditForm(prev => ({
+                                        ...prev,
+                                        level,
+                                        xp: Math.max(prev.xp, (level - 1) * 1000)
+                                    }));
+                                }}
                                 className="col-span-3 h-8"
                             />
                         </div>
@@ -557,7 +620,14 @@ export default function AdminUsers() {
                                 type="number"
                                 min="0"
                                 value={editForm.xp}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, xp: parseInt(e.target.value) || 0 }))}
+                                onChange={(e) => {
+                                    const xp = parseInt(e.target.value) || 0;
+                                    setEditForm(prev => ({
+                                        ...prev,
+                                        xp,
+                                        level: Math.floor(xp / 1000) + 1
+                                    }));
+                                }}
                                 className="col-span-3 h-8"
                             />
                         </div>
@@ -611,6 +681,54 @@ export default function AdminUsers() {
                             disabled={deleteMutation.isPending}
                         >
                             {deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Grant XP Dialog */}
+            <Dialog open={grantXPDialogOpen} onOpenChange={setGrantXPDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Trophy className="h-5 w-5 text-yellow-500" />
+                            Grant XP Points
+                        </DialogTitle>
+                        <DialogDescription>
+                            {selectedIds.length > 0
+                                ? `Rewarding ${selectedIds.length} selected users.`
+                                : `Rewarding @${selectedUser?.username} for their contributions.`
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Amount (Positive or Negative)</Label>
+                            <Input
+                                type="number"
+                                value={grantXPAmount}
+                                onChange={(e) => setGrantXPAmount(parseInt(e.target.value) || 0)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Reason</Label>
+                            <Input
+                                value={grantXPReason}
+                                onChange={(e) => setGrantXPReason(e.target.value)}
+                                placeholder="e.g. Bug Bounty, Quality Post, Event Winner"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setGrantXPDialogOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={handleGrantXP}
+                            disabled={grantXPMutation.isPending}
+                            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
+                        >
+                            {grantXPMutation.isPending ? "Processing..." : "Grant XP"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

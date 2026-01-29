@@ -377,6 +377,18 @@ export const usersAPI = {
             method: 'POST',
             body: JSON.stringify({ itemId, amount }),
         }),
+
+    equipAura: (auraId: string) =>
+        apiRequest<{ message: string; equippedAura: string }>('/users/profile/equip-aura', {
+            method: 'POST',
+            body: JSON.stringify({ auraId }),
+        }),
+
+    generateVaultKey: () => apiRequest<{ vaultKey: string }>('/users/vault/key', { method: 'POST' }),
+    verifyVaultKey: (key: string) => apiRequest<{ username: string; message: string }>('/users/vault/verify', {
+        method: 'POST',
+        body: JSON.stringify({ key })
+    }),
 };
 
 export const communityAPI = {
@@ -699,6 +711,8 @@ export const adminAPI = {
         apiRequest<{ message: string }>(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteUser: (id: string) =>
         apiRequest<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' }),
+    grantXP: (id: string, amount: number, reason: string) =>
+        apiRequest<{ message: string }>(`/admin/users/${id}/grant-xp`, { method: 'POST', body: JSON.stringify({ amount, reason }) }),
 
     getRolePermissions: () =>
         apiRequest<{ permissions: any[] }>('/admin/roles/permissions'),
@@ -781,6 +795,21 @@ export const adminAPI = {
             method: 'POST',
             body: JSON.stringify({ status })
         }),
+
+    // Admin Chat
+    sendAdminMessage: (userId: string, content: string) =>
+        apiRequest<{ message: string; chatMessage: any }>(`/admin/users/${userId}/message`, {
+            method: 'POST',
+            body: JSON.stringify({ content })
+        }),
+
+    // Appeals
+    getAppeals: () => apiRequest<{ appeals: any[] }>('/admin/appeals'),
+    updateAppealStatus: (id: string, status: string) =>
+        apiRequest<{ message: string }>(`/admin/appeals/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ status })
+        }),
 };
 
 export const playlistsAPI = {
@@ -816,5 +845,12 @@ export const systemAPI = {
         upcomingEvents: any[];
         topContestants: any[];
     }>('/landing/stats'),
+    submitAppeal: (data: { email: string; username: string; reason: string }) =>
+        apiRequest<{ message: string }>('/auth/appeal', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
 };
+
+
 

@@ -13,6 +13,7 @@ import { useSocket } from "@/context/SocketContext";
 import { HamsterLoader } from "@/components/shared/HamsterLoader";
 import { useToast } from "@/hooks/use-toast";
 import { useThrottle } from "@/hooks/use-throttle";
+import { usePresence } from "@/context/PresenceContext";
 import { MessageBubble } from "./MessageBubble";
 import { ImageLinkPreview } from "./ImageLinkPreview";
 import { MentionAutocomplete } from "./MentionAutocomplete";
@@ -45,11 +46,11 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
 
     const [messageInput, setMessageInput] = useState("");
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-    const [isTyping, setIsTyping] = useState(false);
+    const { isUserTyping, isUserOnline } = usePresence();
     const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
     const [reactions, setReactions] = useState<Record<string, any[]>>({});
     const scrollRef = useRef<HTMLDivElement>(null);
-    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const typingEmitterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // ============================================================
     // QUERY: Fetch messages for active conversation
@@ -58,9 +59,8 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
         queryKey: ['messages', activeContact?.user?.id],
         queryFn: () => messagesAPI.getMessages(activeContact!.user.id),
         enabled: !!activeContact?.user?.id,
-        // Fallback polling (socket is primary)
-        refetchInterval: 10000,
-        staleTime: 5000,
+        // No polling for messages - strictly use Socket.io for updates
+        staleTime: 30000, // 30s stale time since we have real-time updates
     });
 
     // Normalize messages for consistent access
@@ -112,21 +112,31 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
                 const oldMessages: ChatMessage[] = (old?.messages || []).map(normalizeMessage);
 
                 // DEDUPLICATION: Check by both id and clientMessageId
-                const isDuplicate = oldMessages.some(m =>
+                const messageIndex = oldMessages.findIndex(m =>
                     (m.id && m.id === msg.id) ||
                     (m.clientMessageId && m.clientMessageId === msg.clientMessageId)
                 );
 
-                if (isDuplicate) {
-                    // Update existing message (might be optimistic → real)
-                    return {
-                        ...old,
-                        messages: oldMessages.map(m =>
-                            (m.clientMessageId === msg.clientMessageId || m.id === msg.id)
-                                ? { ...m, ...msg, status: msg.status || 'sent' }
-                                : m
-                        )
+                if (messageIndex !== -1) {
+                    // Update existing message
+                    const updatedMessages = [...oldMessages];
+                    const existing = updatedMessages[messageIndex];
+
+                    // PRESERVE STATUS: Don't revert to 'sent' if already 'delivered' or 'read'
+                    const statusOrder = { 'sending': 0, 'sent': 1, 'delivered': 2, 'read': 3, 'failed': 0 };
+                    const currentStatus = (existing.status || 'sent') as keyof typeof statusOrder;
+                    const newStatus = (msg.status || 'sent') as keyof typeof statusOrder;
+
+                    const resolvedStatus = statusOrder[newStatus] > statusOrder[currentStatus]
+                        ? newStatus
+                        : currentStatus;
+
+                    updatedMessages[messageIndex] = {
+                        ...existing,
+                        ...msg,
+                        status: resolvedStatus
                     };
+                    return { ...old, messages: updatedMessages };
                 }
 
                 return { ...old, messages: [...oldMessages, msg] };
@@ -138,27 +148,6 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
                 // Also mark as read since conversation is visible
                 socket.emit('message_ack', { messageId: msg.id, status: 'read' });
             }
-        };
-
-        // Handle typing indicator
-        const handleTyping = (data: any) => {
-            if (data.userId !== conversationUserId) return;
-
-            setIsTyping(true);
-
-            // Clear any existing timeout
-            if (typingTimeoutRef.current) {
-                clearTimeout(typingTimeoutRef.current);
-            }
-
-            // Use server expiresAt or default 4s
-            const expiresIn = data.expiresAt
-                ? Math.max(0, (data.expiresAt * 1000) - Date.now())
-                : 4000;
-
-            typingTimeoutRef.current = setTimeout(() => {
-                setIsTyping(false);
-            }, Math.min(expiresIn, 5000));
         };
 
         // Handle message status updates (sent → delivered → read)
@@ -236,25 +225,37 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
         };
 
         socket.on('receive_message', handleNewMessage);
-        socket.on('user_typing', handleTyping);
         socket.on('message_status', handleMessageStatus);
         socket.on('message_read', handleReadStatus);
+        socket.on('read_status', handleReadStatus);
         socket.on('reaction_added', handleReactionAdded);
         socket.on('reaction_removed', handleReactionRemoved);
 
         return () => {
             socket.off('receive_message', handleNewMessage);
-            socket.off('user_typing', handleTyping);
             socket.off('message_status', handleMessageStatus);
             socket.off('message_read', handleReadStatus);
+            socket.off('read_status', handleReadStatus);
             socket.off('reaction_added', handleReactionAdded);
             socket.off('reaction_removed', handleReactionRemoved);
-
-            if (typingTimeoutRef.current) {
-                clearTimeout(typingTimeoutRef.current);
-            }
         };
     }, [socket, activeContact?.user?.id, queryClient, user?.id]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setMessageInput(val);
+
+        // Emit typing event to socket
+        if (socket && activeContact?.user?.id && val.trim()) {
+            // Internal simple throttle: only send every 2 seconds
+            if (!typingEmitterTimeoutRef.current) {
+                socket.emit('typing', { recipientId: activeContact.user.id });
+                typingEmitterTimeoutRef.current = setTimeout(() => {
+                    typingEmitterTimeoutRef.current = null;
+                }, 2000);
+            }
+        }
+    };
 
     // ============================================================
     // GENERATE CLIENT MESSAGE ID: For deduplication
@@ -334,15 +335,42 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
             if (!newMsg) return;
 
             // Replace optimistic message with server response
-            queryClient.setQueryData(['messages', activeContact?.user?.id], (old: any) => ({
-                messages: (old?.messages || []).map((m: any) =>
-                    m.clientMessageId === clientMessageId
-                        ? { ...normalizeMessage(newMsg), clientMessageId, status: 'sent' }
-                        : m
-                )
-            }));
+            // Note: Server response might be minimal (no preload). 
+            // We use clientMessageId as the primary key for state reconciliation.
+            queryClient.setQueryData(['messages', activeContact?.user?.id], (old: any) => {
+                const oldMessages: ChatMessage[] = old?.messages || [];
+                return {
+                    ...old,
+                    messages: oldMessages.map((m: any) => {
+                        if (m.clientMessageId === clientMessageId) {
+                            // Merge newMsg (ID, CreatedAt) but keep existing sender/recipient data from optimistic state
+                            const normalized = normalizeMessage(newMsg);
 
-            // Update conversations list (debounced if needed, but here simple)
+                            // PRESERVE STATUS: Don't revert if socket already updated it
+                            const statusOrder = { 'sending': 0, 'sent': 1, 'delivered': 2, 'read': 3, 'failed': 0 };
+                            const currentStatus = (m.status || 'sent') as keyof typeof statusOrder;
+                            const newStatus = 'sent'; // API success always means at least 'sent'
+
+                            const resolvedStatus = statusOrder[newStatus] > statusOrder[currentStatus]
+                                ? newStatus
+                                : currentStatus;
+
+                            return {
+                                ...m,
+                                ...normalized,
+                                clientMessageId, // Ensure we keep the local ID for reconciliation
+                                status: resolvedStatus,
+                                // Keep relations if missing in response (speed optimization)
+                                sender: normalized.sender || m.sender,
+                                recipient: normalized.recipient || m.recipient
+                            };
+                        }
+                        return m;
+                    })
+                };
+            });
+
+            // Update conversations list
             queryClient.invalidateQueries({ queryKey: ['conversations'] });
         },
         onError: (err: any, { clientMessageId, retryCount = 0 }) => {
@@ -464,10 +492,6 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
         }
     }, 3000);
 
-    const handleTypingInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setMessageInput(e.target.value);
-        emitTyping();
-    };
 
     // ============================================================
     // RENDER: Empty state
@@ -504,10 +528,18 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
                     <div>
                         <h3 className="font-bold text-sm">{activeContact.user.username}</h3>
                         <div className="flex items-center gap-1.5 h-4">
-                            {isTyping ? (
+                            {isUserTyping(activeContact.user.id) ? (
                                 <span className="text-[10px] text-primary animate-pulse font-medium">typing...</span>
                             ) : (
-                                <span className="text-[10px] text-muted-foreground">Online</span>
+                                <div className="flex items-center gap-1.5">
+                                    <div className={cn(
+                                        "h-1.5 w-1.5 rounded-full",
+                                        isUserOnline(activeContact.user.id) ? "bg-emerald-500" : "bg-muted-foreground/30"
+                                    )} />
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {isUserOnline(activeContact.user.id) ? "Online" : "Offline"}
+                                    </span>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -591,7 +623,7 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
                         <div className="relative flex-1">
                             <Input
                                 value={messageInput}
-                                onChange={handleTypingInput}
+                                onChange={handleInputChange}
                                 onPaste={handlePaste}
                                 placeholder={`Message ${activeContact.user.username}...`}
                                 className="pr-12 min-h-[50px] py-3 bg-muted/30 border-transparent focus:bg-background focus:border-border transition-all shadow-sm rounded-xl resize-none"

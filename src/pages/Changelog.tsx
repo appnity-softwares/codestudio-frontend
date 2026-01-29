@@ -6,13 +6,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import SEO from "@/components/SeoMeta";
-import { Link } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
+import { LandingNavbar } from "@/components/layout/LandingNavbar";
 import { cn } from "@/lib/utils";
 
 export default function Changelog() {
-    const { isAuthenticated } = useAuth();
     const { data, isLoading } = useQuery({
         queryKey: ["changelog"],
         queryFn: () => changelogAPI.getAll(),
@@ -27,44 +24,7 @@ export default function Changelog() {
                 description="Latest platform updates, features, and fixes for CodeStudio."
             />
 
-            {/* Standalone Navbar */}
-            <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-xl">
-                <div className="container max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2 group">
-                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/25 group-hover:scale-110 transition-transform">
-                            <Code2 className="h-5 w-5 text-white" />
-                        </div>
-                        <span className="font-bold text-lg tracking-tight">CodeStudio</span>
-                    </Link>
-
-                    <div className="flex items-center gap-4">
-                        <Link to={isAuthenticated ? "/feed" : "/auth/signin"}>
-                            <motion.div
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                            >
-                                <Button
-                                    variant={isAuthenticated ? "default" : "ghost"}
-                                    className={cn(
-                                        "text-sm font-bold transition-all px-6 relative overflow-hidden group",
-                                        isAuthenticated
-                                            ? "bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]"
-                                            : "text-white/70 hover:text-white hover:bg-white/5"
-                                    )}
-                                >
-                                    {isAuthenticated && (
-                                        <motion.div
-                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shine_1.5s_infinite]"
-                                            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                                        />
-                                    )}
-                                    {isAuthenticated ? "Go to Platform" : "Sign In"}
-                                </Button>
-                            </motion.div>
-                        </Link>
-                    </div>
-                </div>
-            </nav>
+            <LandingNavbar />
 
             <div className="py-20 px-4 relative overflow-hidden">
                 {/* Background Glow */}

@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { STORE_ITEMS } from "@/lib/constants";
+import { useQuery } from "@tanstack/react-query";
+import { systemAPI } from "@/lib/api";
 
 interface AuraAvatarProps {
     src?: string;
@@ -9,11 +14,46 @@ interface AuraAvatarProps {
     size?: "sm" | "md" | "lg" | "xl";
     className?: string;
     hideBadge?: boolean;
+    customAura?: {
+        color: string;
+        pulse: number;
+    };
 }
 
-export function AuraAvatar({ src, username, xp, size = "md", className, hideBadge }: AuraAvatarProps) {
+export function AuraAvatar({ src, username, xp, size = "md", className, hideBadge, customAura }: AuraAvatarProps) {
+    const { equippedAura } = useSelector((state: RootState) => state.user);
+    const { data: settingsData } = useQuery({
+        queryKey: ["public-system-settings"],
+        queryFn: () => systemAPI.getPublicStatus(),
+        staleTime: 5 * 60 * 1000, // 5 minutes cache
+    });
+
+    const customAurasFromSettings = (() => {
+        try {
+            const raw = settingsData?.settings?.["custom_auras"];
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    })();
+
     // Determine Aura Level
     const getAuraColor = () => {
+        // Priority 1: Specifically equipped custom aura (purchased)
+        if (equippedAura) {
+            const aura = STORE_ITEMS.find(item => item.id === equippedAura && item.type === 'AURA');
+            if (aura) return aura.effect;
+        }
+
+        // Priority 2: Custom Aura object override (legacy/context specific)
+        if (customAura) return customAura.color;
+
+        // Priority 3: Dynamic Custom Auras from System Settings (Min XP based)
+        const sortedCustom = [...customAurasFromSettings].sort((a, b) => b.minXP - a.minXP);
+        const dynamicAura = sortedCustom.find(a => xp >= a.minXP);
+        if (dynamicAura) return `bg-gradient-to-tr ${dynamicAura.gradient}`;
+
+        // Priority 4: XP-based Legacy Thresholds
         if (xp >= 10000) return "from-cyan-400 via-blue-500 to-purple-600"; // Diamond
         if (xp >= 5000) return "from-yellow-300 via-amber-500 to-yellow-600"; // Gold/Elite
         if (xp >= 2000) return "from-slate-300 via-indigo-400 to-slate-500"; // Platinum
@@ -22,6 +62,13 @@ export function AuraAvatar({ src, username, xp, size = "md", className, hideBadg
     };
 
     const getPulseIntensity = () => {
+        if (customAura) return customAura.pulse;
+
+        // Dynamic intensity for custom auras
+        const sortedCustom = [...customAurasFromSettings].sort((a, b) => b.minXP - a.minXP);
+        const dynamicAura = sortedCustom.find(a => xp >= a.minXP);
+        if (dynamicAura) return dynamicAura.pulse;
+
         if (xp >= 10000) return 3;
         if (xp >= 5000) return 2;
         if (xp >= 2000) return 1.5;
@@ -30,6 +77,7 @@ export function AuraAvatar({ src, username, xp, size = "md", className, hideBadg
 
     const auraColor = getAuraColor();
     const pulse = getPulseIntensity();
+    const level = Math.floor(xp / 1000) + 1;
 
     const sizeClasses = {
         sm: "h-8 w-8",
@@ -99,8 +147,8 @@ export function AuraAvatar({ src, username, xp, size = "md", className, hideBadg
                             xp >= 5000 ? "bg-amber-500 shadow-amber-500/40" :
                                 "bg-primary shadow-primary/40"
                     )}>
-                        {xp}
-                        {size !== "sm" && <span className="ml-0.5 text-[7px] opacity-70">XP</span>}
+                        {level}
+                        {size !== "sm" && <span className="ml-0.5 text-[7px] opacity-70 italic">LVL</span>}
                     </div>
                 </div>
             )}

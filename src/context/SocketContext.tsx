@@ -62,10 +62,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             auth: {
                 token: token
             },
-            // Removing force-websocket to allow fallback and stable upgrade handshake
-            // which is often required by go-socket.io
+            transports: ['websocket'], // FORCE WEBSOCKET for zero-handshake latency
             reconnection: true,
-            reconnectionAttempts: 5,
+            reconnectionAttempts: 10, // Increased for stability
             reconnectionDelay: 1000,
             autoConnect: true,
         });

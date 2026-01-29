@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
-import { Check, CheckCheck, Clock, AlertCircle, RotateCcw, Reply } from 'lucide-react';
+import { Check, CheckCheck, Clock, AlertCircle, RotateCcw, Reply, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { CodeBlock } from './CodeBlock';
 import { ReactionPicker, ReactionDisplay } from './ReactionPicker';
@@ -127,12 +127,21 @@ export const MessageBubble = memo(function MessageBubble({
                         isMine
                             ? "bg-primary text-primary-foreground rounded-br-md"
                             : "bg-muted text-foreground rounded-bl-md",
+                        type === 'admin' && "bg-gradient-to-br from-red-600 to-red-900 text-white border border-red-500/50 shadow-[0_0_20px_rgba(220,38,38,0.2)]",
                         status === 'failed' && "opacity-70 border border-destructive/50"
                     )}
                     onClick={status === 'failed' ? handleRetryClick : undefined}
                     role={status === 'failed' ? 'button' : undefined}
                     tabIndex={status === 'failed' ? 0 : undefined}
                 >
+                    {/* Admin Badge */}
+                    {type === 'admin' && (
+                        <div className="flex items-center gap-1.5 mb-1 opacity-90">
+                            <ShieldAlert className="h-3 w-3" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Official Command</span>
+                        </div>
+                    )}
+
                     {/* Reply Quote */}
                     {replyTo && (
                         <div className={cn(

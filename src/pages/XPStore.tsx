@@ -2,13 +2,15 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { spendXP, equipAura } from "@/store/slices/userSlice";
+import { STORE_ITEMS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingBag, Sparkles, Palette, Zap, ArrowLeft, Trophy, Lock, Check, Info, Rocket, ShieldCheck } from "lucide-react";
+import { ShoppingBag, Sparkles, Palette, Zap, ArrowLeft, Trophy, Lock, Check, Info, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { usersAPI } from "@/lib/api";
 import {
     Dialog,
     DialogContent,
@@ -19,71 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
-const STORE_ITEMS = [
-    {
-        id: 'aura_neon_cyberpunk',
-        name: 'Neon Cyberpunk',
-        description: 'A glowing cyan and magenta border for your avatar with high-frequency pulse.',
-        type: 'AURA',
-        cost: 500,
-        previewClass: 'ring-2 ring-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.8)] animate-pulse',
-        longDesc: 'Engineered for the night owls. This aura utilizes high-intensity CSS filters to create a persistent neon glow that pulses in synchronization with the platform hardware clock.'
-    },
-    {
-        id: 'aura_golden_master',
-        name: 'Golden Master',
-        description: 'Elite gold aura for top-tier developers. Reflects your status.',
-        type: 'AURA',
-        cost: 1200,
-        previewClass: 'ring-4 ring-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.7)] brightness-125',
-        longDesc: 'The ultimate symbol of prestige. The Golden Master aura signifies 1000+ solved problems and a commitment to clean, efficient logic.'
-    },
-    {
-        id: 'aura_void_walker',
-        name: 'Void Walker',
-        description: 'Deep purple shadows that pulse with dark energy.',
-        type: 'AURA',
-        cost: 2000,
-        previewClass: 'ring-2 ring-purple-600 shadow-[0_0_30px_rgba(147,51,234,0.6)] blur-[1px] hover:blur-none transition-all',
-        longDesc: 'For those who dance in the darkness. This aura features a custom spatial shadow effect that bends the UI elements around your avatar.'
-    },
-    {
-        id: 'theme_dracula',
-        name: 'Dracula Theme',
-        description: 'A dark theme for vampires and night owls.',
-        type: 'THEME',
-        cost: 300,
-        color: '#282a36',
-        longDesc: 'The legendary Dracula palette. Optimized for low-light environments to reduce eye strain while maintaining high syntax highlight contrast.'
-    },
-    {
-        id: 'theme_monokai_pro',
-        name: 'Monokai Pro',
-        description: 'Professional, high-contrast colorful theme.',
-        type: 'THEME',
-        cost: 300,
-        color: '#2d2a2e',
-        longDesc: 'The choice of pros. Monokai Pro uses a curated set of colors specifically designed to help your brain categorize logic blocks faster.'
-    },
-    {
-        id: 'boost_xp_multiplier',
-        name: 'XP Multifold (2x)',
-        description: 'Double all XP gains from snippets & arena for 48 hours.',
-        type: 'BOOST',
-        cost: 800,
-        icon: Rocket,
-        longDesc: 'Trigger a rapid growth phase. This boost applies a global 2x multiplier to your user profile for 48 logic hours.'
-    },
-    {
-        id: 'boost_showcase_slot',
-        name: 'Feed Showcase',
-        description: 'Pin one of your snippets to the top of the feed for 24h.',
-        type: 'BOOST',
-        cost: 150,
-        icon: Zap,
-        longDesc: 'Maximum visibility. Pin your best logic to the top of the global smart feed for everyone to see and copy.'
-    }
-];
+
 
 export default function XPStore() {
     const navigate = useNavigate();
@@ -94,7 +32,7 @@ export default function XPStore() {
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [previewItem, setPreviewItem] = useState<any>(null);
 
-    const handlePurchase = () => {
+    const handlePurchase = async () => {
         if (!selectedItem) return;
 
         if (user.xp < selectedItem.cost) {
@@ -107,18 +45,37 @@ export default function XPStore() {
             return;
         }
 
-        dispatch(spendXP({ amount: selectedItem.cost, itemId: selectedItem.id, type: selectedItem.type as any }));
+        try {
+            await usersAPI.spendXP(selectedItem.id, selectedItem.cost);
+            dispatch(spendXP({ amount: selectedItem.cost, itemId: selectedItem.id, type: selectedItem.type as any }));
 
-        toast({
-            title: "Purchase Successful!",
-            description: `You acquired ${selectedItem.name}.`,
-        });
-        setSelectedItem(null);
+            toast({
+                title: "Purchase Successful!",
+                description: `You acquired ${selectedItem.name}.`,
+            });
+        } catch (error: any) {
+            toast({
+                title: "Purchase Failed",
+                description: error.message || "Something went wrong",
+                variant: "destructive"
+            });
+        } finally {
+            setSelectedItem(null);
+        }
     };
 
-    const handleEquip = (auraId: string) => {
-        dispatch(equipAura(auraId));
-        toast({ title: "Equipped!", description: "Your avatar style has been updated." });
+    const handleEquip = async (auraId: string) => {
+        try {
+            await usersAPI.equipAura(auraId);
+            dispatch(equipAura(auraId));
+            toast({ title: "Equipped!", description: "Your avatar style has been updated." });
+        } catch (error: any) {
+            toast({
+                title: "Equipment Failed",
+                description: error.message || "Failed to equip aura",
+                variant: "destructive"
+            });
+        }
     };
 
     const isOwned = (itemId: string) => user.inventory.includes(itemId);
@@ -186,7 +143,7 @@ export default function XPStore() {
                         >
                             <TabsContent value="auras" className="m-0 mt-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {STORE_ITEMS.filter(i => i.type === 'AURA').map((item) => {
+                                    {STORE_ITEMS.filter(i => i.type === 'AURA').map((item: any) => {
                                         const owned = isOwned(item.id);
                                         const equipped = user.equippedAura === item.id;
 
@@ -247,7 +204,7 @@ export default function XPStore() {
 
                             <TabsContent value="themes" className="m-0 mt-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {STORE_ITEMS.filter(i => i.type === 'THEME').map((item) => {
+                                    {STORE_ITEMS.filter(i => i.type === 'THEME').map((item: any) => {
                                         const owned = isOwned(item.id);
                                         return (
                                             <div key={item.id} className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg flex flex-col">
@@ -297,7 +254,7 @@ export default function XPStore() {
 
                             <TabsContent value="boosts" className="m-0 mt-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {STORE_ITEMS.filter(i => i.type === 'BOOST').map((item) => {
+                                    {STORE_ITEMS.filter(i => i.type === 'BOOST').map((item: any) => {
                                         const owned = isOwned(item.id);
                                         return (
                                             <div key={item.id} className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg flex flex-col">

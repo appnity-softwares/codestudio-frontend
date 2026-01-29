@@ -21,7 +21,7 @@ export interface ChatMessage {
     // Content
     content: string;
     Content?: string;
-    type: 'text' | 'code' | 'image' | 'system';
+    type: 'text' | 'code' | 'image' | 'system' | 'admin';
 
     // Delivery status (client-owned, updated via ACKs)
     status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';

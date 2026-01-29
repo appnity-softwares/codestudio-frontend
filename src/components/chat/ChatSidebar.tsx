@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useChat } from "@/context/ChatContext";
 import { useAuth } from "@/context/AuthContext";
+import { usePresence } from "@/context/PresenceContext";
 import { HamsterLoader } from "@/components/shared/HamsterLoader";
 
 interface ChatSidebarProps {
@@ -17,6 +18,7 @@ interface ChatSidebarProps {
 export function ChatSidebar({ className }: ChatSidebarProps) {
     const { user } = useAuth();
     const { activeContact, setActiveContact } = useChat();
+    const { isUserOnline, isUserTyping } = usePresence();
     const [searchTerm, setSearchTerm] = useState("");
 
     const { data: conversationData, isLoading } = useQuery({
@@ -75,10 +77,10 @@ export function ChatSidebar({ className }: ChatSidebarProps) {
                                         <AvatarImage src={conv.user.image} />
                                         <AvatarFallback>{(conv.user.username?.[0] || '?').toUpperCase()}</AvatarFallback>
                                     </Avatar>
-                                    {/* Online indicator mock - pending real-time status */}
+                                    {/* Real-time online indicator */}
                                     <span className={cn(
-                                        "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background",
-                                        "bg-emerald-500" // Assume online for demo or if active recently
+                                        "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background transition-colors duration-500",
+                                        isUserOnline(conv.user.id) ? "bg-emerald-500" : "bg-muted-foreground/30"
                                     )} />
                                 </div>
 
@@ -101,8 +103,14 @@ export function ChatSidebar({ className }: ChatSidebarProps) {
                                             "text-xs truncate max-w-[140px]",
                                             conv.unreadCount > 0 ? "font-medium text-foreground" : "text-muted-foreground"
                                         )}>
-                                            {conv.lastMessage?.senderId === user?.id && <span className="opacity-70 mr-1">You:</span>}
-                                            {conv.lastMessage?.content || "No messages yet"}
+                                            {isUserTyping(conv.user.id) ? (
+                                                <span className="text-primary animate-pulse">typing...</span>
+                                            ) : (
+                                                <>
+                                                    {conv.lastMessage?.senderId === user?.id && <span className="opacity-70 mr-1">You:</span>}
+                                                    {conv.lastMessage?.content || "No messages yet"}
+                                                </>
+                                            )}
                                         </p>
                                         {conv.unreadCount > 0 && (
                                             <span className="h-5 min-w-[1.25rem] px-1 bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center rounded-full">

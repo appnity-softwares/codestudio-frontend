@@ -1,6 +1,6 @@
 
 import { Outlet, NavLink } from "react-router-dom";
-import { LayoutDashboard, Trophy, Flag, ShieldAlert, FileText, LogOut, Users, Code, Settings, Megaphone, Zap, Image as ImageIcon, BookOpen, Menu } from "lucide-react";
+import { LayoutDashboard, Trophy, Flag, ShieldAlert, FileText, LogOut, Users, Code, Settings, Megaphone, Zap, Image as ImageIcon, BookOpen, Menu, Sparkles, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { removeToken, systemAPI } from "@/lib/api";
@@ -27,26 +27,38 @@ export default function AdminLayout() {
     }
 
     const navItems = [
-        { to: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
-        { to: "/admin/users", icon: Users, label: "Users" },
-        { to: "/admin/snippets", icon: Code, label: "Snippets" },
-        { to: "/admin/roadmaps", icon: BookOpen, label: "Roadmaps" },
-        { to: "/admin/practice-problems", icon: Code, label: "Practice Problems" },
-        { to: "/admin/contests", icon: Trophy, label: "Contests" },
-        { to: "/admin/submissions", icon: FileText, label: "Submissions" },
-        { to: "/admin/flags", icon: Flag, label: "Flag Review" },
-        { to: "/admin/system", icon: Settings, label: "System" },
-        { to: "/admin/avatars", icon: ImageIcon, label: "Avatars" },
-        { to: "/admin/reports", icon: ShieldAlert, label: "Incident Reports" },
-        { to: "/admin/changelog", icon: Megaphone, label: "Changelog" },
-        { to: "/admin/roles", icon: ShieldAlert, label: "Role Access" },
-        { to: "/admin/audit-logs", icon: FileText, label: "Audit Logs" },
+        // Overview
+        { to: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true, category: "Core" },
+        { to: "/admin/audit-logs", icon: FileText, label: "Audit Logs", category: "Core" },
+        { to: "/admin/reports", icon: Flag, label: "Incident Reports", category: "Core" },
+
+        // Users
+        { to: "/admin/users", icon: Users, label: "Users", category: "Users" },
+        { to: "/admin/roles", icon: ShieldAlert, label: "Roles", category: "Users" },
+        { to: "/admin/chat", icon: MessageSquare, label: "System Chat", category: "Users" },
+        { to: "/admin/appeals", icon: ShieldAlert, label: "Appeals", category: "Users" },
+
+        // Content
+        { to: "/admin/snippets", icon: Code, label: "Snippets", category: "Economy" },
+        { to: "/admin/roadmaps", icon: BookOpen, label: "Roadmaps", category: "Economy" },
+        { to: "/admin/practice-problems", icon: Code, label: "Practice", category: "Economy" },
+        { to: "/admin/contests", icon: Trophy, label: "Contests", category: "Economy" },
+        { to: "/admin/submissions", icon: FileText, label: "Submissions", category: "Economy" },
+
+        // Customization
+        { to: "/admin/auras", icon: Sparkles, label: "Aura Studio", category: "Styling" },
+        { to: "/admin/avatars", icon: ImageIcon, label: "Avatar Vault", category: "Styling" },
+        { to: "/admin/badge-config", icon: Trophy, label: "Badge Logic", category: "Styling" },
+
+        // Infrastructure
+        { to: "/admin/system", icon: Settings, label: "Settings", category: "System" },
+        { to: "/admin/changelog", icon: Megaphone, label: "Changelog", category: "System" },
     ];
 
     const quickLinks = [
         { to: "/feed", icon: Zap, label: "Live Feed" },
-        { to: "/practice", icon: Code, label: "Practice Arena" },
-        { to: "/badges", icon: Trophy, label: "Badges System" },
+        { to: "/practice", icon: Code, label: "Arena" },
+        { to: "/badges", icon: Trophy, label: "Badges" },
     ];
 
     const SidebarContent = () => (
@@ -55,31 +67,37 @@ export default function AdminLayout() {
                 <Logo className="scale-90 origin-left" />
             </div>
 
-            <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar pt-6">
-                <div className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em] mb-4 px-3">Management</div>
-                {navItems.map((item) => (
-                    <NavLink
-                        key={item.to}
-                        to={item.to}
-                        end={item.exact}
-                        className={({ isActive }) =>
-                            `flex items-center px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 group ${isActive
-                                ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]"
-                                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                            }`
-                        }
-                    >
-                        <item.icon className={cn(
-                            "mr-3 h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110",
-                            "opacity-80"
-                        )} />
-                        <span className="flex-1">{item.label}</span>
-                        {badgeConfig.includes(item.to) && (
-                            <Badge className="bg-white/20 text-white text-[9px] px-1.5 py-0 h-4 border-none font-bold uppercase tracking-tighter animate-pulse">
-                                New
-                            </Badge>
-                        )}
-                    </NavLink>
+            <nav className="flex-1 p-4 space-y-8 overflow-y-auto custom-scrollbar pt-6 pb-12">
+                {["Core", "Users", "Economy", "Styling", "System"].map((category) => (
+                    <div key={category} className="space-y-1.5">
+                        <div className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-3 px-3">
+                            {category}
+                        </div>
+                        {navItems.filter(item => item.category === category).map((item) => (
+                            <NavLink
+                                key={item.to}
+                                to={item.to}
+                                end={item.exact}
+                                className={({ isActive }) =>
+                                    `flex items-center px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 group ${isActive
+                                        ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                                    }`
+                                }
+                            >
+                                <item.icon className={cn(
+                                    "mr-3 h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110",
+                                    "opacity-80"
+                                )} />
+                                <span className="flex-1">{item.label}</span>
+                                {badgeConfig.includes(item.to) && (
+                                    <Badge className="bg-white/20 text-white text-[9px] px-1.5 py-0 h-4 border-none font-bold uppercase tracking-tighter animate-pulse">
+                                        New
+                                    </Badge>
+                                )}
+                            </NavLink>
+                        ))}
+                    </div>
                 ))}
             </nav>
 
