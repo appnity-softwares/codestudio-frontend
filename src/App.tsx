@@ -181,7 +181,9 @@ function AppRoutes() {
                         path="feed"
                         element={
                             <ProtectedRoute>
-                                <Feed />
+                                <Suspense fallback={<div className="p-8 space-y-4"><div className="h-40 bg-muted/20 animate-pulse rounded-2xl" /><div className="h-80 bg-muted/10 animate-pulse rounded-2xl" /></div>}>
+                                    <Feed />
+                                </Suspense>
                             </ProtectedRoute>
                         }
                     />
@@ -189,102 +191,50 @@ function AppRoutes() {
                         path="arena"
                         element={
                             <ProtectedRoute>
-                                <Arena />
+                                <Suspense fallback={<div className="container mx-auto py-8 max-w-5xl space-y-8 p-4"><div className="h-12 w-48 bg-muted animate-pulse rounded-lg" /><div className="h-64 bg-muted/10 animate-pulse rounded-2xl" /></div>}>
+                                    <Arena />
+                                </Suspense>
                             </ProtectedRoute>
                         }
                     />
+                    {/* ... other routes ... */}
                     <Route
-                        path="arena/events/:id"
+                        path="*"
                         element={
-                            <ProtectedRoute>
-                                <EventDetail />
-                            </ProtectedRoute>
+                            <Suspense fallback={null}>
+                                <Routes>
+                                    <Route path="arena/events/:id" element={<ProtectedRoute><EventDetail /></ProtectedRoute>} />
+                                    <Route path="contest/:id/leaderboard" element={<ProtectedRoute><ContestLeaderboard /></ProtectedRoute>} />
+                                    <Route path="arena/env/:id" element={<ProtectedRoute><DesktopOnlyGuard featureName="Contest Environment"><ContestEnvironment /></DesktopOnlyGuard></ProtectedRoute>} />
+                                    <Route path="arena/official/:id" element={<ProtectedRoute><OfficialContest /></ProtectedRoute>} />
+                                    <Route path="contest/:id/*" element={<ProtectedRoute><DesktopOnlyGuard featureName="Live Contest"><ContestEnvironment /></DesktopOnlyGuard></ProtectedRoute>} />
+                                    <Route path="practice" element={<ProtectedRoute><PracticeList /></ProtectedRoute>} />
+                                    <Route path="practice/:id" element={<ProtectedRoute><DesktopOnlyGuard featureName="Practice Arena"><PracticeWorkspace /></DesktopOnlyGuard></ProtectedRoute>} />
+                                    <Route path="profile/me" element={<ProtectedRoute><RedirectToProfile /></ProtectedRoute>} />
+                                    <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
+                                    <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                                    <Route path="settings/avatars" element={<ProtectedRoute><AvatarPicker /></ProtectedRoute>} />
+                                    <Route path="community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+                                    <Route path="leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+                                    <Route path="feedback" element={<ProtectedRoute><FeedbackWall /></ProtectedRoute>} />
+                                    <Route path="u/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                                    <Route path="social/requests" element={<ProtectedRoute><LinkRequests /></ProtectedRoute>} />
+                                    <Route path="snippets/:id" element={<ProtectedRoute><SnippetDetail /></ProtectedRoute>} />
+                                    <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
+                                    <Route path="badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
+                                    <Route path="roadmaps" element={<ProtectedRoute><RoadmapList /></ProtectedRoute>} />
+                                    <Route path="roadmaps/:id" element={<ProtectedRoute><RoadmapDetail /></ProtectedRoute>} />
+                                    <Route path="trophy-room" element={<ProtectedRoute><TrophyRoom /></ProtectedRoute>} />
+                                    <Route path="xp-store" element={<ProtectedRoute><XPStore /></ProtectedRoute>} />
+                                    <Route path="help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+                                    <Route path="messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+                                    <Route path="*" element={<NotFound />} />
+                                </Routes>
+                            </Suspense>
                         }
                     />
-                    <Route
-                        path="contest/:id/leaderboard"
-                        element={
-                            <ProtectedRoute>
-                                <ContestLeaderboard />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="arena/env/:id"
-                        element={
-                            <ProtectedRoute>
-                                <DesktopOnlyGuard featureName="Contest Environment">
-                                    <ContestEnvironment />
-                                </DesktopOnlyGuard>
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="arena/official/:id"
-                        element={
-                            <ProtectedRoute>
-                                <OfficialContest />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="contest/:id/*"
-                        element={
-                            <ProtectedRoute>
-                                <DesktopOnlyGuard featureName="Live Contest">
-                                    <ContestEnvironment />
-                                </DesktopOnlyGuard>
-                            </ProtectedRoute>
-                        }
-                    />
-                    {/* v1.2: Practice Arena - Now Protected */}
-                    <Route
-                        path="practice"
-                        element={
-                            <ProtectedRoute>
-                                <PracticeList />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="practice/:id"
-                        element={
-                            <ProtectedRoute>
-                                <DesktopOnlyGuard featureName="Practice Arena">
-                                    <PracticeWorkspace />
-                                </DesktopOnlyGuard>
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    <Route path="profile/me" element={<ProtectedRoute><RedirectToProfile /></ProtectedRoute>} />
-
-                    <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
-                    <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                    <Route path="settings/avatars" element={<ProtectedRoute><AvatarPicker /></ProtectedRoute>} />
-
-
-                    {/* Community & Public Profile - Now Protected */}
-                    <Route path="community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
-                    <Route path="leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-                    <Route path="feedback" element={<ProtectedRoute><FeedbackWall /></ProtectedRoute>} />
-                    <Route path="u/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                    <Route path="social/requests" element={<ProtectedRoute><LinkRequests /></ProtectedRoute>} />
-
-                    <Route path="snippets/:id" element={<ProtectedRoute><SnippetDetail /></ProtectedRoute>} />
-                    <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
-                    <Route path="badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
-                    <Route path="roadmaps" element={<ProtectedRoute><RoadmapList /></ProtectedRoute>} />
-                    <Route path="roadmaps/:id" element={<ProtectedRoute><RoadmapDetail /></ProtectedRoute>} />
-                    <Route path="trophy-room" element={<ProtectedRoute><TrophyRoom /></ProtectedRoute>} />
-                    <Route path="xp-store" element={<ProtectedRoute><XPStore /></ProtectedRoute>} />
-                    <Route path="help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
-                    <Route path="messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-                    {/* 404 Catch-all */}
-                    <Route path="*" element={<NotFound />} />
                 </Route>
 
-                {/* Admin Block: Dedicated Layout without Platform Sidebars */}
                 <Route path="admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<AdminUsers />} />

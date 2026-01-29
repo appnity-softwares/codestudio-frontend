@@ -10,9 +10,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  optimizeDeps: {
-    exclude: ['lucide-react'],
-  },
+
   build: {
     // Code splitting for better caching
     rollupOptions: {

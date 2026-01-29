@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { eventsAPI } from "@/lib/api";
@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trophy, ArrowRight, BrainCircuit, Monitor } from "lucide-react";
+import { Trophy, ArrowRight, BrainCircuit, Monitor } from "lucide-react";
 import { OfficialContestCard } from "@/components/OfficialContestCard";
+import { ContestCardSkeleton } from "@/components/ContestCardSkeleton";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { DesktopRequiredModal } from "@/components/DesktopRequiredModal";
 import { cn } from "@/lib/utils";
@@ -22,14 +23,20 @@ export default function Arena() {
     // Fetch All Events
     const { data, isLoading } = useQuery({
         queryKey: ['events'],
-        queryFn: () => eventsAPI.getAll()
+        queryFn: () => eventsAPI.getAll(),
+        staleTime: 60000, // 1 minute stale time to match backend cache
+        gcTime: 120000,   // 2 minutes garbage collection
     });
 
-    const events = data?.events || [];
+    // Filter Events using useMemo for performance
+    const { activeContests, pastContests } = useMemo(() => {
+        const events = data?.events || [];
+        return {
+            activeContests: events.filter((e: any) => e.id !== 'practice-arena-mvp' && e.status !== 'ENDED'),
+            pastContests: events.filter((e: any) => e.id !== 'practice-arena-mvp' && e.status === 'ENDED')
+        };
+    }, [data]);
 
-    // Filter Events
-    const activeContests = events.filter((e: any) => e.id !== 'practice-arena-mvp' && e.status !== 'ENDED');
-    const pastContests = events.filter((e: any) => e.id !== 'practice-arena-mvp' && e.status === 'ENDED');
 
     // Handle Enter Practice Arena with mobile check
     const handleEnterPractice = () => {
@@ -145,7 +152,9 @@ export default function Arena() {
                             </div>
 
                             {isLoading ? (
-                                <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
+                                <div className="space-y-4">
+                                    {[1, 2, 3].map(i => <ContestCardSkeleton key={i} />)}
+                                </div>
                             ) : activeContests.length === 0 ? (
                                 <div className="text-center py-12 border rounded-xl bg-muted/10 border-dashed px-6">
                                     <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 mx-auto">
@@ -182,7 +191,9 @@ export default function Arena() {
                         </div>
 
                         {isLoading ? (
-                            <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8 text-muted-foreground" /></div>
+                            <div className="space-y-4">
+                                {[1, 2, 3].map(i => <ContestCardSkeleton key={i} />)}
+                            </div>
                         ) : pastContests.length === 0 ? (
                             <div className="text-center py-12 border rounded-xl bg-muted/10 border-dashed">
                                 <BrainCircuit className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
