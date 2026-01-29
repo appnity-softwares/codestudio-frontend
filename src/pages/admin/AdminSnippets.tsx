@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Eye, Trash2, Pin, PinOff, Terminal } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Trash2, Pin, PinOff, Terminal, Search } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
+import { cn } from "@/lib/utils";
 import {
     Table,
     TableBody,
@@ -34,6 +37,8 @@ export default function AdminSnippets() {
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState("");
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
     // Debounced search
     const debouncedSearch = useMemo(
@@ -54,15 +59,33 @@ export default function AdminSnippets() {
 
     // Actions
     const handleDelete = async () => {
-        if (!deleteId) return;
+        const idsToDelete = deleteId ? [deleteId] : selectedIds;
+        if (idsToDelete.length === 0) return;
+
+        setIsBulkDeleting(true);
         try {
-            await adminAPI.deleteSnippet(deleteId);
-            toast({ title: "Snippet deleted" });
+            await Promise.all(idsToDelete.map(id => adminAPI.deleteSnippet(id)));
+            toast({ title: `${idsToDelete.length} snippet(s) deleted` });
             queryClient.invalidateQueries({ queryKey: ["admin-snippets"] });
             setDeleteId(null);
+            setSelectedIds([]);
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setIsBulkDeleting(false);
         }
+    };
+
+    const toggleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedIds(snippets.map((s: any) => s.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
     const togglePin = async (snippet: any) => {
@@ -85,19 +108,43 @@ export default function AdminSnippets() {
             </div>
 
             {/* Toolbar */}
-            <div className="flex items-center gap-4 p-4 rounded-lg border bg-card">
-                <Input
-                    placeholder="Search by title or language..."
-                    className="max-w-md bg-black/20"
-                    onChange={(e) => debouncedSearch(e.target.value)}
-                />
+            <div className="flex items-center justify-between p-4 rounded-xl border bg-card shadow-sm">
+                <div className="flex items-center gap-4 flex-1">
+                    <div className="relative max-w-md w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by title or language..."
+                            className="bg-muted/50 pl-10 border-none"
+                            onChange={(e) => debouncedSearch(e.target.value)}
+                        />
+                    </div>
+                </div>
+                {selectedIds.length > 0 && (
+                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-4">
+                        <span className="text-sm font-bold text-muted-foreground">{selectedIds.length} items</span>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-8 px-4"
+                            onClick={() => setDeleteId(selectedIds[0])} // Just to trigger dialog, handleDelete will use selectedIds
+                        >
+                            Bulk Delete
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Snippets Table */}
             <div className="rounded-lg border bg-card">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-muted/50">
                         <TableRow>
+                            <TableHead className="w-12">
+                                <Checkbox
+                                    checked={selectedIds.length === snippets.length && snippets.length > 0}
+                                    onCheckedChange={toggleSelectAll}
+                                />
+                            </TableHead>
                             <TableHead>Title</TableHead>
                             <TableHead>Author</TableHead>
                             <TableHead>Language</TableHead>
@@ -109,20 +156,25 @@ export default function AdminSnippets() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                    Loading...
-                                </TableCell>
-                            </TableRow>
+                            <AdminTableSkeleton columns={7} rows={8} />
                         ) : snippets.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                    No snippets found
+                                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Eye className="h-8 w-8 opacity-20" />
+                                        <p>No snippets found matching your search</p>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ) : (
                             snippets.map((snippet: any) => (
-                                <TableRow key={snippet.id}>
+                                <TableRow key={snippet.id} className={cn("transition-colors", selectedIds.includes(snippet.id) && "bg-primary/5")}>
+                                    <TableCell>
+                                        <Checkbox
+                                            checked={selectedIds.includes(snippet.id)}
+                                            onCheckedChange={() => toggleSelect(snippet.id)}
+                                        />
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         <div className="flex flex-col">
                                             <span>{snippet.title}</span>
@@ -225,14 +277,23 @@ export default function AdminSnippets() {
             <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Snippet?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete {selectedIds.length > 1 ? `${selectedIds.length} Snippets` : "Snippet"}?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the snippet from the database.
+                            This action cannot be undone. This will permanently delete the selected content from the platform.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">Delete</AlertDialogAction>
+                        <AlertDialogCancel disabled={isBulkDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleDelete();
+                            }}
+                            className="bg-red-500 hover:bg-red-600 font-bold"
+                            disabled={isBulkDeleting}
+                        >
+                            {isBulkDeleting ? "Deleting..." : "Confirm Delete"}
+                        </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

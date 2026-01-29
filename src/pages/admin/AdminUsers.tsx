@@ -4,6 +4,8 @@ import { Search, ChevronLeft, ChevronRight, AlertTriangle, Ban, Unlock, Edit2, T
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Table,
     TableBody,
@@ -33,6 +35,7 @@ import {
 } from "@/components/ui/select";
 
 import { useSearchParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 export default function AdminUsers() {
     const { toast } = useToast();
@@ -43,6 +46,9 @@ export default function AdminUsers() {
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState(urlSearch);
     const [debouncedSearch, setDebouncedSearch] = useState(urlSearch);
+
+    // State for Bulk Actions
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // State for Suspensions
     const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -115,10 +121,19 @@ export default function AdminUsers() {
 
     // Delete user mutation
     const deleteMutation = useMutation({
-        mutationFn: (userId: string) => adminAPI.deleteUser(userId),
+        mutationFn: async (userIds: string | string[]) => {
+            if (Array.isArray(userIds)) {
+                // If backend doesn't support bulk, we loop or implement it
+                // For now let's assume multiple calls or implement bulk on backend if needed
+                // But typically we should have a bulk endpoint
+                return Promise.all(userIds.map(id => adminAPI.deleteUser(id)));
+            }
+            return adminAPI.deleteUser(userIds);
+        },
         onSuccess: () => {
-            toast({ title: "User Deleted", description: "The user has been permanently deleted." });
+            toast({ title: "Operation Successful", description: "Selected users have been deleted." });
             queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            setSelectedIds([]);
             setDeleteDialogOpen(false);
         },
         onError: (error: any) => {
@@ -142,6 +157,20 @@ export default function AdminUsers() {
 
     const displayUsers = usersData?.users || [];
     const pagination = usersData?.pagination;
+
+    const toggleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedIds(displayUsers.map((u: any) => u.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
 
     const handleSuspend = () => {
         if (!selectedUser || !suspendReason) return;
@@ -195,6 +224,14 @@ export default function AdminUsers() {
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">User Management</h1>
                 <div className="flex items-center gap-2">
+                    {selectedIds.length > 0 && (
+                        <div className="flex items-center gap-2 mr-4 p-1 px-3 bg-muted rounded-lg border border-border/50 animate-in fade-in slide-in-from-right-2">
+                            <span className="text-xs font-bold">{selectedIds.length} selected</span>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10" onClick={() => setDeleteDialogOpen(true)}>
+                                Bulk Delete
+                            </Button>
+                        </div>
+                    )}
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -212,6 +249,12 @@ export default function AdminUsers() {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="w-12">
+                                <Checkbox
+                                    checked={selectedIds.length === displayUsers?.length && displayUsers?.length > 0}
+                                    onCheckedChange={toggleSelectAll}
+                                />
+                            </TableHead>
                             <TableHead>User</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Role</TableHead>
@@ -224,20 +267,22 @@ export default function AdminUsers() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                    Loading...
-                                </TableCell>
-                            </TableRow>
+                            <AdminTableSkeleton columns={9} rows={8} />
                         ) : displayUsers?.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                                     No users found
                                 </TableCell>
                             </TableRow>
                         ) : (
                             displayUsers?.map((user: any) => (
-                                <TableRow key={user.id}>
+                                <TableRow key={user.id} className={cn(selectedIds.includes(user.id) && "bg-muted/50")}>
+                                    <TableCell>
+                                        <Checkbox
+                                            checked={selectedIds.includes(user.id)}
+                                            onCheckedChange={() => toggleSelect(user.id)}
+                                        />
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         <div className="flex items-center gap-2">
                                             <img
@@ -546,17 +591,23 @@ export default function AdminUsers() {
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Delete User</DialogTitle>
+                        <DialogTitle>Delete {selectedIds.length > 0 ? "Users" : "User"}</DialogTitle>
                         <DialogDescription>
-                            Are you absolutely sure you want to delete @{selectedUser?.username}? This action is irreversible and will remove all their data.
+                            {selectedIds.length > 0
+                                ? `Are you absolutely sure you want to delete ${selectedIds.length} selected users? This action is irreversible.`
+                                : `Are you absolutely sure you want to delete @${selectedUser?.username}? This action is irreversible and will remove all their data.`
+                            }
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" size="sm" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+                        <Button variant="outline" size="sm" onClick={() => {
+                            setDeleteDialogOpen(false);
+                            if (selectedIds.length === 0) setSelectedUser(null);
+                        }}>Cancel</Button>
                         <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => deleteMutation.mutate(selectedUser.id)}
+                            onClick={() => deleteMutation.mutate(selectedIds.length > 0 ? selectedIds : selectedUser.id)}
                             disabled={deleteMutation.isPending}
                         >
                             {deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
