@@ -14,7 +14,7 @@ export default function OAuthCallback() {
 
         if (token) {
             loginWithToken(token).then(() => {
-                navigate("/arena")
+                navigate("/feed")
             }).catch(() => {
                 toast({
                     title: "Login Failed",
