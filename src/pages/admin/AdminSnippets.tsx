@@ -101,7 +101,7 @@ export default function AdminSnippets() {
                             <TableHead>Title</TableHead>
                             <TableHead>Author</TableHead>
                             <TableHead>Language</TableHead>
-                            <TableHead>Views / Likes</TableHead>
+                            <TableHead>Engagement (V/L/D)</TableHead>
                             <TableHead>Featured</TableHead>
                             <TableHead>Created</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
@@ -142,7 +142,7 @@ export default function AdminSnippets() {
                                         <Badge variant="outline" className="uppercase text-[10px]">{snippet.language}</Badge>
                                     </TableCell>
                                     <TableCell className="text-xs font-mono">
-                                        {snippet.viewCount} / {snippet.likeCount}
+                                        {snippet.viewsCount || 0} / {snippet.likesCount || 0} / {snippet.dislikesCount || 0}
                                     </TableCell>
                                     <TableCell>
                                         {snippet.isFeatured ? (

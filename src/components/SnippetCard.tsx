@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
     Copy, Check, Eye, Edit, Trash2, ListPlus, Heart,
     MessageCircle, Share2, Shield, Plus, MoreHorizontal,
-    Flag, Ban, Terminal, Monitor, Code, ExternalLink
+    Flag, Ban, Terminal, Monitor, Code, ExternalLink, ThumbsDown
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -22,7 +22,7 @@ const ReactLivePreview = lazy(() => import("./preview/ReactLivePreview").then(m 
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
-import { toggleLike, setCopyCount, incrementCopyCount, setLikeState } from "@/store/slices/snippetSlice";
+import { toggleLike, toggleDislike, setCopyCount, incrementCopyCount, setLikeState, setDislikeState } from "@/store/slices/snippetSlice";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
     DropdownMenu,
@@ -92,6 +92,8 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
     const hasCopiedLocally = useSelector((state: RootState) => state.snippets.userCopies[snippet.id]);
     const isLiked = useSelector((state: RootState) => !!state.snippets.likeStates[snippet.id]);
     const likeCount = useSelector((state: RootState) => state.snippets.likesCounts[snippet.id] ?? snippet.likesCount ?? 0);
+    const isDisliked = useSelector((state: RootState) => !!state.snippets.dislikeStates[snippet.id]);
+    const dislikeCount = useSelector((state: RootState) => state.snippets.dislikesCounts[snippet.id] ?? snippet.dislikesCount ?? 0);
 
     // Sync Initial State
     // Sync Initial State (Copy & Like)
@@ -115,9 +117,14 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                     isLiked: !!snippet.isLiked,
                     count: snippet.likesCount || 0
                 }));
+                dispatch(setDislikeState({
+                    id: snippet.id,
+                    isDisliked: !!snippet.isDisliked,
+                    count: snippet.dislikesCount || 0
+                }));
             }
         }
-    }, [snippet.id, snippet.copyCount, snippet.likesCount, snippet.isLiked, dispatch]);
+    }, [snippet.id, snippet.copyCount, snippet.likesCount, snippet.dislikesCount, snippet.isLiked, snippet.isDisliked, dispatch]);
 
     // Fetch user's playlists
     const { data: playlistsData } = useQuery({
@@ -135,6 +142,17 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
         onError: () => {
             dispatch(toggleLike(snippet.id));
             toast({ variant: "destructive", title: "Action failed", description: "Could not toggle like." });
+        }
+    });
+
+    const dislikeMutation = useMutation({
+        mutationFn: () => snippetsAPI.toggleDislike(snippet.id),
+        onMutate: () => {
+            dispatch(toggleDislike(snippet.id));
+        },
+        onError: () => {
+            dispatch(toggleDislike(snippet.id));
+            toast({ variant: "destructive", title: "Action failed", description: "Could not toggle dislike." });
         }
     });
 
@@ -412,6 +430,19 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                                         </button>
                                     </TooltipTrigger>
                                     <TooltipContent>Like this snippet</TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={() => dislikeMutation.mutate()}
+                                            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border", isDisliked ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground")}
+                                        >
+                                            <ThumbsDown className={cn("h-3.5 w-3.5 transition-transform active:scale-95", isDisliked && "fill-current")} />
+                                            <span>{dislikeCount}</span>
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Dislike this snippet</TooltipContent>
                                 </Tooltip>
 
                                 <Sheet>

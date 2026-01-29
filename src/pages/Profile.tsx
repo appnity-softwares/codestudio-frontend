@@ -87,8 +87,8 @@ export default function Profile() {
 
     const { mutate: toggleLink, isPending: isLinkPending } = useMutation({
         mutationFn: async () => {
-            if (isPending) return; // Do nothing if already pending
-            if (isLinked) {
+            // Backend UnlinkUser (unfollow) now handles both active links and pending requests (cancellation)
+            if (isLinked || isPending) {
                 await usersAPI.unfollow(profileUser.id);
             } else {
                 await usersAPI.follow(profileUser.id);
@@ -97,14 +97,27 @@ export default function Profile() {
         onSuccess: () => {
             refetchLinkStatus();
             queryClient.invalidateQueries({ queryKey: ['user', username] }); // Refresh counts
-            toast({
-                title: isLinked ? "Unlinked" : (profileUser?.visibility === 'PRIVATE' ? "Request Sent" : "Linked"),
-                description: isLinked
-                    ? `You have unlinked from ${profileUser.username}`
-                    : (profileUser?.visibility === 'PRIVATE'
-                        ? `Link request sent to ${profileUser.username}`
-                        : `Link established with ${profileUser.username}`)
-            });
+            let title = "";
+            let description = "";
+
+            if (isLinked) {
+                title = "Unlinked";
+                description = `You have unlinked from ${profileUser.username}`;
+            } else if (isPending) {
+                title = "Request Canceled";
+                description = `Link request to ${profileUser.username} canceled`;
+            } else {
+                // Was not linked or pending -> Created new link/request
+                if (profileUser?.visibility === 'PRIVATE') {
+                    title = "Request Sent";
+                    description = `Link request sent to ${profileUser.username}`;
+                } else {
+                    title = "Linked";
+                    description = `Link established with ${profileUser.username}`;
+                }
+            }
+
+            toast({ title, description });
         },
         onError: () => {
             toast({ title: "Operation failed", variant: "destructive" });
@@ -676,7 +689,7 @@ export default function Profile() {
                                     isLinked && "border-primary/20 text-primary hover:bg-primary/5"
                                 )}
                                 onClick={() => toggleLink()}
-                                disabled={isLinkPending || isPending}
+                                disabled={isLinkPending}
                             >
                                 {isLinkPending ? (
                                     <span className="animate-spin text-xs">⟳</span>

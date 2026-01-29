@@ -194,6 +194,11 @@ export const snippetsAPI = {
             method: 'POST'
         }),
 
+    toggleDislike: (id: string) =>
+        apiRequest<{ disliked: boolean }>(`/snippets/${id}/dislike`, {
+            method: 'POST'
+        }),
+
     checkLike: (id: string) =>
         apiRequest<{ liked: boolean }>(`/snippets/${id}/like`),
 
