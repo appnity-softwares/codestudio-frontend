@@ -8,9 +8,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, Clock, ArrowRight, Ticket, Loader2 } from "lucide-react";
+import { Search, Calendar, Clock, ArrowRight, Ticket } from "lucide-react";
 import { format } from "date-fns";
-import { Skeleton } from "@/components/ui/skeleton";
+import { HamsterLoader } from "@/components/shared/HamsterLoader";
 import { CountdownTimer } from "@/components/CountdownTimer";
 
 export default function ArenaDashboard() {
@@ -66,29 +66,7 @@ export default function ArenaDashboard() {
                 </TabsList>
 
                 <TabsContent value="all" className="mt-6 space-y-8">
-                    {isLoading && (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[1, 2, 3, 4, 5, 6].map(i => (
-                                <Card key={i} className="flex flex-col h-full">
-                                    <CardHeader>
-                                        <div className="flex justify-between items-start mb-2">
-                                            <Skeleton className="h-5 w-16" />
-                                            <Skeleton className="h-5 w-12" />
-                                        </div>
-                                        <Skeleton className="h-6 w-3/4" />
-                                        <Skeleton className="h-4 w-full mt-2" />
-                                    </CardHeader>
-                                    <CardContent className="flex-grow space-y-3">
-                                        <Skeleton className="h-4 w-32" />
-                                        <Skeleton className="h-4 w-40" />
-                                    </CardContent>
-                                    <CardFooter>
-                                        <Skeleton className="h-10 w-full" />
-                                    </CardFooter>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
+                    {isLoading && <HamsterLoader fullPage size={20} />}
 
                     {!isLoading && liveEvents.length > 0 && (
                         <section>
@@ -217,11 +195,7 @@ function MyTicketsTab() {
     const registrations = data?.registrations || [];
 
     if (isLoading) {
-        return (
-            <div className="flex justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
-            </div>
-        );
+        return <HamsterLoader size={10} className="py-20" />;
     }
 
     if (registrations.length === 0) {

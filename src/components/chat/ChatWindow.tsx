@@ -5,12 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { ChevronLeft, Send, Loader2, Phone, Video, MoreVertical, MessageSquare } from "lucide-react";
+import { ChevronLeft, Send, Phone, Video, MoreVertical, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useChat } from "@/context/ChatContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
+import { HamsterLoader } from "@/components/shared/HamsterLoader";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatWindowProps {
     className?: string;
@@ -22,6 +24,7 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
     const { activeContact } = useChat();
     const { socket } = useSocket();
     const queryClient = useQueryClient();
+    const { toast } = useToast();
 
     const [messageInput, setMessageInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -125,6 +128,14 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
                 }));
             }
             queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        },
+        onError: (err: any) => {
+            console.error("Failed to send message:", err);
+            toast({
+                title: "Protocol Interrupted",
+                description: "Message transmission failed. Please retry.",
+                variant: "destructive"
+            });
         }
     });
 
@@ -195,15 +206,9 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar bg-[url('/grid.svg')] bg-fixed" ref={scrollRef}>
                 {isLoading ? (
-                    <div className="flex flex-col gap-6 w-full py-4">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className={cn("flex w-full", i % 2 === 0 ? "justify-end" : "justify-start")}>
-                                <div className={cn(
-                                    "h-16 w-48 rounded-2xl animate-pulse",
-                                    i % 2 === 0 ? "bg-primary/20 rounded-tr-sm" : "bg-muted/40 rounded-tl-sm"
-                                )} />
-                            </div>
-                        ))}
+                    <div className="flex flex-col items-center justify-center p-12">
+                        <HamsterLoader size={12} />
+                        <p className="mt-4 text-[10px] font-bold uppercase tracking-widest opacity-30">Decrypting_Traffic</p>
                     </div>
                 ) : messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full opacity-50 gap-2">
@@ -253,7 +258,7 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
                         className="absolute right-2 bottom-1.5 h-9 w-9 rounded-lg shadow-sm transition-all hover:scale-105 active:scale-95"
                     >
                         {sendMessageMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <HamsterLoader size={4} className="h-4 w-4" />
                         ) : (
                             <Send className="h-4 w-4" />
                         )}

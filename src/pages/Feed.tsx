@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StreamFeed } from "@/components/StreamFeed";
-import { feedAPI, authAPI, usersAPI } from "@/lib/api";
+import { feedAPI } from "@/lib/api";
 import { Flame, Clock, Star, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/useMediaQuery";
@@ -57,23 +57,8 @@ export default function Feed() {
         },
     });
 
-    const { data: userData, isLoading: userSnippetsLoading } = useQuery({
-        queryKey: ['user-me-snippets'],
-        queryFn: async () => {
-            const me = await authAPI.me();
-            const res = await usersAPI.getSnippets(me.user.id);
-            return res.snippets;
-        },
-        enabled: bucket === 'personal'
-    });
-
     let snippets = (feedData?.snippets || cachedSnippets) as any[];
-
-    // Personalization logic: Mix in user snippets if 'personal'
-    if (bucket === 'personal') {
-        snippets = userData || [];
-    }
-    const loading = bucket === 'personal' ? userSnippetsLoading : (feedLoading && cachedSnippets.length === 0);
+    const loading = (feedLoading && cachedSnippets.length === 0);
 
     const tabs: { id: FeedBucket; label: string; icon: React.ReactNode }[] = [
         { id: 'trending', label: 'Trending', icon: <Flame className="h-4 w-4" /> },

@@ -23,9 +23,9 @@ import { BadgeTab } from "@/components/profile/BadgeTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/useMediaQuery";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { HamsterLoader } from "@/components/shared/HamsterLoader";
 
 export default function Profile() {
     const { username } = useParams<{ username: string }>();
@@ -75,7 +75,7 @@ export default function Profile() {
         return calculateLevel(profileUser.xp || 0);
     }, [profileUser?.xp]);
 
-    const { data: linkStatus, refetch: refetchLinkStatus } = useQuery({
+    const { data: linkStatus } = useQuery({
         queryKey: ['link-status', profileUser?.id],
         queryFn: () => usersAPI.checkLinkStatus(profileUser.id),
         enabled: !!profileUser && !!currentUser && currentUser.id !== profileUser.id,
@@ -86,41 +86,36 @@ export default function Profile() {
     const isPending = linkStatus?.status === 'PENDING';
 
     const { mutate: toggleLink, isPending: isLinkPending } = useMutation({
-        mutationFn: async () => {
-            // Backend UnlinkUser (unfollow) now handles both active links and pending requests (cancellation)
-            if (isLinked || isPending) {
-                await usersAPI.unfollow(profileUser.id);
+        mutationFn: async ({ currentIsLinked, currentIsPending }: { currentIsLinked: boolean, currentIsPending: boolean }) => {
+            if (!profileUser?.id) throw new Error("Missing user identity");
+            if (currentIsLinked || currentIsPending) {
+                return await usersAPI.unfollow(profileUser.id);
             } else {
-                await usersAPI.follow(profileUser.id);
+                return await usersAPI.follow(profileUser.id);
             }
         },
-        onSuccess: () => {
-            refetchLinkStatus();
-            queryClient.invalidateQueries({ queryKey: ['user', username] }); // Refresh counts
-            let title = "";
-            let description = "";
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['link-status', profileUser?.id] });
+            queryClient.invalidateQueries({ queryKey: ['user', username] });
 
-            if (isLinked) {
-                title = "Unlinked";
-                description = `You have unlinked from ${profileUser.username}`;
-            } else if (isPending) {
-                title = "Request Canceled";
-                description = `Link request to ${profileUser.username} canceled`;
-            } else {
-                // Was not linked or pending -> Created new link/request
-                if (profileUser?.visibility === 'PRIVATE') {
-                    title = "Request Sent";
-                    description = `Link request sent to ${profileUser.username}`;
-                } else {
-                    title = "Linked";
-                    description = `Link established with ${profileUser.username}`;
-                }
-            }
+            const wasActionLinking = !variables.currentIsLinked && !variables.currentIsPending;
 
-            toast({ title, description });
+            toast({
+                title: wasActionLinking
+                    ? (profileUser?.visibility === 'PRIVATE' ? "Request Sent" : "Link Established")
+                    : "Link Severed",
+                description: wasActionLinking
+                    ? `Identity protocol initialized with @${profileUser?.username}`
+                    : `Link with @${profileUser?.username} has been archived`
+            });
         },
-        onError: () => {
-            toast({ title: "Operation failed", variant: "destructive" });
+        onError: (err: any) => {
+            console.error("Link mutation failed:", err);
+            toast({
+                title: "Protocol Fault",
+                description: err.message || "The linking operation was interrupted.",
+                variant: "destructive"
+            });
         }
     });
 
@@ -218,46 +213,7 @@ export default function Profile() {
 
     // Initial Loading State
     if (userLoading && !profileUser) {
-        return (
-            <div className={cn(
-                "space-y-8 mx-auto pb-20 fade-in",
-                isMobile ? "px-4 py-6" : "max-w-5xl p-6"
-            )}>
-                {/* Header Skeleton */}
-                <div className={cn(
-                    "flex gap-6",
-                    isMobile ? "flex-col items-center text-center space-y-4" : "flex-row items-center border border-border p-6 rounded-2xl bg-surface"
-                )}>
-                    <Skeleton className={cn("rounded-full", isMobile ? "h-24 w-24" : "h-24 w-24 border-4 border-canvas")} />
-                    <div className={cn("space-y-3", isMobile ? "items-center flex flex-col w-full" : "flex-1")}>
-                        <div className="space-y-2">
-                            <Skeleton className="h-8 w-48" />
-                            <Skeleton className="h-4 w-32" />
-                        </div>
-                        <Skeleton className="h-4 w-full max-w-md" />
-                    </div>
-                </div>
-
-                {/* Stats Skeleton */}
-                <div className={cn(
-                    "grid gap-4",
-                    isMobile ? "grid-cols-3 bg-surface border border-border rounded-xl p-4" : "grid-cols-2"
-                )}>
-                    {isMobile ? (
-                        <>
-                            <div className="space-y-1 flex flex-col items-center"><Skeleton className="h-6 w-8" /><Skeleton className="h-2 w-12" /></div>
-                            <div className="space-y-1 flex flex-col items-center border-x border-border"><Skeleton className="h-6 w-8" /><Skeleton className="h-2 w-12" /></div>
-                            <div className="space-y-1 flex flex-col items-center"><Skeleton className="h-6 w-8" /><Skeleton className="h-2 w-12" /></div>
-                        </>
-                    ) : (
-                        <>
-                            <Skeleton className="h-48 w-full rounded-xl" />
-                            <Skeleton className="h-48 w-full rounded-xl" />
-                        </>
-                    )}
-                </div>
-            </div>
-        );
+        return <HamsterLoader fullPage size={20} />;
     }
 
     // User Not Found State
@@ -353,20 +309,18 @@ export default function Profile() {
                     </div>
 
                     {/* Settings & Admin Buttons (Own Profile) */}
-                    {currentUser?.id === profileUser.id && (
+                    {currentUser?.id === profileUser.id ? (
                         <div className="flex flex-col gap-2 w-full max-w-xs mx-auto">
                             <Link to="/settings" className="w-full">
                                 <Button variant="outline" size="sm" className="w-full gap-2 h-11 rounded-xl">
                                     <Settings className="h-4 w-4" /> Edit Profile
                                 </Button>
                             </Link>
-                            {currentUser?.id === profileUser.id && (
-                                <Link to="/create" className="w-full">
-                                    <Button size="sm" className="w-full gap-2 h-11 rounded-xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px]">
-                                        <Plus className="h-4 w-4" /> Create Snippet
-                                    </Button>
-                                </Link>
-                            )}
+                            <Link to="/create" className="w-full">
+                                <Button size="sm" className="w-full gap-2 h-11 rounded-xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px]">
+                                    <Plus className="h-4 w-4" /> Create Snippet
+                                </Button>
+                            </Link>
                             {currentUser?.role === 'ADMIN' && (
                                 <Link to="/admin" className="w-full">
                                     <Button variant="secondary" size="sm" className="w-full gap-2 h-11 rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10">
@@ -374,6 +328,29 @@ export default function Profile() {
                                     </Button>
                                 </Link>
                             )}
+                        </div>
+                    ) : (
+                        <div className="flex gap-2 w-full max-w-xs mx-auto">
+                            <Button
+                                onClick={() => toggleLink({ currentIsLinked: isLinked, currentIsPending: isPending })}
+                                disabled={isLinkPending}
+                                className={cn(
+                                    "flex-1 gap-2 h-11 rounded-xl transition-all duration-300 font-black uppercase tracking-widest text-[10px]",
+                                    isLinked
+                                        ? "bg-muted text-muted-foreground border border-border"
+                                        : "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                                )}
+                            >
+                                {isLinkPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : isLinked ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                                {isLinkPending ? "Syncing.." : isLinked ? "Unlink" : isPending ? "Wait.." : "Link"}
+                            </Button>
+                            <Button
+                                onClick={() => openChatWith(profileUser.id)}
+                                variant="outline"
+                                className="h-11 w-11 p-0 rounded-xl border-border"
+                            >
+                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                            </Button>
                         </div>
                     )}
                 </div>
@@ -688,11 +665,11 @@ export default function Profile() {
                                     !isLinked && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_4px_20px_rgba(var(--primary),0.2)]",
                                     isLinked && "border-primary/20 text-primary hover:bg-primary/5"
                                 )}
-                                onClick={() => toggleLink()}
+                                onClick={() => toggleLink({ currentIsLinked: isLinked, currentIsPending: isPending })}
                                 disabled={isLinkPending}
                             >
                                 {isLinkPending ? (
-                                    <span className="animate-spin text-xs">⟳</span>
+                                    <HamsterLoader size={4} className="h-4 w-4" />
                                 ) : isLinked ? (
                                     <>
                                         <UserMinus className="h-4 w-4" /> Unlink

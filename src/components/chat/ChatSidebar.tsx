@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useChat } from "@/context/ChatContext";
 import { useAuth } from "@/context/AuthContext";
+import { HamsterLoader } from "@/components/shared/HamsterLoader";
 
 interface ChatSidebarProps {
     className?: string;
@@ -48,16 +49,9 @@ export function ChatSidebar({ className }: ChatSidebarProps) {
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {isLoading ? (
-                    <div className="flex flex-col gap-1 p-3">
-                        {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
-                                <div className="h-12 w-12 rounded-full bg-muted animate-pulse shrink-0" />
-                                <div className="flex-1 space-y-2 py-1">
-                                    <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                                    <div className="h-3 w-32 bg-muted/60 animate-pulse rounded" />
-                                </div>
-                            </div>
-                        ))}
+                    <div className="flex flex-col items-center justify-center p-12">
+                        <HamsterLoader size={12} />
+                        <p className="mt-4 text-[10px] font-bold uppercase tracking-widest opacity-30">Retrieving_Buffers</p>
                     </div>
                 ) : filteredConversations.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">

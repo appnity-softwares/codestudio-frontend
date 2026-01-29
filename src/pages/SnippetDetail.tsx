@@ -21,7 +21,7 @@ import { RootState } from "@/store";
 import { incrementCopyCount, setCopyCount } from "@/store/slices/snippetSlice";
 import { debounce } from "lodash-es";
 import { useCallback } from "react";
-import { SnippetDetailSkeleton } from "@/components/skeletons/SnippetDetailSkeleton";
+import { HamsterLoader } from "@/components/shared/HamsterLoader";
 import { useAuth } from "@/context/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -143,7 +143,7 @@ export default function SnippetDetail() {
     };
 
     if (loading) {
-        return <SnippetDetailSkeleton />;
+        return <HamsterLoader fullPage size={20} />;
     }
 
     // ... (Error handling omitted for brevity, matches existing) ...

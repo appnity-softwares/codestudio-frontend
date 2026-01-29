@@ -57,6 +57,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { ShareDialog } from "./ShareDialog";
 import { CommentSection } from "./social/CommentSection";
+import { Button } from "@/components/ui/button";
 
 // Helper Colors
 const typeColors: Record<string, string> = {
@@ -90,41 +91,36 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
     // Redux State
     const reduxCopyCount = useSelector((state: RootState) => state.snippets.copyCounts[snippet.id]);
     const hasCopiedLocally = useSelector((state: RootState) => state.snippets.userCopies[snippet.id]);
-    const isLiked = useSelector((state: RootState) => !!state.snippets.likeStates[snippet.id]);
+    const reduxIsLiked = useSelector((state: RootState) => state.snippets.likeStates[snippet.id]);
+    const reduxIsDisliked = useSelector((state: RootState) => state.snippets.dislikeStates[snippet.id]);
+    const isLiked = !!reduxIsLiked;
+    const isDisliked = !!reduxIsDisliked;
     const likeCount = useSelector((state: RootState) => state.snippets.likesCounts[snippet.id] ?? snippet.likesCount ?? 0);
-    const isDisliked = useSelector((state: RootState) => !!state.snippets.dislikeStates[snippet.id]);
     const dislikeCount = useSelector((state: RootState) => state.snippets.dislikesCounts[snippet.id] ?? snippet.dislikesCount ?? 0);
 
-    // Sync Initial State
     // Sync Initial State (Copy & Like)
     useEffect(() => {
         // Sync Copy
         if (snippet.id && reduxCopyCount === undefined) {
             dispatch(setCopyCount({ id: snippet.id, count: snippet.copyCount || 0 }));
         }
-        // Sync Like - Important for ensuring localized state matches server initially
-        if (snippet.id) {
-            // We dispatch this only if we don't have a record yet, OR we want to force sync from props
-            // For now, simpler: just let Redux handle it if we haven't touched it. 
-            // But simpler practice: always hydrate initial state if Redux is empty for this ID
-            // Check if undefined to avoid overwriting user interaction
-            // NOTE: We need a way to know if user has liked it from the API specific to the USER.
-            // Usually `snippet.isLiked` or similar comes from backend. Assuming `snippet.liked` or `snippet.isLiked` exists.
-            if (snippet.id) {
-                // Dispatch initial state safely
-                dispatch(setLikeState({
-                    id: snippet.id,
-                    isLiked: !!snippet.isLiked,
-                    count: snippet.likesCount || 0
-                }));
-                dispatch(setDislikeState({
-                    id: snippet.id,
-                    isDisliked: !!snippet.isDisliked,
-                    count: snippet.dislikesCount || 0
-                }));
-            }
+        // Sync Like - Only if undefined to avoid overwriting user interaction
+        if (snippet.id && reduxIsLiked === undefined) {
+            dispatch(setLikeState({
+                id: snippet.id,
+                isLiked: !!snippet.isLiked,
+                count: snippet.likesCount || 0
+            }));
         }
-    }, [snippet.id, snippet.copyCount, snippet.likesCount, snippet.dislikesCount, snippet.isLiked, snippet.isDisliked, dispatch]);
+        // Sync Dislike - Only if undefined
+        if (snippet.id && reduxIsDisliked === undefined) {
+            dispatch(setDislikeState({
+                id: snippet.id,
+                isDisliked: !!snippet.isDisliked,
+                count: snippet.dislikesCount || 0
+            }));
+        }
+    }, [snippet.id, reduxIsLiked, reduxIsDisliked, reduxCopyCount, snippet.copyCount, snippet.likesCount, snippet.dislikesCount, snippet.isLiked, snippet.isDisliked, dispatch]);
 
     // Fetch user's playlists
     const { data: playlistsData } = useQuery({
@@ -135,22 +131,64 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
 
     // Like Status Mutation
     const likeMutation = useMutation({
-        mutationFn: () => snippetsAPI.toggleLike(snippet.id),
+        mutationFn: () => {
+            if (!isAuthenticated) throw new Error("LOGIN_REQUIRED");
+            return snippetsAPI.toggleLike(snippet.id);
+        },
         onMutate: () => {
+            if (!isAuthenticated) return;
             dispatch(toggleLike(snippet.id));
         },
-        onError: () => {
+        onError: (err: any) => {
+            if (err.message === "LOGIN_REQUIRED") {
+                toast({ variant: "destructive", title: "Login Required", description: "You need to be logged in to like snippets." });
+                return;
+            }
             dispatch(toggleLike(snippet.id));
             toast({ variant: "destructive", title: "Action failed", description: "Could not toggle like." });
         }
     });
 
+    const [isFollowing, setIsFollowing] = useState(!!snippet.author?.isFollowing);
+
+    const followMutation = useMutation({
+        mutationFn: (targetIsFollowing: boolean) => targetIsFollowing
+            ? usersAPI.unfollow(snippet.author?.username || snippet.authorId)
+            : usersAPI.follow(snippet.author?.username || snippet.authorId),
+        onMutate: async (targetIsFollowing) => {
+            const prevState = isFollowing;
+            setIsFollowing(!targetIsFollowing);
+            return { prevState };
+        },
+        onError: (_err, _variables, context) => {
+            if (context) setIsFollowing(context.prevState);
+            toast({ variant: "destructive", title: "Action failed", description: "Identity sync interrupted. Please retry." });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['feed'] });
+            queryClient.invalidateQueries({ queryKey: ['user', snippet.author?.username] });
+        }
+    });
+
+    // Update state if snippet prop changes
+    useEffect(() => {
+        setIsFollowing(!!snippet.author?.isFollowing);
+    }, [snippet.author?.isFollowing]);
+
     const dislikeMutation = useMutation({
-        mutationFn: () => snippetsAPI.toggleDislike(snippet.id),
+        mutationFn: () => {
+            if (!isAuthenticated) throw new Error("LOGIN_REQUIRED");
+            return snippetsAPI.toggleDislike(snippet.id);
+        },
         onMutate: () => {
+            if (!isAuthenticated) return;
             dispatch(toggleDislike(snippet.id));
         },
-        onError: () => {
+        onError: (err: any) => {
+            if (err.message === "LOGIN_REQUIRED") {
+                toast({ variant: "destructive", title: "Login Required", description: "You need to be logged in to dislike snippets." });
+                return;
+            }
             dispatch(toggleDislike(snippet.id));
             toast({ variant: "destructive", title: "Action failed", description: "Could not toggle dislike." });
         }
@@ -276,49 +314,72 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                         </div>
                     </Link>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <button className="p-2 -mr-2 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 bg-popover/95 backdrop-blur-xl border-border/50">
-                            {isAuthenticated && (
-                                <>
-                                    <DropdownMenuItem onClick={() => setIsAddToPlaylistOpen(true)}>
-                                        <ListPlus className="mr-2 h-4 w-4" />
-                                        <span>Add to Playlist</span>
-                                    </DropdownMenuItem>
+                    <div className="flex items-center gap-2">
+                        {isAuthenticated && user?.id !== snippet.authorId && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                    "h-8 px-3 text-xs font-bold rounded-full transition-all duration-300 border",
+                                    isFollowing
+                                        ? "text-muted-foreground border-border hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/5"
+                                        : "bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-primary-foreground"
+                                )}
+                                onClick={(e: React.MouseEvent) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    followMutation.mutate(isFollowing);
+                                }}
+                                disabled={followMutation.isPending}
+                            >
+                                {followMutation.isPending ? "..." : isFollowing ? "Linked" : "Link"}
+                            </Button>
+                        )}
 
-                                    <DropdownMenuSeparator />
-                                </>
-                            )}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="p-2 -mr-2 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-popover/95 backdrop-blur-xl border-border/50">
+                                {isAuthenticated && (
+                                    <>
+                                        <DropdownMenuItem onClick={() => setIsAddToPlaylistOpen(true)}>
+                                            <ListPlus className="mr-2 h-4 w-4" />
+                                            <span>Add to Playlist</span>
+                                        </DropdownMenuItem>
 
-                            {user?.id === snippet.authorId ? (
-                                <>
-                                    <DropdownMenuItem onClick={() => navigate(`/create?edit=${snippet.id}`)}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        <span>Edit Snippet</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-500 focus:text-red-500 focus:bg-red-500/10" onClick={() => setIsDeleteDialogOpen(true)}>
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        <span>Delete</span>
-                                    </DropdownMenuItem>
-                                </>
-                            ) : (
-                                <>
-                                    <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-orange-500 focus:text-orange-500 focus:bg-orange-500/10">
-                                        <Flag className="mr-2 h-4 w-4" />
-                                        <span>Report Issue</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setIsBlockDialogOpen(true)} className="text-red-500 focus:text-red-500 focus:bg-red-500/10">
-                                        <Ban className="mr-2 h-4 w-4" />
-                                        <span>Block Author</span>
-                                    </DropdownMenuItem>
-                                </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
+
+                                {user?.id === snippet.authorId ? (
+                                    <>
+                                        <DropdownMenuItem onClick={() => navigate(`/create?edit=${snippet.id}`)}>
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            <span>Edit Snippet</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="text-red-500 focus:text-red-500 focus:bg-red-500/10" onClick={() => setIsDeleteDialogOpen(true)}>
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            <span>Delete</span>
+                                        </DropdownMenuItem>
+                                    </>
+                                ) : (
+                                    <>
+                                        <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-orange-500 focus:text-orange-500 focus:bg-orange-500/10">
+                                            <Flag className="mr-2 h-4 w-4" />
+                                            <span>Report Issue</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setIsBlockDialogOpen(true)} className="text-red-500 focus:text-red-500 focus:bg-red-500/10">
+                                            <Ban className="mr-2 h-4 w-4" />
+                                            <span>Block Author</span>
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
 
                 {/* 2. Main Content (Preview) */}

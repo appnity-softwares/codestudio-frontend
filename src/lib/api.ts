@@ -48,11 +48,16 @@ async function apiRequest<T>(
         ...options.headers,
     };
 
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
     try {
         const response = await fetch(`${API_URL}${endpoint}`, {
             ...options,
             headers,
+            signal: controller.signal,
         });
+        clearTimeout(id);
 
         if (!response.ok) {
             // Check for maintenance mode (503 Service Unavailable)
@@ -71,7 +76,20 @@ async function apiRequest<T>(
                     window.dispatchEvent(new Event('auth:logout'));
                     setTimeout(() => window.localStorage.removeItem('isLoggingOut'), 1000); // Clear after 1s
                 }
-                throw new AuthError(401, 'Session expired or invalid token');
+
+                // Try to read error message from server
+                let serverError = 'Session expired or invalid token';
+                try {
+                    const errorData = await response.json();
+                    if (errorData && errorData.error) {
+                        serverError = errorData.error;
+                        console.error('[API] 401 Server Error:', serverError);
+                    }
+                } catch (e) {
+                    // Ignore json parse error
+                }
+
+                throw new AuthError(401, serverError);
             }
 
             if (response.status === 403) {
