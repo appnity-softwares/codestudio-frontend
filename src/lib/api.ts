@@ -48,16 +48,13 @@ async function apiRequest<T>(
         ...options.headers,
     };
 
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
+    // Generic API request helper
+    // Simplified fetch without manual controller to avoid premature AbortErrors
     try {
         const response = await fetch(`${API_URL}${endpoint}`, {
             ...options,
             headers,
-            signal: controller.signal,
         });
-        clearTimeout(id);
 
         if (!response.ok) {
             // Check for maintenance mode (503 Service Unavailable)
@@ -598,6 +595,9 @@ export const activityAPI = {
 
 // Messages API
 export const messagesAPI = {
+    getUnreadCount: () =>
+        apiRequest<{ count: number }>('/chat/unread/total'),
+
     getContacts: () =>
         apiRequest<{ contacts: any[] }>('/chat/contacts'),
 
@@ -607,14 +607,37 @@ export const messagesAPI = {
     getMessages: (userId: string) =>
         apiRequest<{ messages: any[] }>(`/chat/messages?userId=${userId}`),
 
-    sendMessage: (recipientId: string, content: string) =>
-        apiRequest<{ message: any }>('/chat/messages', {
+    // Enhanced sendMessage with deduplication, type support, and threading
+    sendMessage: (recipientId: string, content: string, options?: {
+        clientMessageId?: string;
+        type?: 'text' | 'code' | 'image' | 'system';
+        replyToId?: string;
+        metadata?: string;
+    }) =>
+        apiRequest<{ message: any; deduplicated?: boolean }>('/chat/messages', {
             method: 'POST',
-            body: JSON.stringify({ recipientId, content })
+            body: JSON.stringify({
+                recipientId,
+                content,
+                clientMessageId: options?.clientMessageId,
+                type: options?.type || 'text',
+                replyToId: options?.replyToId,
+                metadata: options?.metadata
+            })
         }),
 
     markAsRead: (senderId: string) =>
         apiRequest<{ markedRead: number }>(`/chat/read/${senderId}`, { method: 'POST' }),
+
+    // Phase 7: Reactions
+    toggleReaction: (messageId: string, emoji: string) =>
+        apiRequest<{ reaction?: any; added?: boolean; removed?: boolean; emoji?: string }>(`/chat/messages/${messageId}/reactions`, {
+            method: 'POST',
+            body: JSON.stringify({ emoji })
+        }),
+
+    getReactions: (messageId: string) =>
+        apiRequest<{ reactions: any[]; grouped: Record<string, any[]>; count: number }>(`/chat/messages/${messageId}/reactions`),
 };
 
 // Admin API

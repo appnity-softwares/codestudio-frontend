@@ -74,7 +74,7 @@ const NotFound = lazy(() => import("./pages/NotFound"))
 const Leaderboard = lazy(() => import("./pages/Leaderboard"))
 const FeedbackWall = lazy(() => import("./pages/FeedbackWall"))
 const Messages = lazy(() => import("./pages/Messages"))
-const CipherChat = lazy(() => import("@/components/chat/CipherChat").then(m => ({ default: m.CipherChat })))
+
 
 
 import { DesktopOnlyGuard } from "./components/DesktopOnlyGuard"
@@ -276,10 +276,6 @@ function App() {
                                     <ChatProvider>
                                         <BadgeProvider>
                                             <AppRoutes />
-
-                                            <Suspense fallback={null}>
-                                                <CipherChat />
-                                            </Suspense>
                                             <Toaster />
                                         </BadgeProvider>
                                     </ChatProvider>

@@ -1,4 +1,8 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSocket } from './SocketContext';
+import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ChatContextType {
     isOpen: boolean;
@@ -13,20 +17,54 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export function ChatProvider({ children }: { children: ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const [activeContact, setActiveContact] = useState<any | null>(null);
+    const navigate = useNavigate();
+    const { socket } = useSocket();
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewMessage = (data: { message: any }) => {
+            const { message } = data;
+            // If already chatting with this user, no toast needed (MessageBubble usually handles it or just auto-update)
+            // Actually, we toast if we are NOT on the /messages page OR if we are on /messages but chatting with someone else.
+
+            // Note: activeContact structure is { user: ... }. activeContact.user.id
+            const isChattingWithSender = activeContact?.user?.id === message.senderId;
+            const isOnMessagesPage = window.location.pathname === '/messages';
+
+            if (!isOnMessagesPage || !isChattingWithSender) {
+                toast({
+                    title: `New message from ${message.sender.username}`,
+                    description: message.content.substring(0, 50) + (message.content.length > 50 ? "..." : ""),
+                    duration: 5000,
+                    className: "cursor-pointer bg-card border-l-4 border-l-primary",
+                    onClick: () => {
+                        openChatWith(message.sender);
+                    },
+                });
+
+                // Refresh badge count
+                queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
+            }
+
+            // Also refresh conversations list anyway if needed
+            queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        };
+
+        socket.on('receive_message', handleNewMessage);
+
+        return () => {
+            socket.off('receive_message', handleNewMessage);
+        };
+    }, [socket, activeContact, toast, queryClient, navigate]);
 
     const openChatWith = (user: any) => {
-        // Construct a partial conversation object if we only have a user
-        // The CipherChat component handles "user" vs "conversation" structure
-        // Let's standardise on passing the wrapper object { user: ... }
         if (!user) return;
-
-        // If we passed a raw user object (from Profile), wrap it to match conversation structure
-        // or just set it as activeContact and handle in CipherChat
-        // CipherChat expects { user: ... } based on my implementation
         const contact = user.user ? user : { user: user };
-
         setActiveContact(contact);
-        setIsOpen(true);
+        navigate('/messages');
     };
 
     return (

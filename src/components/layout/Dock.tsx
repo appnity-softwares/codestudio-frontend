@@ -106,14 +106,14 @@ export function Dock() {
     };
 
 
-    // Conversations for unread counting
-    const { data: convData } = useQuery({
-        queryKey: ['conversations'],
-        queryFn: messagesAPI.getConversations,
+    // Unread Messages Count
+    const { data: unreadData } = useQuery({
+        queryKey: ['unreadMessages'],
+        queryFn: messagesAPI.getUnreadCount,
         enabled: !!user,
-        refetchInterval: 30000,
+        refetchInterval: 15000, // Check every 15s
     });
-    const totalUnread = ((convData as any)?.conversations || []).reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
+    const totalUnread = unreadData?.count || 0;
 
     const navItems = [
         { icon: Home, label: "Feed", path: "/feed" },
@@ -133,7 +133,7 @@ export function Dock() {
     return (
         <aside
             className={cn(
-                "h-full z-40 flex flex-col border-r border-border bg-surface/95 backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative group/sidebar dock-container",
+                "h-full z-40 flex flex-col border-r border-border bg-surface/95 backdrop-blur-xl transition-all duration-500 ease-in-out relative group/sidebar dock-container",
                 isCollapsed ? "w-[80px]" : "w-[260px]"
             )}
         >

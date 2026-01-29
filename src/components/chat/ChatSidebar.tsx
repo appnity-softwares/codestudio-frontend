@@ -4,7 +4,7 @@ import { messagesAPI } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useChat } from "@/context/ChatContext";
 import { useAuth } from "@/context/AuthContext";
@@ -90,9 +90,9 @@ export function ChatSidebar({ className }: ChatSidebarProps) {
                                         )}>
                                             {conv.user.username}
                                         </span>
-                                        {conv.lastMessage && (
+                                        {conv.lastMessage?.createdAt && !conv.lastMessage.createdAt.startsWith('0001') && !isNaN(new Date(conv.lastMessage.createdAt).getTime()) && (
                                             <span className="text-[10px] text-muted-foreground tabular-nums opacity-70">
-                                                {formatDistanceToNow(new Date(conv.lastMessage.CreatedAt), { addSuffix: false })}
+                                                {format(new Date(conv.lastMessage.createdAt), 'h:mm a')}
                                             </span>
                                         )}
                                     </div>
@@ -101,8 +101,8 @@ export function ChatSidebar({ className }: ChatSidebarProps) {
                                             "text-xs truncate max-w-[140px]",
                                             conv.unreadCount > 0 ? "font-medium text-foreground" : "text-muted-foreground"
                                         )}>
-                                            {conv.lastMessage?.SenderID === user?.id && <span className="opacity-70 mr-1">You:</span>}
-                                            {conv.lastMessage?.Content || "No messages yet"}
+                                            {conv.lastMessage?.senderId === user?.id && <span className="opacity-70 mr-1">You:</span>}
+                                            {conv.lastMessage?.content || "No messages yet"}
                                         </p>
                                         {conv.unreadCount > 0 && (
                                             <span className="h-5 min-w-[1.25rem] px-1 bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center rounded-full">

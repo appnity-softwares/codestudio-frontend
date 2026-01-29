@@ -244,7 +244,9 @@ export function CipherChat() {
                                                                 )}>
                                                                     {msg.Content || msg.content}
                                                                     <div className={cn("text-[9px] mt-1 opacity-50 flex items-center gap-1", isMe ? "justify-end" : "justify-start")}>
-                                                                        {formatDistanceToNow(new Date(msg.CreatedAt || msg.createdAt), { addSuffix: true })}
+                                                                        {(msg.CreatedAt || msg.createdAt) && !String(msg.CreatedAt || msg.createdAt).startsWith('0001') && !isNaN(new Date(msg.CreatedAt || msg.createdAt).getTime()) ? (
+                                                                            formatDistanceToNow(new Date(msg.CreatedAt || msg.createdAt), { addSuffix: true })
+                                                                        ) : null}
                                                                         {isMe && (
                                                                             <span className="text-[10px] ml-1">
                                                                                 {(msg.IsRead || msg.isRead) ? "✓✓" : "✓"}
@@ -278,14 +280,10 @@ export function CipherChat() {
                                                 <Button
                                                     size="icon"
                                                     type="submit"
-                                                    disabled={!messageInput.trim() || sendMessageMutation.isPending}
+                                                    disabled={!messageInput.trim()}
                                                     className="absolute right-1 top-1 h-8 w-8 rounded-lg"
                                                 >
-                                                    {sendMessageMutation.isPending ? (
-                                                        <HamsterLoader size={3} className="h-3 w-3" />
-                                                    ) : (
-                                                        <Send className="h-3.5 w-3.5" />
-                                                    )}
+                                                    <Send className="h-3.5 w-3.5" />
                                                 </Button>
                                             </div>
                                         </form>
@@ -327,7 +325,7 @@ export function CipherChat() {
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center justify-between mb-0.5">
                                                                 <span className="font-bold text-sm truncate">{conv.user.username || conv.user.name}</span>
-                                                                {conv.lastMessage && (
+                                                                {conv.lastMessage?.CreatedAt && !conv.lastMessage.CreatedAt.startsWith('0001') && !isNaN(new Date(conv.lastMessage.CreatedAt).getTime()) && (
                                                                     <span className="text-[10px] text-muted-foreground tabular-nums">
                                                                         {formatDistanceToNow(new Date(conv.lastMessage.CreatedAt), { addSuffix: true }).replace('about ', '')}
                                                                     </span>

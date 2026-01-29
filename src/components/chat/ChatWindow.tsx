@@ -1,24 +1,41 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { messagesAPI } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { ChevronLeft, Send, Phone, Video, MoreVertical, MessageSquare } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { ChevronLeft, Send, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChat } from "@/context/ChatContext";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { HamsterLoader } from "@/components/shared/HamsterLoader";
 import { useToast } from "@/hooks/use-toast";
+import { useThrottle } from "@/hooks/use-throttle";
+import { MessageBubble } from "./MessageBubble";
+import { ImageLinkPreview } from "./ImageLinkPreview";
+import { MentionAutocomplete } from "./MentionAutocomplete";
+import { getMessageKey, normalizeMessage, MAX_RETRY_COUNT, type ChatMessage } from "@/types/chat";
+import { isImageUrl } from "@/utils/imageUrl";
 
 interface ChatWindowProps {
     className?: string;
     onBack?: () => void;
 }
 
+/**
+ * ChatWindow - Production-Grade Chat Component
+ * 
+ * Implements:
+ * - Canonical message state (clientMessageId as primary key)
+ * - Optimistic UI with proper rollback
+ * - Retry-safe deduplication
+ * - Frontend typing throttle
+ * - ACK on visible/render
+ * - Status tracking (sending → sent → delivered → read → failed)
+ * - Image sharing via paste-URL (no uploads)
+ */
 export function ChatWindow({ className, onBack }: ChatWindowProps) {
     const { user } = useAuth();
     const { activeContact } = useChat();
@@ -27,131 +44,434 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
     const { toast } = useToast();
 
     const [messageInput, setMessageInput] = useState("");
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const [isTyping, setIsTyping] = useState(false);
+    const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+    const [reactions, setReactions] = useState<Record<string, any[]>>({});
     const scrollRef = useRef<HTMLDivElement>(null);
-    // const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Fetch Messages
+    // ============================================================
+    // QUERY: Fetch messages for active conversation
+    // ============================================================
     const { data: messagesData, isLoading } = useQuery({
         queryKey: ['messages', activeContact?.user?.id],
-        queryFn: () => messagesAPI.getMessages(activeContact.user.id),
-        enabled: !!activeContact,
-        // Short poll as fallback to sockets
-        refetchInterval: 5000,
+        queryFn: () => messagesAPI.getMessages(activeContact!.user.id),
+        enabled: !!activeContact?.user?.id,
+        // Fallback polling (socket is primary)
+        refetchInterval: 10000,
+        staleTime: 5000,
     });
 
-    const messages = messagesData?.messages || [];
+    // Normalize messages for consistent access
+    const messages = useMemo(() => {
+        const raw = messagesData?.messages || [];
+        return raw.map(normalizeMessage);
+    }, [messagesData]);
 
-    // Scroll to bottom on new message
+    // ============================================================
+    // SCROLL: Auto-scroll to bottom on new messages
+    // ============================================================
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [messages, activeContact]);
+    }, [messages.length, activeContact?.user?.id, imagePreviewUrl]);
 
-    // mark as read when contact changes or new message arrives
+    // ============================================================
+    // MARK READ: When conversation is focused
+    // ============================================================
     useEffect(() => {
-        if (activeContact?.user?.id) {
-            messagesAPI.markAsRead(activeContact.user.id);
-            queryClient.invalidateQueries({ queryKey: ['conversations'] });
-        }
-    }, [activeContact, messages, queryClient]);
+        if (!activeContact?.user?.id) return;
 
-    // Socket Listeners
+        // Batch read ACK - mark all as read when conversation opens
+        messagesAPI.markAsRead(activeContact.user.id);
+        // queryClient.invalidateQueries({ queryKey: ['conversations'] }); // Optional: could cause flash
+    }, [activeContact?.user?.id]);
+
+    // ============================================================
+    // SOCKET LISTENERS: Real-time updates
+    // ============================================================
     useEffect(() => {
-        if (!socket || !activeContact) return;
+        if (!socket || !activeContact?.user?.id) return;
 
+        const conversationUserId = activeContact.user.id;
+
+        // Handle incoming messages
         const handleNewMessage = (data: any) => {
-            const msg = data.message || data;
+            const msg = normalizeMessage(data.message || data);
+
             // Only handle if message belongs to this conversation
-            if (msg.SenderID === activeContact.user.id || msg.RecipientID === activeContact.user.id ||
-                msg.senderId === activeContact.user.id || msg.receiverId === activeContact.user.id) {
+            const belongsToConversation =
+                msg.senderId === conversationUserId ||
+                msg.recipientId === conversationUserId;
 
-                queryClient.setQueryData(['messages', activeContact.user.id], (old: any) => {
-                    const oldMessages = old?.messages || [];
-                    // Avoid duplicates
-                    if (oldMessages.find((m: any) => (m.ID || m.id) === (msg.ID || msg.id))) return old;
-                    return { ...old, messages: [...oldMessages, msg] };
-                });
+            if (!belongsToConversation) return;
 
-                // Mark read if it's from the other person
-                if (msg.senderId === activeContact.user.id || msg.SenderID === activeContact.user.id) {
-                    messagesAPI.markAsRead(activeContact.user.id);
-                }
-            }
-        };
+            queryClient.setQueryData(['messages', conversationUserId], (old: any) => {
+                const oldMessages: ChatMessage[] = (old?.messages || []).map(normalizeMessage);
 
-        const handleTyping = (data: any) => {
-            if (data.userId === activeContact.user.id) {
-                setIsTyping(true);
-                // Clear typing after 3s
-                setTimeout(() => setIsTyping(false), 3000);
-            }
-        };
+                // DEDUPLICATION: Check by both id and clientMessageId
+                const isDuplicate = oldMessages.some(m =>
+                    (m.id && m.id === msg.id) ||
+                    (m.clientMessageId && m.clientMessageId === msg.clientMessageId)
+                );
 
-        const handleReadStatus = (data: any) => {
-            if (data.senderId === activeContact.user.id) {
-                // The other person read MY messages
-                queryClient.setQueryData(['messages', activeContact.user.id], (old: any) => {
-                    const oldMessages = old?.messages || [];
+                if (isDuplicate) {
+                    // Update existing message (might be optimistic → real)
                     return {
                         ...old,
-                        messages: oldMessages.map((m: any) => ({ ...m, isRead: true, IsRead: true }))
+                        messages: oldMessages.map(m =>
+                            (m.clientMessageId === msg.clientMessageId || m.id === msg.id)
+                                ? { ...m, ...msg, status: msg.status || 'sent' }
+                                : m
+                        )
                     };
-                });
+                }
+
+                return { ...old, messages: [...oldMessages, msg] };
+            });
+
+            // ACK ON RENDER: If message is from other person, send delivered ACK
+            if (msg.senderId === conversationUserId && msg.id) {
+                socket.emit('message_ack', { messageId: msg.id, status: 'delivered' });
+                // Also mark as read since conversation is visible
+                socket.emit('message_ack', { messageId: msg.id, status: 'read' });
             }
+        };
+
+        // Handle typing indicator
+        const handleTyping = (data: any) => {
+            if (data.userId !== conversationUserId) return;
+
+            setIsTyping(true);
+
+            // Clear any existing timeout
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+
+            // Use server expiresAt or default 4s
+            const expiresIn = data.expiresAt
+                ? Math.max(0, (data.expiresAt * 1000) - Date.now())
+                : 4000;
+
+            typingTimeoutRef.current = setTimeout(() => {
+                setIsTyping(false);
+            }, Math.min(expiresIn, 5000));
+        };
+
+        // Handle message status updates (sent → delivered → read)
+        const handleMessageStatus = (data: any) => {
+            const { messageId, status } = data;
+            if (!messageId || !status) return;
+
+            queryClient.setQueryData(['messages', conversationUserId], (old: any) => {
+                const oldMessages = old?.messages || [];
+                return {
+                    ...old,
+                    messages: oldMessages.map((m: any) => {
+                        if (m.id === messageId || m.ID === messageId) {
+                            return {
+                                ...m,
+                                status,
+                                isRead: status === 'read',
+                                IsRead: status === 'read'
+                            };
+                        }
+                        return m;
+                    })
+                };
+            });
+        };
+
+        // Handle read receipts
+        const handleReadStatus = (data: any) => {
+            if (data.senderId !== conversationUserId) return;
+
+            // The other person read MY messages
+            queryClient.setQueryData(['messages', conversationUserId], (old: any) => {
+                const oldMessages = old?.messages || [];
+                return {
+                    ...old,
+                    messages: oldMessages.map((m: any) =>
+                        (m.senderId === user?.id || m.SenderID === user?.id)
+                            ? { ...m, status: 'read', isRead: true, IsRead: true }
+                            : m
+                    )
+                };
+            });
+        };
+
+        // Handle reaction added
+        const handleReactionAdded = (data: any) => {
+            const reaction = data.reaction;
+            if (!reaction?.messageId) return;
+
+            setReactions(prev => {
+                const existing = prev[reaction.messageId] || [];
+                // Avoid duplicates
+                if (existing.some(r => r.id === reaction.id)) return prev;
+                return {
+                    ...prev,
+                    [reaction.messageId]: [...existing, reaction]
+                };
+            });
+        };
+
+        // Handle reaction removed
+        const handleReactionRemoved = (data: any) => {
+            const { messageId, reactionId, userId, emoji } = data;
+            if (!messageId) return;
+
+            setReactions(prev => {
+                const existing = prev[messageId] || [];
+                return {
+                    ...prev,
+                    [messageId]: existing.filter(r =>
+                        reactionId ? r.id !== reactionId : !(r.userId === userId && r.emoji === emoji)
+                    )
+                };
+            });
         };
 
         socket.on('receive_message', handleNewMessage);
         socket.on('user_typing', handleTyping);
+        socket.on('message_status', handleMessageStatus);
         socket.on('message_read', handleReadStatus);
+        socket.on('reaction_added', handleReactionAdded);
+        socket.on('reaction_removed', handleReactionRemoved);
 
         return () => {
             socket.off('receive_message', handleNewMessage);
             socket.off('user_typing', handleTyping);
+            socket.off('message_status', handleMessageStatus);
             socket.off('message_read', handleReadStatus);
-        };
-    }, [socket, activeContact, queryClient]);
+            socket.off('reaction_added', handleReactionAdded);
+            socket.off('reaction_removed', handleReactionRemoved);
 
-    // Send Mutation
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+        };
+    }, [socket, activeContact?.user?.id, queryClient, user?.id]);
+
+    // ============================================================
+    // GENERATE CLIENT MESSAGE ID: For deduplication
+    // ============================================================
+    const generateMessageId = useCallback((): string => {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        // Fallback for older browsers
+        return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    }, []);
+
+    // ============================================================
+    // SEND MUTATION: Optimistic UI with retry support
+    // ============================================================
     const sendMessageMutation = useMutation({
-        mutationFn: async () => {
-            if (!messageInput.trim() || !activeContact) return;
-            return await messagesAPI.sendMessage(activeContact.user.id, messageInput);
+        mutationFn: async ({ clientMessageId, content, type = 'text', replyToId }: {
+            clientMessageId: string;
+            content: string;
+            type?: 'text' | 'image' | 'code';
+            retryCount?: number;
+            replyToId?: string;
+        }) => {
+            if (!content.trim() || !activeContact?.user?.id) {
+                throw new Error('Invalid message or recipient');
+            }
+            return await messagesAPI.sendMessage(activeContact.user.id, content.trim(), {
+                clientMessageId,
+                type,
+                replyToId
+            });
         },
-        onSuccess: (response: any) => {
-            const newMsg = response.message || response;
-            setMessageInput("");
-            if (newMsg) {
-                queryClient.setQueryData(['messages', activeContact.user.id], (old: any) => ({
-                    messages: [...(old?.messages || []), newMsg]
+        onMutate: async ({ clientMessageId, content, type = 'text', retryCount = 0 }) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ['messages', activeContact?.user?.id] });
+
+            // Snapshot previous state
+            const previousMessages = queryClient.getQueryData(['messages', activeContact?.user?.id]);
+
+            // Check if this is a retry (message already exists)
+            const existingMessages: ChatMessage[] = (previousMessages as any)?.messages?.map(normalizeMessage) || [];
+            const existingMsg = existingMessages.find(m => m.clientMessageId === clientMessageId);
+
+            if (existingMsg) {
+                // RETRY: Update existing message status to 'sending'
+                queryClient.setQueryData(['messages', activeContact?.user?.id], (old: any) => ({
+                    messages: (old?.messages || []).map((m: any) =>
+                        m.clientMessageId === clientMessageId
+                            ? { ...m, status: 'sending', retryCount }
+                            : m
+                    )
+                }));
+            } else {
+                // NEW MESSAGE: Add optimistic message
+                const optimisticMsg: ChatMessage = {
+                    clientMessageId,
+                    senderId: user?.id || '',
+                    recipientId: activeContact?.user?.id || '',
+                    content: content.trim(),
+                    type,
+                    status: 'sending',
+                    createdAt: new Date().toISOString(),
+                    retryCount: 0,
+                };
+
+                queryClient.setQueryData(['messages', activeContact?.user?.id], (old: any) => ({
+                    messages: [...(old?.messages || []), optimisticMsg]
                 }));
             }
+
+            setMessageInput("");
+            setImagePreviewUrl(null); // Clear preview on send
+            return { previousMessages, clientMessageId };
+        },
+        onSuccess: (response, { clientMessageId }) => {
+            const newMsg = response?.message || response;
+            if (!newMsg) return;
+
+            // Replace optimistic message with server response
+            queryClient.setQueryData(['messages', activeContact?.user?.id], (old: any) => ({
+                messages: (old?.messages || []).map((m: any) =>
+                    m.clientMessageId === clientMessageId
+                        ? { ...normalizeMessage(newMsg), clientMessageId, status: 'sent' }
+                        : m
+                )
+            }));
+
+            // Update conversations list (debounced if needed, but here simple)
             queryClient.invalidateQueries({ queryKey: ['conversations'] });
         },
-        onError: (err: any) => {
-            console.error("Failed to send message:", err);
+        onError: (err: any, { clientMessageId, retryCount = 0 }) => {
+            console.error("[Chat] Send failed:", err);
+
+            // Handle specific error messages
+            const errorMessage = err?.response?.data?.error || "Failed to send message";
+
+            // Mark message as failed (keep for retry)
+            queryClient.setQueryData(['messages', activeContact?.user?.id], (old: any) => ({
+                messages: (old?.messages || []).map((m: any) =>
+                    m.clientMessageId === clientMessageId
+                        ? { ...m, status: 'failed', retryCount }
+                        : m
+                )
+            }));
+
             toast({
-                title: "Protocol Interrupted",
-                description: "Message transmission failed. Please retry.",
+                title: "Message Failed",
+                description: errorMessage,
                 variant: "destructive"
             });
         }
     });
 
-    const handleSend = (e: React.FormEvent) => {
-        e.preventDefault();
-        sendMessageMutation.mutate();
-    };
+    // ============================================================
+    // SEND HANDLER: Generate ID and send
+    // ============================================================
+    const handleSend = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
 
-    const handleTypingInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setMessageInput(e.target.value);
-
-        if (socket && activeContact) {
-            socket.emit('typing', { recipientId: activeContact.user.id });
+        if (imagePreviewUrl) {
+            // Send Image
+            const clientMessageId = generateMessageId();
+            sendMessageMutation.mutate({
+                clientMessageId,
+                content: imagePreviewUrl,
+                type: 'image',
+                retryCount: 0,
+                replyToId: replyingTo?.id
+            });
+            setReplyingTo(null);
+        } else if (messageInput.trim()) {
+            // Send Text
+            const clientMessageId = generateMessageId();
+            sendMessageMutation.mutate({
+                clientMessageId,
+                content: messageInput,
+                type: 'text',
+                retryCount: 0,
+                replyToId: replyingTo?.id
+            });
+            setReplyingTo(null);
         }
     };
 
+    // ============================================================
+    // PASTE HANDLER: Detect image URLs
+    // ============================================================
+    const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        // Get pasted text
+        const pastedText = e.clipboardData.getData('text');
+
+        // Check if it's an image URL
+        if (isImageUrl(pastedText)) {
+            e.preventDefault();
+            setImagePreviewUrl(pastedText.trim());
+            // Clear input so user focuses on the image to send
+            setMessageInput('');
+            toast({
+                title: "Image URL Detected",
+                description: "Review the image preview before sending.",
+            });
+        }
+    };
+
+    const handleCancelPreview = () => {
+        setImagePreviewUrl(null);
+    };
+
+    const handleSendImage = () => {
+        handleSend();
+    };
+
+    // ============================================================
+    // RETRY HANDLER: Reuse same clientMessageId
+    // ============================================================
+    const handleRetry = useCallback((message: ChatMessage) => {
+        const retryCount = (message.retryCount || 0) + 1;
+
+        if (retryCount > MAX_RETRY_COUNT) {
+            toast({
+                title: "Retry Limit Reached",
+                description: "Please delete and resend this message.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        // Ensure type is valid for sending (filter out system/undefined)
+        const type = (message.type === 'image' || message.type === 'code')
+            ? message.type
+            : 'text';
+
+        sendMessageMutation.mutate({
+            clientMessageId: message.clientMessageId,
+            content: message.content,
+            type,
+            retryCount
+        });
+    }, [sendMessageMutation, toast]);
+
+    // ============================================================
+    // TYPING HANDLER: Throttled to max 1 event per 3s
+    // ============================================================
+    const emitTyping = useThrottle(() => {
+        if (socket && activeContact?.user?.id) {
+            socket.emit('typing', { recipientId: activeContact.user.id });
+        }
+    }, 3000);
+
+    const handleTypingInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setMessageInput(e.target.value);
+        emitTyping();
+    };
+
+    // ============================================================
+    // RENDER: Empty state
+    // ============================================================
     if (!activeContact) {
         return (
             <div className={cn("flex flex-col items-center justify-center h-full bg-background/50 text-muted-foreground", className)}>
@@ -164,6 +484,9 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
         );
     }
 
+    // ============================================================
+    // RENDER: Chat window
+    // ============================================================
     return (
         <div className={cn("flex flex-col h-full bg-background", className)}>
             {/* Header */}
@@ -190,21 +513,10 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                        <Phone className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                        <Video className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                        <MoreVertical className="h-4 w-4" />
-                    </Button>
-                </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar bg-[url('/grid.svg')] bg-fixed" ref={scrollRef}>
+            {/* Messages - Using MessageBubble for proper status display */}
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[url('/grid.svg')] bg-fixed" ref={scrollRef}>
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center p-12">
                         <HamsterLoader size={12} />
@@ -215,55 +527,103 @@ export function ChatWindow({ className, onBack }: ChatWindowProps) {
                         <p className="text-sm">No messages yet. Say hello! 👋</p>
                     </div>
                 ) : (
-                    messages.map((msg: any) => {
-                        const isMe = msg.SenderID === user?.id || msg.senderId === user?.id;
-                        // Grouping logic could go here (chk prev message sender)
-                        return (
-                            <div key={msg.ID || msg.id} className={cn("flex w-full animate-in slide-in-from-bottom-2 duration-300", isMe ? "justify-end" : "justify-start")}>
-                                <div className={cn(
-                                    "max-w-[70%] sm:max-w-[60%] rounded-2xl px-4 py-3 text-sm shadow-sm",
-                                    isMe
-                                        ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                        : "bg-card border border-border rounded-tl-sm"
-                                )}>
-                                    <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.Content || msg.content}</p>
-                                    <div className={cn("text-[10px] mt-1 opacity-50 flex items-center gap-1", isMe ? "justify-end text-primary-foreground/70" : "justify-start text-muted-foreground")}>
-                                        {formatDistanceToNow(new Date(msg.CreatedAt || msg.createdAt), { addSuffix: true })}
-                                        {isMe && (
-                                            <span className="text-xs">
-                                                {(msg.IsRead || msg.isRead) ? "✓✓" : "✓"}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })
+                    <div className="space-y-1">
+                        {messages.map((msg) => {
+                            const isMine = msg.senderId === user?.id;
+                            const msgReactions = reactions[msg.id || ''] || [];
+                            return (
+                                <MessageBubble
+                                    key={getMessageKey(msg)}
+                                    message={msg}
+                                    isMine={isMine}
+                                    currentUserId={user?.id || ''}
+                                    reactions={msgReactions}
+                                    onRetry={handleRetry}
+                                    onReply={(m) => setReplyingTo(m)}
+                                />
+                            );
+                        })}
+                    </div>
                 )}
             </div>
 
             {/* Input */}
-            <div className="p-4 bg-card border-t border-border/40">
-                <form onSubmit={handleSend} className="relative flex items-end gap-2 max-w-4xl mx-auto">
-                    <Input
-                        value={messageInput}
-                        onChange={handleTypingInput}
-                        placeholder={`Message ${activeContact.user.username}...`}
-                        className="pr-12 min-h-[50px] py-3 bg-muted/30 border-transparent focus:bg-background focus:border-border transition-all shadow-sm rounded-xl resize-none"
+            <div className="bg-card border-t border-border/40">
+                {/* Reply Preview */}
+                {replyingTo && (
+                    <div className="px-4 pt-3 pb-0">
+                        <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 border-l-2 border-primary">
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-medium text-primary mb-0.5">
+                                    Replying to {replyingTo.sender?.username || 'message'}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                    {replyingTo.content?.substring(0, 60) || '...'}
+                                    {(replyingTo.content?.length || 0) > 60 && '...'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setReplyingTo(null)}
+                                className="ml-2 p-1 rounded hover:bg-muted transition-colors"
+                                aria-label="Cancel reply"
+                            >
+                                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Image Preview */}
+                {imagePreviewUrl && (
+                    <ImageLinkPreview
+                        url={imagePreviewUrl}
+                        onCancel={handleCancelPreview}
+                        onSend={handleSendImage}
+                        isLoading={sendMessageMutation.isPending}
                     />
-                    <Button
-                        size="icon"
-                        type="submit"
-                        disabled={!messageInput.trim() || sendMessageMutation.isPending}
-                        className="absolute right-2 bottom-1.5 h-9 w-9 rounded-lg shadow-sm transition-all hover:scale-105 active:scale-95"
-                    >
-                        {sendMessageMutation.isPending ? (
-                            <HamsterLoader size={4} className="h-4 w-4" />
-                        ) : (
+                )}
+
+                {/* Text Input */}
+                {!imagePreviewUrl && (
+                    <form onSubmit={handleSend} className="relative flex items-end gap-2 p-4 max-w-4xl mx-auto">
+                        <div className="relative flex-1">
+                            <Input
+                                value={messageInput}
+                                onChange={handleTypingInput}
+                                onPaste={handlePaste}
+                                placeholder={`Message ${activeContact.user.username}...`}
+                                className="pr-12 min-h-[50px] py-3 bg-muted/30 border-transparent focus:bg-background focus:border-border transition-all shadow-sm rounded-xl resize-none"
+                            />
+                            <MentionAutocomplete
+                                value={messageInput}
+                                onChange={(val) => {
+                                    setMessageInput(val);
+                                    emitTyping();
+                                }}
+                                className="absolute bottom-full left-0 mb-2 w-full"
+                            />
+                        </div>
+                        <Button
+                            size="icon"
+                            type="submit"
+                            disabled={!messageInput.trim()}
+                            className="absolute right-6 bottom-5.5 h-9 w-9 rounded-lg shadow-sm transition-all hover:scale-105 active:scale-95"
+                        >
                             <Send className="h-4 w-4" />
-                        )}
-                    </Button>
-                </form>
+                        </Button>
+                    </form>
+                )}
+
+                {/* Helper Tip */}
+                {!imagePreviewUrl && (
+                    <div className="px-4 pb-2 text-center -mt-1">
+                        <p className="text-[10px] text-muted-foreground opacity-40 hover:opacity-100 transition-opacity cursor-help" title="Just copy an image address and paste it here!">
+                            💡 Tip: Paste an image URL to send it instantly
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

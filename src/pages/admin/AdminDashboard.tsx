@@ -42,8 +42,21 @@ export default function AdminDashboard() {
             </div>
 
             {/* Key Metrics */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* ... existing cards (keeping them but maybe refining) ... */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <Card className="bg-gradient-to-br from-indigo-500/10 to-blue-500/10 border-blue-500/20 shadow-sm shadow-blue-500/10">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-bold text-blue-600 dark:text-blue-400">Online Users</CardTitle>
+                        <div className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black text-blue-600 dark:text-blue-400">{metrics.onlineUsersCount || 0}</div>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Connected Now</p>
+                    </CardContent>
+                </Card>
+
                 <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-border/50 shadow-sm transition-all hover:shadow-md">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-bold opacity-70">Total Users</CardTitle>
@@ -69,12 +82,12 @@ export default function AdminDashboard() {
                 <Link to="/admin/flags">
                     <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-border/50 shadow-sm transition-all hover:shadow-md hover:border-amber-500/50 cursor-pointer">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-bold opacity-70">Flagged Items</CardTitle>
+                            <CardTitle className="text-sm font-bold opacity-70">Flags</CardTitle>
                             <Flag className="h-4 w-4 text-amber-500" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-black text-amber-600 dark:text-amber-400">{metrics.flaggedSubmissions || 0}</div>
-                            <p className="text-xs text-amber-500 font-bold uppercase tracking-tighter">Requires Action</p>
+                            <p className="text-xs text-amber-500 font-bold uppercase tracking-tighter">Action Needed</p>
                         </CardContent>
                     </Card>
                 </Link>
@@ -88,7 +101,7 @@ export default function AdminDashboard() {
                         <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
                             {metrics.totalSubmissions ? metrics.totalSubmissions.toLocaleString() : 0}
                         </div>
-                        <p className="text-xs text-muted-foreground font-medium">{metrics.pendingSubmissions || 0} currently processing</p>
+                        <p className="text-xs text-muted-foreground font-medium">{metrics.pendingSubmissions || 0} processing</p>
                     </CardContent>
                 </Card>
             </div>

@@ -224,7 +224,7 @@ export default function Dashboard() {
 
 
 
-                        <Link to="/chat" className="block">
+                        <Link to="/messages" className="block">
                             <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-primary/20 transition-all group cursor-pointer">
                                 <div className="p-3 rounded-xl bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform">
                                     <MessageSquare className="h-5 w-5" />
