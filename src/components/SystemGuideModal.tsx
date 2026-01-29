@@ -2,6 +2,9 @@
 import {
     Dialog,
     DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import {
     Code2,
@@ -64,6 +67,10 @@ export function SystemGuideModal({ isOpen, onClose }: SystemGuideModalProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-4xl max-h-[90vh] md:h-auto bg-[#0c0c0e]/95 backdrop-blur-2xl border-white/10 shadow-2xl p-0 overflow-hidden flex flex-col md:block">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>System Manual</DialogTitle>
+                    <DialogDescription>Guide to CodeStudio features and economy.</DialogDescription>
+                </DialogHeader>
                 <div className="flex flex-col md:grid md:grid-cols-5 h-full overflow-hidden">
                     {/* Sidebar */}
                     <div className="md:col-span-2 bg-white/[0.02] border-b md:border-b-0 md:border-r border-white/5 p-6 md:p-8 flex flex-col justify-between shrink-0">

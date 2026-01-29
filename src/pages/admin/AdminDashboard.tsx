@@ -160,7 +160,6 @@ function AnalyticsSection() {
                                 </div>
                                 <div className="text-right">
                                     <p className="font-bold text-sm">{snippet.viewsCount} views</p>
-                                    <p className="text-xs text-muted-foreground">{snippet.forkCount} forks</p>
                                 </div>
                             </div>
                         ))}
@@ -194,20 +193,7 @@ function AnalyticsSection() {
                                 )}
                             </div>
                         </div>
-                        <div>
-                            <h4 className="text-sm font-bold mb-2">High Fork Volume</h4>
-                            <div className="space-y-2">
-                                {suspicious?.highForkSnippets?.map((snippet: any) => (
-                                    <div key={snippet.id} className="flex justify-between items-center text-sm">
-                                        <span className="truncate max-w-[200px]">{snippet.title}</span>
-                                        <span className="font-mono text-orange-500">{snippet.forkCount} forks</span>
-                                    </div>
-                                ))}
-                                {(!suspicious?.highForkSnippets || suspicious.highForkSnippets.length === 0) && (
-                                    <p className="text-xs text-muted-foreground">No high fork activity</p>
-                                )}
-                            </div>
-                        </div>
+
                     </div>
                 </CardContent>
             </Card>

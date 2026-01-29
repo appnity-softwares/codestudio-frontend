@@ -188,11 +188,30 @@ export const snippetsAPI = {
         }),
 
     // Stubs for Social Features
-    like: (_id: string) => Promise.resolve({ liked: false }),
-    comment: (_id: string, _content: string, _parentId?: string) => Promise.resolve({ comment: {} as any }),
-    likeComment: (_commentId: string) => Promise.resolve({ liked: false }),
-    getComments: (_id: string) => Promise.resolve({ comments: [] as any[] }),
-    save: (_id: string) => Promise.resolve({ saved: false }),
+    // Social Features
+    toggleLike: (id: string) =>
+        apiRequest<{ liked: boolean }>(`/snippets/${id}/like`, {
+            method: 'POST'
+        }),
+
+    checkLike: (id: string) =>
+        apiRequest<{ liked: boolean }>(`/snippets/${id}/like`),
+
+    comment: (id: string, content: string, _parentId?: string) =>
+        apiRequest<{ comment: any }>(`/snippets/${id}/comments`, {
+            method: 'POST',
+            body: JSON.stringify({ content })
+        }),
+
+    likeComment: (_commentId: string) => Promise.resolve({ liked: false }), // Not implemented in backend yet
+
+    getComments: (id: string) =>
+        apiRequest<{ comments: any[] }>(`/snippets/${id}/comments`),
+
+    deleteComment: (id: string) =>
+        apiRequest<{ message: string }>(`/comments/${id}`, {
+            method: 'DELETE'
+        }),
 
     updateOutput: (id: string, output: string) =>
         apiRequest<{ snippet: any }>(`/snippets/${id}/output`, {
@@ -207,10 +226,7 @@ export const snippetsAPI = {
         }),
 
     // v1.2: Fork & Copy
-    fork: (id: string) =>
-        apiRequest<{ snippet: any; message: string }>(`/snippets/${id}/fork`, {
-            method: 'POST',
-        }),
+
 
     copy: (id: string) =>
         apiRequest<{ message: string }>(`/snippets/${id}/copy`, {
@@ -226,6 +242,7 @@ export const snippetsAPI = {
         apiRequest<{ message: string }>(`/snippets/${id}/copy`, {
             method: 'POST',
         }),
+    save: (id: string) => Promise.resolve({ saved: true, id }),
 };
 
 // v1.2: Smart Feed API
@@ -263,17 +280,6 @@ export const practiceAPI = {
     },
 };
 
-// Documents API (Stubbed)
-export const documentsAPI = {
-    getAll: () => Promise.resolve({ documents: [] as any[] }),
-    getBySlug: (_slug: string) => Promise.resolve({ document: null as any }),
-    create: () => Promise.resolve({ document: {} as any }),
-    like: () => Promise.resolve({ liked: false }),
-    comment: () => Promise.resolve({ comment: {} as any }),
-    save: () => Promise.resolve({ saved: false }),
-    getComments: () => Promise.resolve({ comments: [] as any[] }),
-};
-
 // Users API
 export const usersAPI = {
     getAll: () => apiRequest<{ users: any[] }>('/users'),
@@ -283,13 +289,22 @@ export const usersAPI = {
 
     getSnippets: (id: string) => apiRequest<{ snippets: any[] }>(`/users/${id}/snippets`),
 
-    getDocuments: (_id: string) => Promise.resolve({ documents: [] as any[] }),
+    follow: (id: string) =>
+        apiRequest<{ message: string; linked: boolean }>(`/users/${id}/link`, { method: 'POST' }),
 
-    follow: (_id: string) => Promise.resolve({ following: false }),
-    unfollow: (_id: string) => Promise.resolve({ following: false }),
-    getLiked: (_id: string) => Promise.resolve({ snippets: [] as any[] }),
-    getFollowers: (_id: string) => Promise.resolve({ followers: [] as any[] }),
-    getFollowing: (_id: string) => Promise.resolve({ following: [] as any[] }),
+    unfollow: (id: string) =>
+        apiRequest<{ message: string; linked: boolean }>(`/users/${id}/link`, { method: 'DELETE' }),
+
+    checkLinkStatus: (id: string) =>
+        apiRequest<{ linked: boolean; status: 'NONE' | 'PENDING' | 'LINKED' }>(`/users/${id}/link/status`),
+
+    getLiked: (_id: string) => Promise.resolve({ snippets: [] as any[] }), // Still stubbed for now
+
+    getFollowers: (id: string) =>
+        apiRequest<{ linkers: any[] }>(`/users/${id}/linkers`).then(res => ({ followers: res.linkers })),
+
+    getFollowing: (id: string) =>
+        apiRequest<{ linked: any[] }>(`/users/${id}/linked`).then(res => ({ following: res.linked })),
 
     update: (data: Partial<any>) =>
         apiRequest<{ user: any }>('/users/profile', {
@@ -303,6 +318,19 @@ export const usersAPI = {
         ),
 
     getContestHistory: () => apiRequest<{ history: any[] }>('/users/me/contests'),
+
+    // Safety & Link Requests
+    block: (username: string) => apiRequest<{ message: string }>(`/users/${username}/block`, { method: 'POST' }),
+    unblock: (username: string) => apiRequest<{ message: string }>(`/users/${username}/block`, { method: 'DELETE' }),
+    getBlockedUsers: () => apiRequest<{ blocked: any[] }>('/users/blocks'),
+    report: (data: { targetId: string; targetType: 'USER' | 'SNIPPET'; reason: string }) =>
+        apiRequest<{ message: string }>('/users/report', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+    getLinkRequests: () => apiRequest<{ requests: any[] }>('/users/link-requests'),
+    acceptLinkRequest: (id: string) => apiRequest<{ message: string }>(`/users/link-requests/${id}/accept`, { method: 'POST' }),
+    rejectLinkRequest: (id: string) => apiRequest<{ message: string }>(`/users/link-requests/${id}/reject`, { method: 'POST' }),
 
     completeOnboarding: (data: {
         name: string;
@@ -373,16 +401,6 @@ export const feedbackAPI = {
         }),
 };
 
-// Bugs API (Stubbed)
-export const bugsAPI = {
-    getAll: () => Promise.resolve({ bugs: [] as any[] }),
-    create: () => Promise.resolve({ bug: {} as any }),
-    upvote: () => Promise.resolve({ upvoted: false }),
-    comment: () => Promise.resolve({ comment: {} as any }),
-    getComments: () => Promise.resolve({ comments: [] as any[] }),
-};
-
-// Stories API (Stubbed)
 // Upload API
 export const uploadAPI = {
     profileImage: (file: File) => {
@@ -421,11 +439,11 @@ export const searchAPI = {
 
 // Notifications API (Stubbed)
 export const notificationsAPI = {
-    getAll: () => Promise.resolve({ notifications: [] as any[] }),
-    getUnreadCount: () => Promise.resolve({ count: 0 }),
-    markAsRead: () => Promise.resolve({ success: true }),
-    markAllAsRead: () => Promise.resolve({ success: true }),
-    delete: () => Promise.resolve({ success: true }),
+    getAll: () => apiRequest<{ notifications: any[] }>('/notifications'),
+    getUnreadCount: () => apiRequest<{ count: number }>('/notifications/unread-count'), // Might need backend impl but putting it here
+    markAsRead: (id: string) => apiRequest<{ message: string }>(`/notifications/${id}/read`, { method: 'PUT' }),
+    markAllAsRead: () => apiRequest<{ message: string }>('/notifications/read-all', { method: 'PUT' }),
+    delete: (id: string) => apiRequest<{ message: string }>(`/notifications/${id}`, { method: 'DELETE' }),
 };
 
 // Events API
@@ -476,15 +494,22 @@ export const leaderboardAPI = {
 
 export const registrationsAPI = {
     register: (_eventId: string) => Promise.reject("Use eventsAPI.register"),
-    getMyRegistrations: () => Promise.resolve({ registrations: [] as any[] }),
-    getAllRegistrations: () => Promise.resolve({ registrations: [] as any[] }),
-    updateStatus: () => Promise.resolve({ registration: {} as any }),
+    getMyRegistrations: () => apiRequest<{ registrations: any[] }>('/registrations/my'),
+    getAllRegistrations: (eventId?: string, status?: string) => {
+        const params = new URLSearchParams();
+        if (eventId) params.append('eventId', eventId);
+        if (status) params.append('status', status);
+        const query = params.toString();
+        return apiRequest<{ registrations: any[] }>(`/registrations${query ? `?${query}` : ''}`);
+    },
+    updateStatus: (id: string, status: string) =>
+        apiRequest<{ registration: any }>(`/registrations/${id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status })
+        }),
 };
 
-// Certificates API (Stubbed)
-export const certificatesAPI = {
-    download: () => Promise.resolve(),
-};
+
 
 // Payment API (Razorpay)
 export const paymentsAPI = {
@@ -552,8 +577,19 @@ export const activityAPI = {
 export const messagesAPI = {
     getContacts: () =>
         apiRequest<{ contacts: any[] }>('/chat/contacts'),
-    getHistory: (userId: string) =>
+
+    getConversations: () =>
+        apiRequest<{ conversations: any[] }>('/chat/conversations'),
+
+    getMessages: (userId: string) =>
         apiRequest<{ messages: any[] }>(`/chat/messages?userId=${userId}`),
+
+    sendMessage: (recipientId: string, content: string) =>
+        apiRequest<{ message: any }>('/chat/messages', {
+            method: 'POST',
+            body: JSON.stringify({ recipientId, content })
+        }),
+
     markAsRead: (senderId: string) =>
         apiRequest<{ markedRead: number }>(`/chat/read/${senderId}`, { method: 'POST' }),
 };
@@ -691,6 +727,14 @@ export const adminAPI = {
     // XP Grant
     grantUserXP: (id: string, amount: number, reason: string) =>
         apiRequest<{ message: string }>(`/admin/users/${id}/grant-xp`, { method: 'POST', body: JSON.stringify({ amount, reason }) }),
+
+    // Reports (v1.3)
+    getReports: () => apiRequest<{ reports: any[] }>('/admin/reports'),
+    resolveReport: (id: string, status: 'RESOLVED' | 'DISMISSED') =>
+        apiRequest<{ message: string }>(`/admin/reports/${id}/resolve`, {
+            method: 'POST',
+            body: JSON.stringify({ status })
+        }),
 };
 
 export const playlistsAPI = {

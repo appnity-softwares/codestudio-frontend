@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function ContestManager() {
+export default function ContestManager({ onSelectEvent }: { onSelectEvent?: (id: string, title: string) => void }) {
     const navigate = useNavigate();
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -186,11 +186,13 @@ export default function ContestManager() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            <Link to={`/admin/contests/${contest.id}`}>
-                                                <Button variant="ghost" size="icon">
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                            </Link>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => onSelectEvent ? onSelectEvent(contest.id, contest.title) : navigate(`/admin/contests/${contest.id}`)}
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
 
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>

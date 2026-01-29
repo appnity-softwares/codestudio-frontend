@@ -16,9 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 import { TagInput } from "@/components/ui/tag-input";
 import { useDispatch } from "react-redux";
 import { setUserData } from "@/store/slices/userSlice";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function SettingsPage() {
-    const { user, signOut, updateUser } = useAuth();
+    const { user, updateUser } = useAuth();
     const { toast } = useToast();
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -34,6 +35,7 @@ export default function SettingsPage() {
     const [instagramUrl, setInstagramUrl] = useState("");
     const [languages, setLanguages] = useState<string[]>([]);
     const [interests, setInterests] = useState<string[]>([]);
+    const [githubStatsVisible, setGithubStatsVisible] = useState(true);
 
     // Initialize state
     useEffect(() => {
@@ -61,6 +63,7 @@ export default function SettingsPage() {
             setLanguages(getArray(user.preferredLanguages));
             setInterests(getArray(user.interests));
             setPublicProfile(user.visibility === "PUBLIC");
+            setGithubStatsVisible(user.githubStatsVisible !== false);
             console.log("Profile Data Loaded:", { languages: user.preferredLanguages, interests: user.interests });
         }
     }, [user]);
@@ -78,7 +81,8 @@ export default function SettingsPage() {
                 instagramUrl,
                 languages: languages,
                 interests: interests,
-                visibility: publicProfile ? "PUBLIC" : "PRIVATE"
+                visibility: publicProfile ? "PUBLIC" : "PRIVATE",
+                githubStatsVisible
             });
             updateUser(response.user);
             // Sync to Redux for instant global update
@@ -99,7 +103,7 @@ export default function SettingsPage() {
             setTimeout(() => navigate("/profile/me"), 1500);
         } catch (error) {
             console.error(error);
-            toast({ title: "SYSTEM_ERROR", description: "Write operation failed.", variant: "destructive" });
+            toast({ title: "Update Failed", description: "Could not sync profile settings.", variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
@@ -116,45 +120,38 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-canvas text-foreground p-4 md:p-8 max-w-3xl mx-auto">
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-border pb-6">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
-                            <User className="h-6 w-6 text-primary" />
-                            Settings
-                        </h1>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Manage your profile and preferences
-                        </p>
-                    </div>
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        className="h-9 gap-2"
-                        onClick={signOut}
-                    >
-                        <LogOut className="h-4 w-4" />
-                        Log Out
+        <div className="min-h-screen bg-background text-foreground pb-20">
+            {/* Header */}
+            <div className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+                        <LogOut className="h-5 w-5 rotate-180" />
                     </Button>
+                    <h1 className="text-lg font-bold font-headline">Settings_</h1>
                 </div>
+            </div>
+
+            <div className="max-w-3xl mx-auto p-6 space-y-8 fade-in">
 
                 {/* Profile Section */}
-                <div className="space-y-6 bg-surface p-6 rounded-xl border border-border transition-all shadow-sm">
+                <div className="space-y-6 bg-surface p-6 rounded-xl border border-border transition-all shadow-sm group hover:border-primary/20">
                     <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-border pb-3">
-                        <User className="h-4 w-4 text-primary" /> Profile Details
+                        <User className="h-4 w-4 text-primary" /> Identity Matrix
                     </div>
 
                     {/* Image URL Section */}
                     <div className="flex flex-col md:flex-row gap-6 items-start">
-                        <Avatar className="h-24 w-24 border-2 border-primary/20 bg-surface">
-                            <AvatarImage src={image || user?.image} alt={name} className="object-cover" />
-                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
-                                {name?.charAt(0) || "U"}
-                            </AvatarFallback>
-                        </Avatar>
+                        <div className="flex-shrink-0 relative">
+                            <Avatar className="h-24 w-24 border-2 border-border group-hover:border-primary/50 transition-colors">
+                                <AvatarImage src={image || user?.image} alt={name} className="object-cover" />
+                                <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
+                                    {name?.charAt(0) || "U"}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-2 -right-2 bg-background border border-border p-1.5 rounded-full shadow-sm">
+                                <ImageIcon className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                        </div>
                         <div className="flex-1 space-y-4 w-full">
                             <div>
                                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-3">
@@ -306,7 +303,7 @@ export default function SettingsPage() {
                 {/* Privacy Section */}
                 <div className="space-y-6 bg-surface p-6 rounded-xl border border-border transition-all shadow-sm">
                     <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-border pb-3">
-                        <Shield className="h-4 w-4 text-primary" /> Privacy
+                        <Shield className="h-4 w-4 text-primary" /> Privacy & Security
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -320,7 +317,22 @@ export default function SettingsPage() {
                             className="data-[state=checked]:bg-primary"
                         />
                     </div>
+
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label className="text-sm font-medium text-foreground">GitHub Statistics</Label>
+                            <p className="text-xs text-muted-foreground">Show GitHub activity graph on your public profile.</p>
+                        </div>
+                        <Switch
+                            checked={githubStatsVisible}
+                            onCheckedChange={setGithubStatsVisible}
+                            className="data-[state=checked]:bg-primary"
+                        />
+                    </div>
                 </div>
+
+                {/* Blocked Users Section */}
+                <BlockedUsersSection />
 
                 {/* Actions */}
                 <div className="flex flex-col gap-4 pt-4">
@@ -344,6 +356,69 @@ export default function SettingsPage() {
                     </Button>
                 </div>
             </div>
+        </div>
+    );
+}
+
+function BlockedUsersSection() {
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+
+    const { data, isLoading } = useQuery({
+        queryKey: ['blocked-users'],
+        queryFn: () => usersAPI.getBlockedUsers(),
+    });
+
+    const unblockMutation = useMutation({
+        mutationFn: (username: string) => usersAPI.unblock(username),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['blocked-users'] });
+            toast({ title: "User Unblocked" });
+        },
+        onError: () => toast({ title: "Failed to unblock", variant: "destructive" })
+    });
+
+    if (isLoading) return <div className="p-4 text-center text-xs text-muted-foreground">Loading blocked users...</div>;
+
+    const blocked = data?.blocked || [];
+
+    return (
+        <div className="space-y-6 bg-surface p-6 rounded-xl border border-border transition-all shadow-sm">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-border pb-3">
+                <Shield className="h-4 w-4 text-red-400" /> Blocked Users
+            </div>
+
+            {blocked.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-xs">
+                    No blocked users.
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {blocked.map((u: any) => (
+                        <div key={u.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/50">
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={u.image} />
+                                    <AvatarFallback>{u.username[0]}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="text-sm font-medium">{u.username}</p>
+                                    <p className="text-[10px] text-muted-foreground">Blocked</p>
+                                </div>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs hover:text-red-400 hover:bg-red-400/10"
+                                onClick={() => unblockMutation.mutate(u.username)}
+                                disabled={unblockMutation.isPending}
+                            >
+                                Unblock
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

@@ -37,6 +37,7 @@ export default function AdminLayout() {
         { to: "/admin/flags", icon: Flag, label: "Flag Review" },
         { to: "/admin/system", icon: Settings, label: "System" },
         { to: "/admin/avatars", icon: ImageIcon, label: "Avatars" },
+        { to: "/admin/reports", icon: ShieldAlert, label: "Incident Reports" },
         { to: "/admin/changelog", icon: Megaphone, label: "Changelog" },
         { to: "/admin/roles", icon: ShieldAlert, label: "Role Access" },
         { to: "/admin/audit-logs", icon: FileText, label: "Audit Logs" },

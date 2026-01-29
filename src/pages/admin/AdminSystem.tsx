@@ -152,6 +152,30 @@ export default function AdminSystem() {
             title: "Global Notifications",
             description: "Show/hide the notification bell in the global header.",
             icon: CheckCircle
+        },
+        {
+            key: "feature_github_stats",
+            title: "GitHub Developer Metrics",
+            description: "Enable GitHub account linking and automated activity stats on profiles.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_social_chat",
+            title: "Direct Social Messaging",
+            description: "Enable real-time chat between users in the messaging center.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_social_follow",
+            title: "Follower System",
+            description: "Allow users to follow each other and receive updates.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_social_feed",
+            title: "Personalized Activity Feed",
+            description: "Show social updates and activity from followed developers.",
+            icon: CheckCircle
         }
     ];
 

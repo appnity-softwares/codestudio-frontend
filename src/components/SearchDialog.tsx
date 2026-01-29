@@ -8,9 +8,7 @@ import {
     FileText,
     Home,
     Hash,
-    ShoppingBag,
     Cpu,
-    Bug,
     BookOpen
 } from "lucide-react"
 
@@ -144,16 +142,7 @@ export function SearchDialog() {
                                 </CommandGroup>
                             )}
 
-                            {searchResults.components?.length > 0 && (
-                                <CommandGroup heading="Marketplace">
-                                    {searchResults.components.map((comp: any) => (
-                                        <CommandItem key={comp.id} onSelect={() => runCommand(() => navigate(`/marketplace`))}>
-                                            <ShoppingBag className="mr-2 h-4 w-4 text-orange-400" />
-                                            <span>{comp.title}</span>
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            )}
+
 
                             {!searchResults.snippets?.length && !searchResults.users?.length &&
                                 !searchResults.documents?.length && !searchResults.components?.length && (
@@ -171,10 +160,7 @@ export function SearchDialog() {
                                     <Hash className="mr-2 h-4 w-4" />
                                     <span>Explore</span>
                                 </CommandItem>
-                                <CommandItem onSelect={() => runCommand(() => navigate('/marketplace'))}>
-                                    <ShoppingBag className="mr-2 h-4 w-4" />
-                                    <span>Marketplace</span>
-                                </CommandItem>
+
                                 <CommandItem onSelect={() => runCommand(() => navigate('/foryou'))}>
                                     <Cpu className="mr-2 h-4 w-4" />
                                     <span>For You</span>
@@ -183,22 +169,7 @@ export function SearchDialog() {
 
                             <CommandSeparator />
 
-                            <CommandGroup heading="Tools">
-                                <CommandItem onSelect={() => runCommand(() => navigate('/convert'))}>
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    <span>Converter</span>
-                                </CommandItem>
-                                <CommandItem onSelect={() => runCommand(() => navigate('/bugs'))}>
-                                    <Bug className="mr-2 h-4 w-4" />
-                                    <span>Bug Reports</span>
-                                </CommandItem>
-                                <CommandItem onSelect={() => runCommand(() => navigate('/blogs'))}>
-                                    <BookOpen className="mr-2 h-4 w-4" />
-                                    <span>Blogs</span>
-                                </CommandItem>
-                            </CommandGroup>
 
-                            <CommandSeparator />
 
                             <CommandGroup heading="Settings">
                                 <CommandItem onSelect={() => runCommand(() => navigate('/profile/me'))}>

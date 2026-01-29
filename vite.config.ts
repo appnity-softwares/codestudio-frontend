@@ -18,12 +18,14 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-slot', 'lucide-react', 'clsx', 'tailwind-merge'],
+          vendor: ['react', 'react-dom', 'react-router-dom', 'react-redux', '@reduxjs/toolkit'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-slot', '@radix-ui/react-toast', 'clsx', 'tailwind-merge'],
           framer: ['framer-motion'],
           query: ['@tanstack/react-query'],
           monaco: ['@monaco-editor/react'],
           charts: ['recharts'],
+          '3d': ['three', '@react-three/fiber', '@react-three/drei'],
+          syntax: ['prism-react-renderer', 'react-live'],
         },
       },
     },

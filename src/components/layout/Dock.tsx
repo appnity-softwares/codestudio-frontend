@@ -35,7 +35,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
-import { feedAPI, authAPI, systemAPI } from "@/lib/api";
+import { feedAPI, authAPI, systemAPI, messagesAPI } from "@/lib/api";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 
@@ -106,19 +106,30 @@ export function Dock() {
     };
 
 
+    // Conversations for unread counting
+    const { data: convData } = useQuery({
+        queryKey: ['conversations'],
+        queryFn: messagesAPI.getConversations,
+        enabled: !!user,
+        refetchInterval: 30000,
+    });
+    const totalUnread = ((convData as any)?.conversations || []).reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
+
     const navItems = [
         { icon: Home, label: "Feed", path: "/feed" },
         ...(isFeatureEnabled('feature_sidebar_leaderboard') ? [{ icon: Trophy, label: "Leaderboard", path: "/leaderboard" }] : []),
         { icon: Sparkles, label: "Arena", path: "/arena" },
         ...(isFeatureEnabled('feature_sidebar_practice') ? [{ icon: Dumbbell, label: "Practice", path: "/practice" }] : []),
-        ...(isFeatureEnabled('feature_sidebar_roadmaps') ? [{ icon: BookOpen, label: "Roadmaps", path: "/roadmaps" }] : []),
+        { icon: BookOpen, label: "Roadmaps", path: "/roadmaps" },
         ...(isFeatureEnabled('feature_sidebar_community') ? [{ icon: Globe, label: "Discover", path: "/community" }] : []),
         ...(isFeatureEnabled('feature_sidebar_trophy_room') ? [{ icon: Award, label: "Trophy Room", path: "/trophy-room" }] : []),
         ...(isFeatureEnabled('feature_sidebar_xp_store') ? [{ icon: ShoppingBag, label: "XP Store", path: "/xp-store" }] : []),
-        ...(isFeatureEnabled('feature_sidebar_feedback') ? [{ icon: MessageSquare, label: "Feedback Wall", path: "/feedback" }] : []),
+        ...(isFeatureEnabled('feature_sidebar_feedback') ? [{ icon: ShieldCheck, label: "Feedback Wall", path: "/feedback" }] : []),
+        { icon: MessageSquare, label: "Messages", path: "/messages", badge: totalUnread > 0 ? totalUnread : undefined },
         ...(isAdmin ? [{ icon: ShieldCheck, label: "Admin Panel", path: "/admin" }] : [])
     ];
 
+    // Navigation Items - No Categories
     return (
         <aside
             className={cn(
@@ -144,7 +155,6 @@ export function Dock() {
                 )}
             </Link>
 
-            {/* Navigation Items - No Categories */}
             <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-hide">
                 <TooltipProvider delayDuration={0}>
                     {navItems.map((item) => {
@@ -175,15 +185,22 @@ export function Dock() {
                                 )} />
 
                                 {!isCollapsed && (
-                                    <span className={cn(
-                                        "truncate text-[13px] font-bold tracking-tight transition-all",
-                                        isActive ? "text-primary font-black" : "text-inherit"
-                                    )}>
-                                        {item.label}
-                                    </span>
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <span className={cn(
+                                            "truncate text-[13px] font-bold tracking-tight transition-all",
+                                            isActive ? "text-primary font-black" : "text-inherit"
+                                        )}>
+                                            {item.label}
+                                        </span>
+                                        {item.badge !== undefined && (
+                                            <span className="bg-primary text-primary-foreground text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[1.25rem] h-5 flex items-center justify-center shadow-[0_0_10px_rgba(var(--primary),0.2)]">
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </div>
                                 )}
 
-                                {isActive && !isCollapsed && (
+                                {isActive && !isCollapsed && !item.badge && (
                                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(56,189,248,0.8)] animate-pulse" />
                                 )}
 

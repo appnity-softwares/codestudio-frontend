@@ -146,10 +146,7 @@ export function SnippetDetailModal({ snippet, open, onOpenChange }: SnippetDetai
                                                     <div className="text-xl font-bold font-headline">1.2k</div>
                                                     <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Views</div>
                                                 </div>
-                                                <div className="p-3 rounded-xl bg-muted/30 border">
-                                                    <div className="text-xl font-bold font-headline">42</div>
-                                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Forks</div>
-                                                </div>
+
                                             </div>
                                         </div>
 

@@ -6,7 +6,7 @@ import { Toaster } from "./components/ui/toaster"
 import { DashboardLayout } from "./components/layout/DashboardLayout"
 import { SocketProvider } from "./context/SocketContext"
 import { BadgeProvider } from "./context/BadgeContext"
-import { PlatformTour } from "./components/PlatformTour"
+
 
 // Pages
 import { lazy, Suspense, useEffect } from "react"
@@ -30,6 +30,7 @@ const OfficialContest = lazy(() => import("./pages/arena/OfficialContest"))
 const ContestLeaderboard = lazy(() => import("./pages/arena/Leaderboard"))
 const Profile = lazy(() => import("./pages/Profile"))
 const Community = lazy(() => import("./pages/Community"))
+const LinkRequests = lazy(() => import("./pages/social/LinkRequests"))
 const ContestHistory = lazy(() => import("./pages/profile/ContestHistory").then(m => ({ default: m.ContestHistory })))
 const Settings = lazy(() => import("./pages/Settings"))
 const SignIn = lazy(() => import("@/pages/auth/SignIn"))
@@ -58,6 +59,7 @@ const AdminChangelog = lazy(() => import("./pages/admin/AdminChangelog"))
 const AdminPractice = lazy(() => import("./pages/admin/AdminPractice"))
 const AdminRoadmaps = lazy(() => import("./pages/admin/AdminRoadmaps"))
 const AdminBadgeConfig = lazy(() => import("./pages/admin/AdminBadgeConfig"))
+const AdminReports = lazy(() => import("./pages/admin/AdminReports"))
 const Changelog = lazy(() => import("./pages/Changelog"))
 const PracticeList = lazy(() => import("./pages/PracticeList"))
 const PracticeWorkspace = lazy(() => import("./pages/PracticeWorkspace"))
@@ -71,6 +73,8 @@ const Help = lazy(() => import("./pages/Help"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 const Leaderboard = lazy(() => import("./pages/Leaderboard"))
 const FeedbackWall = lazy(() => import("./pages/FeedbackWall"))
+const Messages = lazy(() => import("./pages/Messages"))
+const CipherChat = lazy(() => import("@/components/chat/CipherChat").then(m => ({ default: m.CipherChat })))
 
 
 import { DesktopOnlyGuard } from "./components/DesktopOnlyGuard"
@@ -265,6 +269,7 @@ function AppRoutes() {
                     <Route path="leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
                     <Route path="feedback" element={<ProtectedRoute><FeedbackWall /></ProtectedRoute>} />
                     <Route path="u/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                    <Route path="social/requests" element={<ProtectedRoute><LinkRequests /></ProtectedRoute>} />
 
                     <Route path="snippets/:id" element={<ProtectedRoute><SnippetDetail /></ProtectedRoute>} />
                     <Route path="create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
@@ -274,6 +279,7 @@ function AppRoutes() {
                     <Route path="trophy-room" element={<ProtectedRoute><TrophyRoom /></ProtectedRoute>} />
                     <Route path="xp-store" element={<ProtectedRoute><XPStore /></ProtectedRoute>} />
                     <Route path="help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+                    <Route path="messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
                     {/* 404 Catch-all */}
                     <Route path="*" element={<NotFound />} />
                 </Route>
@@ -296,6 +302,7 @@ function AppRoutes() {
                     <Route path="practice-problems" element={<AdminPractice />} />
                     <Route path="roadmaps" element={<AdminRoadmaps />} />
                     <Route path="badge-config" element={<AdminBadgeConfig />} />
+                    <Route path="reports" element={<AdminReports />} />
                 </Route>
             </Routes>
         </Suspense>
@@ -305,6 +312,7 @@ function AppRoutes() {
 
 
 import { SidebarProvider } from "./context/SidebarContext"
+import { ChatProvider } from "./context/ChatContext"
 
 function App() {
     return (
@@ -315,11 +323,16 @@ function App() {
                         <SocketProvider>
                             <TooltipProvider>
                                 <SidebarProvider>
-                                    <BadgeProvider>
-                                        <AppRoutes />
-                                        <PlatformTour />
-                                        <Toaster />
-                                    </BadgeProvider>
+                                    <ChatProvider>
+                                        <BadgeProvider>
+                                            <AppRoutes />
+
+                                            <Suspense fallback={null}>
+                                                <CipherChat />
+                                            </Suspense>
+                                            <Toaster />
+                                        </BadgeProvider>
+                                    </ChatProvider>
                                 </SidebarProvider>
                             </TooltipProvider>
                         </SocketProvider>

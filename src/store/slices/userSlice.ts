@@ -23,7 +23,7 @@ const initialState: UserState = {
     profileImage: null,
     quests: [
         { id: 'q1', label: 'Solve 1 Medium Problem', progress: 0, total: 1, reward: 50, claimed: false },
-        { id: 'q2', label: 'Fork 2 Snippets', progress: 0, total: 2, reward: 30, claimed: false },
+        { id: 'q2', label: 'Copy 2 Snippets', progress: 0, total: 2, reward: 30, claimed: false },
         { id: 'q3', label: 'Give Feedback', progress: 0, total: 1, reward: 15, claimed: false },
     ],
 };

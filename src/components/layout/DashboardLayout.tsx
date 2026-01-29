@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { ExperienceModal } from "../ExperienceModal";
 import { SystemGuideModal } from "../SystemGuideModal";
+import { SystemBanner } from "../SystemBanner";
 import { useState, useEffect } from "react";
 
 
@@ -62,6 +63,7 @@ export function DashboardLayout() {
                         !isFeedbackPage && "overflow-y-auto scroll-smooth-mobile",
                         isMobile && !isFeedbackPage && "pb-4" // Extra bottom padding on mobile
                     )}>
+                        <SystemBanner />
                         <Outlet />
                     </div>
                 </main>

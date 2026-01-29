@@ -12,13 +12,13 @@ import { ReactLivePreview } from "@/components/preview/ReactLivePreview";
 import { SnippetInteraction } from "@/components/SnippetInteraction";
 // import { CommentsSection } from "@/components/CommentsSection";
 import { formatDistanceToNow } from "date-fns";
-import { Copy, Terminal, Code2, Info, ArrowLeft, GitFork, ExternalLink } from "lucide-react";
+import { Copy, Terminal, Code2, Info, ArrowLeft, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/SeoMeta";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
-import { incrementCopyCount, setCopyCount } from "@/store/slices/snippetsSlice";
+import { incrementCopyCount, setCopyCount } from "@/store/slices/snippetSlice";
 import { debounce } from "lodash-es";
 import { useCallback } from "react";
 import { SnippetDetailSkeleton } from "@/components/skeletons/SnippetDetailSkeleton";
@@ -223,29 +223,7 @@ export default function SnippetDetail() {
                                     <TabsTrigger value="code" className="text-xs h-7"><Code2 className="w-3 h-3 mr-2" /> Source</TabsTrigger>
                                 </TabsList>
                                 <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={async () => {
-                                        try {
-                                            toast({ title: "Forking...", description: "Creating your copy..." });
-                                            const res = await snippetsAPI.fork(snippet.id);
-                                            toast({ title: "Forked!", description: "Redirecting to your new snippet." });
-                                            navigate(`/snippets/${res.snippet.id}`);
-                                        } catch (err: any) {
-                                            if (err.message.includes("503") || err.status === 503) {
-                                                toast({
-                                                    variant: "destructive",
-                                                    title: "Forking Disabled",
-                                                    description: "Snippet creation and forking is currently disabled by administrators."
-                                                });
-                                            } else if (err.status === 401) {
-                                                toast({ variant: "destructive", title: "Login Required", description: "You must be logged in to fork snippets." });
-                                            } else {
-                                                toast({ variant: "destructive", title: "Fork Failed", description: err.message || "Could not fork snippet." });
-                                            }
-                                        }
-                                    }}>
-                                        <GitFork className="h-3.5 w-3.5 mr-1.5" />
-                                        Fork
-                                    </Button>
+
                                     <Button variant="ghost" size="sm" className="h-8 px-2 flex items-center gap-1.5" onClick={handleCopy}>
                                         <Copy className="h-3.5 w-3.5" />
                                         <span className="text-xs font-mono">{reduxCopyCount || 0}</span>

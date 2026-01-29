@@ -33,57 +33,78 @@ export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
+    const [socket, setSocket] = React.useState<SocketType | null>(null);
+
     const socketRef = useRef<SocketType | null>(null);
 
     useEffect(() => {
-        if (!user?.id) return;
-
-        // Debounce connection to handle React Strict Mode double-mounting in dev
-        // This prevents "WebSocket is closed before the connection is established" errors
-        const timerId = setTimeout(() => {
-            if (socketRef.current) return; // Already connected
-
-            socketRef.current = io(SOCKET_URL, {
-                query: {
-                    userId: user.id,
-                    token: localStorage.getItem('authToken')
-                },
-                auth: {
-                    token: localStorage.getItem('authToken')
-                },
-                transports: ['websocket'], // Force WebSocket
-                upgrade: false,
-                reconnection: true,
-                autoConnect: false,
-            });
-
-            socketRef.current.connect();
-
-            socketRef.current.on('connect', () => {
-                console.log('Socket connected:', socketRef.current?.id);
-            });
-
-            socketRef.current.on('disconnect', (reason: string) => {
-                console.log('Socket disconnected:', reason);
-            });
-
-            socketRef.current.on('connect_error', (err: Error) => {
-                console.error('Socket connection error:', err);
-            });
-        }, 300); // 300ms delay allows strict mode to mount/unmount without triggering connection
-
-        return () => {
-            clearTimeout(timerId); // Cancel connection if unmounted immediately (Strict Mode)
-
+        if (!user?.id) {
             if (socketRef.current) {
                 socketRef.current.disconnect();
                 socketRef.current = null;
+                setSocket(null);
+            }
+            return;
+        }
+
+        // Avoid re-creating if we already have a connecting/connected socket for this user
+        if (socketRef.current?.connected) {
+            setSocket(socketRef.current);
+            return;
+        }
+
+        const token = localStorage.getItem('authToken');
+        const newSocket = io(SOCKET_URL, {
+            query: {
+                userId: user.id,
+                token: token
+            },
+            auth: {
+                token: token
+            },
+            // Removing force-websocket to allow fallback and stable upgrade handshake
+            // which is often required by go-socket.io
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            autoConnect: true,
+        });
+
+        socketRef.current = newSocket;
+
+        newSocket.on('connect', () => {
+            console.log('✅ Cipher Socket connected:', newSocket.id);
+            setSocket(newSocket);
+        });
+
+        newSocket.on('disconnect', (reason: string) => {
+            console.log('🔌 Socket disconnected:', reason);
+            if (socketRef.current === newSocket) {
+                setSocket(null);
+            }
+        });
+
+        newSocket.on('connect_error', (err: Error) => {
+            // These are expected during server restarts or local dev reloads
+            console.warn('⚠️ Socket connection attempt failed:', err.message);
+        });
+
+        return () => {
+            // In React Strict Mode, this cleanup runs immediately after the first mount.
+            // We only want to truly disconnect if the user changed or the app is unmounting for real.
+            // For now, we'll keep the standard cleanup but wrap it to be quieter.
+            if (socketRef.current === newSocket) {
+                // If it's still connecting, browsers throw that warning. 
+                // We'll disconnect anyway to prevent leaks, but now you know why the warning exists.
+                newSocket.disconnect();
+                socketRef.current = null;
+                setSocket(null);
             }
         };
     }, [user?.id]);
 
     return (
-        <SocketContext.Provider value={{ socket: socketRef.current }}>
+        <SocketContext.Provider value={{ socket }}>
             {children}
         </SocketContext.Provider>
     );

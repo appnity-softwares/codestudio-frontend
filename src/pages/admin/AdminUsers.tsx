@@ -32,12 +32,17 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
+import { useSearchParams } from "react-router-dom";
+
 export default function AdminUsers() {
     const { toast } = useToast();
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
+    const urlSearch = searchParams.get("search") || "";
+
     const [page, setPage] = useState(1);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [searchQuery, setSearchQuery] = useState(urlSearch);
+    const [debouncedSearch, setDebouncedSearch] = useState(urlSearch);
 
     // State for Suspensions
     const [selectedUser, setSelectedUser] = useState<any>(null);

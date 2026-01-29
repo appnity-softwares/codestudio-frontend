@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Code2, Users, Trophy, Globe, Sparkles, ChevronRight, TrendingUp } from "lucide-react";
-import SEO from "@/components/SeoMeta";
+import { Seo } from "@/components/Seo";
 import { useQuery } from "@tanstack/react-query";
 import { systemAPI } from "@/lib/api";
 import { ChangelogSection } from "@/components/ChangelogSection";
@@ -33,9 +33,9 @@ export default function Landing() {
 
     return (
         <div className="min-h-screen bg-[#050505] text-white selection:bg-primary/30 overflow-x-hidden">
-            <SEO
-                title="CodeStudio - Master the Art of Coding"
-                description="The ultimate platform for developers to compete, collaborate, and grow. Join thousands of coders in the arena."
+            <Seo
+                title="CodeStudio | The Social Platform for Developers"
+                description="Connect with developers, share code snippets, participate in coding contests, and build your tech presence on CodeStudio. The ultimate developer community."
             />
             {/* ... Navbar remains same ... */}
             <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#050505]/80 backdrop-blur-xl">

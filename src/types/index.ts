@@ -19,6 +19,7 @@ export interface User {
     interests?: string[]
     visibility?: string
     onboardingCompleted?: boolean
+    githubStatsVisible?: boolean
     level?: number
     streak?: number
     inventory?: string[]

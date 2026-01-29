@@ -1,8 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /api/
-Disallow: /settings/
-Disallow: /oauth-callback
 
-Sitemap: https://codestudio.appnity.cloud/sitemap.xml
+# Sitemap
+Sitemap: https://codestudio.com/sitemap.xml

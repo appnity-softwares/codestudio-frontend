@@ -211,7 +211,7 @@ export default function Help() {
                                             <div className="space-y-2">
                                                 {[
                                                     { action: "Logic Block Publication", xp: "+50", detail: "Per verified snippet" },
-                                                    { action: "Verified Fork Reception", xp: "+25", detail: "When others build on your logic" },
+                                                    { action: "Verified Copy Reception", xp: "+25", detail: "When others build on your logic" },
                                                     { action: "Detailed Peer Review", xp: "+15", detail: "Constructive feedback on feed" },
                                                     { action: "Daily Check-in", xp: "+10", detail: "Resets every 24 hours" },
                                                     { action: "Arena Victory", xp: "50-500", detail: "Based on trial difficulty" },
@@ -337,7 +337,7 @@ export default function Help() {
                                         <h4 className="text-foreground font-bold text-sm">Typical Objectives:</h4>
                                         <ul className="text-xs space-y-2 list-disc list-inside font-mono">
                                             <li>Execute snippets in 3+ languages</li>
-                                            <li>Fork 2Featured logic blocks</li>
+                                            <li>Copy 2Featured logic blocks</li>
                                             <li>Receive 5 unique reactions</li>
                                             <li>Achieve 100% test pass rate</li>
                                         </ul>

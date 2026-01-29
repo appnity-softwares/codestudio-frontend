@@ -131,7 +131,6 @@ export default function Create() {
 
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');
-    const forkId = searchParams.get('fork');
 
     const handleRunCode = async (stdinOverride?: string) => {
         setExecuting(true);
@@ -181,14 +180,14 @@ export default function Create() {
         }
     };
 
-    // Fetch for Edit/Fork
+    // Fetch for Edit
     useEffect(() => {
-        const loadSnippet = async (id: string, mode: 'edit' | 'fork') => {
+        const loadSnippet = async (id: string) => {
             setLoading(true);
             try {
                 // FIX: Destructure snippet from response
                 const { snippet } = await snippetsAPI.getById(id);
-                setSnippetTitle(mode === 'fork' ? `${snippet.title} (Fork)` : snippet.title);
+                setSnippetTitle(snippet.title);
                 setSnippetDesc(snippet.description);
                 setSnippetLang(snippet.language);
                 setSnippetType(snippet.type || "ALGORITHM");
@@ -210,9 +209,8 @@ export default function Create() {
             }
         };
 
-        if (editId) loadSnippet(editId, 'edit');
-        else if (forkId) loadSnippet(forkId, 'fork');
-    }, [editId, forkId]);
+        if (editId) loadSnippet(editId);
+    }, [editId]);
 
     const handleSubmit = async () => {
         if (!snippetTitle || !snippetCode) {

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Bell, BellOff, Plus, Flame, Clock, Star, Sparkles, ChevronDown } from "lucide-react";
+import { Plus, Flame, Clock, Star, Sparkles, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileSidebar } from "./MobileSidebar";
 import { useAuth } from "@/context/AuthContext";
@@ -8,10 +8,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { setFeedBucket } from "@/store/slices/feedSlice";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { systemAPI } from "@/lib/api";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 type FeedBucket = 'trending' | 'new' | 'editor' | 'personal';
 
@@ -20,9 +19,7 @@ export function GlobalHeader() {
     const location = useLocation();
     const { isAuthenticated } = useAuth();
     const dispatch = useDispatch();
-    const { toast } = useToast();
     const { viewBucket } = useSelector((state: RootState) => state.feed);
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
     const { data: systemData } = useQuery({
         queryKey: ['system-status'],
@@ -53,16 +50,6 @@ export function GlobalHeader() {
         location.pathname === '/feedback';
 
     if (isArenaRoom) return null;
-
-    const toggleNotifications = () => {
-        setNotificationsEnabled(!notificationsEnabled);
-        toast({
-            title: notificationsEnabled ? "Notifications Disabled" : "Notifications Enabled",
-            description: notificationsEnabled
-                ? "You will no longer receive real-time alerts."
-                : "Real-time alerts have been reactivated.",
-        });
-    };
 
     return (
         <header className="sticky top-0 z-50 w-full bg-canvas/80 backdrop-blur-xl border-b border-border/50 px-3 h-16 flex items-center justify-between">
@@ -104,21 +91,9 @@ export function GlobalHeader() {
 
             <div className="flex items-center gap-1">
                 {showNotifications && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-full h-10 w-10 relative"
-                        onClick={toggleNotifications}
-                    >
-                        {notificationsEnabled ? (
-                            <Bell className="h-5 w-5 text-muted-foreground" />
-                        ) : (
-                            <BellOff className="h-5 w-5 text-destructive" />
-                        )}
-                        {notificationsEnabled && (
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-canvas" />
-                        )}
-                    </Button>
+                    <div className="mr-2">
+                        <NotificationBell />
+                    </div>
                 )}
 
                 {isAuthenticated ? (

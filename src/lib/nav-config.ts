@@ -6,6 +6,7 @@ import {
     ShoppingBag,
     ShieldCheck,
     Share,
+    MessageSquare,
 } from 'lucide-react';
 
 export const navSections = [
@@ -15,6 +16,7 @@ export const navSections = [
             { label: 'Feed', href: '/feed', icon: Home },
             { label: 'Community', href: '/community', icon: User },
             { label: 'Challenges', href: '/practice', icon: Sparkles },
+            { label: 'Feedback', href: '/feedback', icon: MessageSquare },
         ],
     },
     {

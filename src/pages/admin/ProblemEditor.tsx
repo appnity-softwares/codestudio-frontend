@@ -13,8 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CodeEditor } from "@/components/CodeEditor"; // Fixed named import
 
-export default function ProblemEditor() {
-    const { id } = useParams<{ id: string }>();
+export default function ProblemEditor({ eventId, eventTitle, onBack }: { eventId?: string, eventTitle?: string, onBack?: () => void }) {
+    const { id: paramId } = useParams<{ id: string }>();
+    const id = eventId || paramId;
     const navigate = useNavigate();
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -116,9 +117,9 @@ export default function ProblemEditor() {
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => onBack ? onBack() : navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
                 <div>
-                    <h1 className="text-2xl font-bold">{title || "Edit Problem"}</h1>
+                    <h1 className="text-2xl font-bold">{eventTitle ? `${eventTitle}: ` : ""}{title || "Edit Problem"}</h1>
                     <Badge variant="secondary">{difficulty}</Badge>
                 </div>
                 <div className="ml-auto">

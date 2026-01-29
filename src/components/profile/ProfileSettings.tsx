@@ -31,6 +31,8 @@ interface ProfileSettingsProps {
     setGithubUrl?: (url: string) => void;
     instagramUrl?: string;
     setInstagramUrl?: (url: string) => void;
+    githubStatsVisible?: boolean;
+    setGithubStatsVisible?: (visible: boolean) => void;
 }
 
 export function ProfileSettings({
@@ -39,7 +41,8 @@ export function ProfileSettings({
     onSave, isLoading, signOut, theme, setTheme,
     currentImage, onImageUpdate,
     githubUrl = "", setGithubUrl,
-    instagramUrl = "", setInstagramUrl
+    instagramUrl = "", setInstagramUrl,
+    githubStatsVisible = true, setGithubStatsVisible
 }: ProfileSettingsProps) {
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
@@ -190,6 +193,21 @@ export function ProfileSettings({
                                     onCheckedChange={(checked) => setVisibility(checked ? 'PRIVATE' : 'PUBLIC')}
                                 />
                             </div>
+
+                            {/* GitHub Stats Visibility Toggle */}
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-white/5">
+                                <div className="space-y-0.5">
+                                    <Label className="uppercase text-[10px] font-black tracking-widest flex items-center gap-1">
+                                        <Github className="h-3 w-3" /> GitHub Stats
+                                    </Label>
+                                    <p className="text-[10px] text-white/30 font-medium">Show contribution graph on profile</p>
+                                </div>
+                                <Switch
+                                    checked={githubStatsVisible}
+                                    onCheckedChange={setGithubStatsVisible}
+                                />
+                            </div>
+
                             <Button variant="ghost" className="w-full justify-between hover:bg-red-500/10 hover:text-red-400 group rounded-xl" onClick={signOut}>
                                 <span className="uppercase text-[10px] font-black tracking-widest">Terminate Session</span>
                                 <LogOut className="h-4 w-4 opacity-50 group-hover:opacity-100" />

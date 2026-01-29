@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { notificationsAPI } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,14 +6,10 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import io from "socket.io-client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:8080";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SocketType = any;
+import { useSocket } from "@/context/SocketContext";
+import { formatDistanceToNow } from "date-fns";
 
 export function NotificationBell() {
     const { user } = useAuth();
@@ -21,21 +17,21 @@ export function NotificationBell() {
     const { toast } = useToast();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
-    const socketRef = useRef<SocketType | null>(null);
+    const { socket } = useSocket();
 
     // Fetch notifications
     const { data: notificationsData } = useQuery({
         queryKey: ['notifications'],
         queryFn: () => notificationsAPI.getAll(),
         enabled: !!user?.id,
-        refetchInterval: 30000
+        refetchInterval: 60000 // Rely more on real-time
     });
 
     const { data: unreadCountData } = useQuery({
         queryKey: ['unread-notifications-count'],
         queryFn: notificationsAPI.getUnreadCount,
         enabled: !!user?.id,
-        refetchInterval: 15000
+        refetchInterval: 60000
     });
 
     const notifications = notificationsData?.notifications || [];
@@ -43,7 +39,13 @@ export function NotificationBell() {
 
     // Mark as read mutation
     const markReadMutation = useMutation({
-        mutationFn: (ids: string[]) => notificationsAPI.markAsRead(ids),
+        mutationFn: (ids: string | string[]) => {
+            if (Array.isArray(ids)) {
+                // Bulk mark as read if API supports it, or use serial calls
+                return notificationsAPI.markAllAsRead(); // For simplicity in markAllRead
+            }
+            return notificationsAPI.markAsRead(ids);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
             queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
@@ -52,62 +54,61 @@ export function NotificationBell() {
 
     // Handle real-time notifications
     useEffect(() => {
-        if (!user?.id) return;
+        if (!socket) return;
 
-        socketRef.current = io(SOCKET_URL, {
-            query: { userId: user.id }
-        });
-
-        socketRef.current.on("notification", (newNotification: any) => {
-            // Show toast
+        const handleNotification = (newNotification: any) => {
             toast({
                 title: getActivityTitle(newNotification.type),
                 description: newNotification.message,
             });
 
-            // Refresh data
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
             queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
-        });
-
-        return () => {
-            socketRef.current?.disconnect();
         };
-    }, [user?.id, queryClient, toast]);
+
+        socket.on("notification", handleNotification);
+        return () => { socket.off("notification", handleNotification); };
+    }, [socket, queryClient, toast]);
 
     const handleMarkAllRead = () => {
-        const unreadIds = notifications.filter((n: any) => !n.read).map((n: any) => n.id);
+        const unreadIds = notifications.filter((n: any) => !n.isRead).map((n: any) => n.id);
         if (unreadIds.length > 0) {
             markReadMutation.mutate(unreadIds);
         }
     };
 
     const handleNotificationClick = (notification: any) => {
-        if (!notification.read) {
-            markReadMutation.mutate([notification.id]);
+        if (!notification.isRead) {
+            markReadMutation.mutate(notification.id);
         }
 
-        if (notification.link) {
-            navigate(notification.link);
-        } else if (notification.type === 'FOLLOW') {
-            navigate(`/profile/${notification.actorId}`);
+        if (notification.type === 'LINK_REQUEST') {
+            navigate('/social/requests');
+        } else if (notification.type === 'LINK_ACCEPT') {
+            navigate(`/u/${notification.actor?.username || ''}`);
+        } else if (notification.actor?.username) {
+            navigate(`/u/${notification.actor.username}`);
         }
 
         setIsOpen(false);
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const getActivityIcon = (_type: string) => {
-        // Simple visual indicator, can expand with Lucide icons
-        return "🔔";
-    }
+    const getActivityIcon = (type: string) => {
+        switch (type) {
+            case 'LIKE': return "❤️";
+            case 'COMMENT': return "💬";
+            case 'LINK_REQUEST': return "🤝";
+            case 'LINK_ACCEPT': return "✅";
+            default: return "🔔";
+        }
+    };
 
     const getActivityTitle = (type: string) => {
         switch (type) {
-            case 'FOLLOW': return 'New Follower';
-            case 'LIKE': return 'New Like';
+            case 'LIKE': return 'Snippet Liked';
             case 'COMMENT': return 'New Comment';
-            case 'NEW_SNIPPET': return 'New Snippet';
+            case 'LINK_REQUEST': return 'Link Request';
+            case 'LINK_ACCEPT': return 'Request Accepted';
             default: return 'Notification';
         }
     };
@@ -126,12 +127,7 @@ export function NotificationBell() {
                 <div className="p-4 border-b border-white/10 flex items-center justify-between">
                     <h4 className="font-bold text-sm">Notifications</h4>
                     {unreadCount > 0 && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] text-muted-foreground hover:text-primary"
-                            onClick={handleMarkAllRead}
-                        >
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] text-muted-foreground hover:text-primary" onClick={handleMarkAllRead}>
                             Mark all read
                         </Button>
                     )}
@@ -142,7 +138,7 @@ export function NotificationBell() {
                             {notifications.map((notification: any) => (
                                 <div
                                     key={notification.id}
-                                    className={`p-4 hover:bg-white/5 cursor-pointer transition-colors ${!notification.read ? 'bg-primary/5' : ''}`}
+                                    className={`p-4 hover:bg-white/5 cursor-pointer transition-colors ${!notification.isRead ? 'bg-primary/5' : ''}`}
                                     onClick={() => handleNotificationClick(notification)}
                                 >
                                     <div className="flex gap-3">
@@ -150,11 +146,11 @@ export function NotificationBell() {
                                             {getActivityIcon(notification.type)}
                                         </div>
                                         <div className="flex-1 space-y-1">
-                                            <p className={`text-xs leading-relaxed ${!notification.read ? 'font-bold text-foreground' : 'text-muted-foreground'}`}>
+                                            <p className={`text-xs leading-relaxed ${!notification.isRead ? 'font-bold text-foreground' : 'text-muted-foreground'}`}>
                                                 {notification.message}
                                             </p>
                                             <p className="text-[10px] text-muted-foreground/60">
-                                                {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {formatDistanceToNow(new Date(notification.createdAt))} ago
                                             </p>
                                         </div>
                                     </div>
@@ -163,7 +159,7 @@ export function NotificationBell() {
                         </div>
                     ) : (
                         <div className="p-8 text-center text-muted-foreground text-xs italic">
-                            No notifications yet.
+                            All caught up!
                         </div>
                     )}
                 </ScrollArea>

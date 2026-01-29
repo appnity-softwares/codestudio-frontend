@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
     TerminalIcon,
@@ -20,6 +19,7 @@ import { SystemGuideModal } from "@/components/SystemGuideModal";
 
 import { systemAPI } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 export function Toolbelt() {
     const { theme, setTheme } = useTheme();
@@ -50,7 +50,8 @@ export function Toolbelt() {
                         Build v2.1.0-Stable
                     </div>
                 </div>
-                <div className="ml-auto">
+                <div className="ml-auto flex items-center gap-2">
+                    <NotificationBell />
                     <div className="p-1.5 bg-primary/5 rounded-lg border border-primary/20 flex items-center justify-center">
                         <Logo showText={false} className="h-4 w-4 scale-75" />
                     </div>

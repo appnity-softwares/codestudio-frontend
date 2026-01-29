@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { calculateLevel } from "@/lib/xp";
 import { motion } from "framer-motion";
 import { useParams, Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
-    Code, Users, Settings, Shield, Terminal, Trophy, Linkedin, Share2, Plus
+    Code, Users, Settings, Shield, Terminal, Trophy, Linkedin, Share2, Plus, UserPlus, UserMinus, MessageSquare, Calendar, MapPin, Github, RefreshCw, Info
 } from "lucide-react";
 import { ShareProfileModal } from "@/components/profile/ShareProfileModal";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usersAPI, authAPI } from "@/lib/api";
 import { SnippetCard } from "@/components/SnippetCard";
 import { useAuth } from "@/context/AuthContext";
+import { useChat } from "@/context/ChatContext";
 import { format } from "date-fns";
 import { ProfileSettings } from "@/components/profile/ProfileSettings";
 import { useTheme } from "@/context/ThemeContext";
@@ -24,13 +25,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export default function Profile() {
     const { username } = useParams<{ username: string }>();
     const { user: currentUser, signOut, updateUser } = useAuth();
+    const { openChatWith } = useChat();
     const { theme, setTheme } = useTheme();
     const { toast } = useToast();
     const isMobile = useIsMobile();
+    const { isFeatureEnabled } = useSystemSettings();
+    const githubEnabled = isFeatureEnabled("feature_github_stats");
 
     // Settings State
     const [isLoadingSettings, setIsLoadingSettings] = useState(false);
@@ -42,12 +47,14 @@ export default function Profile() {
     const [githubUrl, setGithubUrl] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");
     const [linkedinUrl, setLinkedinUrl] = useState("");
+    const [githubStatsVisible, setGithubStatsVisible] = useState(true);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const queryClient = useQueryClient();
 
     // 1. Fetch User
     const { data: userResponse, isLoading: userLoading } = useQuery({
+        // ... (existing query options)
         queryKey: ['user', username],
         queryFn: () => {
             if (username === 'me') {
@@ -61,10 +68,48 @@ export default function Profile() {
 
     const profileUser = userResponse?.user ? { ...userResponse.user, isFollowing: userResponse.isFollowing } : null;
 
+    // ... (levelInfo, linkStatus logic)
+
     const levelInfo = useMemo(() => {
         if (!profileUser) return null;
         return calculateLevel(profileUser.xp || 0);
     }, [profileUser?.xp]);
+
+    const { data: linkStatus, refetch: refetchLinkStatus } = useQuery({
+        queryKey: ['link-status', profileUser?.id],
+        queryFn: () => usersAPI.checkLinkStatus(profileUser.id),
+        enabled: !!profileUser && !!currentUser && currentUser.id !== profileUser.id,
+        retry: false
+    });
+
+    const isLinked = linkStatus?.linked || false;
+    const isPending = linkStatus?.status === 'PENDING';
+
+    const { mutate: toggleLink, isPending: isLinkPending } = useMutation({
+        mutationFn: async () => {
+            if (isPending) return; // Do nothing if already pending
+            if (isLinked) {
+                await usersAPI.unfollow(profileUser.id);
+            } else {
+                await usersAPI.follow(profileUser.id);
+            }
+        },
+        onSuccess: () => {
+            refetchLinkStatus();
+            queryClient.invalidateQueries({ queryKey: ['user', username] }); // Refresh counts
+            toast({
+                title: isLinked ? "Unlinked" : (profileUser?.visibility === 'PRIVATE' ? "Request Sent" : "Linked"),
+                description: isLinked
+                    ? `You have unlinked from ${profileUser.username}`
+                    : (profileUser?.visibility === 'PRIVATE'
+                        ? `Link request sent to ${profileUser.username}`
+                        : `Link established with ${profileUser.username}`)
+            });
+        },
+        onError: () => {
+            toast({ title: "Operation failed", variant: "destructive" });
+        }
+    });
 
     // 2. Fetch Snippets
     const userId = profileUser?.id;
@@ -90,7 +135,8 @@ export default function Profile() {
                 image: profileImage,
                 githubUrl,
                 instagramUrl,
-                linkedinUrl
+                linkedinUrl,
+                githubStatsVisible
             });
             updateUser(response.user);
             toast({ title: "Configuration synced successfully" });
@@ -109,6 +155,7 @@ export default function Profile() {
             setEditedUsername(currentUser.username || "");
             setBio(currentUser.bio || "");
             setVisibility(currentUser.visibility || "PUBLIC");
+            setGithubStatsVisible(currentUser.githubStatsVisible !== false);
         }
     }, [currentUser, profileUser]);
 
@@ -121,6 +168,10 @@ export default function Profile() {
             setLinkedinUrl(profileUser.linkedinUrl || "");
         }
     }, [profileUser]);
+
+
+
+
 
     // 4. Fetch Summary (MVP)
     const { data: summaryData } = useQuery({
@@ -325,8 +376,8 @@ export default function Profile() {
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Contests</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-2xl font-bold text-foreground">0</div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Badges</div>
+                        <div className="text-2xl font-bold text-foreground">{profileUser.linkersCount || 0}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Linkers</div>
                     </div>
                 </div>
 
@@ -351,6 +402,14 @@ export default function Profile() {
                         >
                             <Trophy className="h-3.5 w-3.5" /> Badges
                         </TabsTrigger>
+                        {githubEnabled && (
+                            <TabsTrigger
+                                value="github"
+                                className="gap-1.5 transition-all text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+                            >
+                                <Github className="h-3.5 w-3.5" /> GitHub
+                            </TabsTrigger>
+                        )}
                     </TabsList>
 
                     <TabsContent value="overview" className="space-y-4">
@@ -395,6 +454,33 @@ export default function Profile() {
                     <TabsContent value="badges">
                         <BadgeTab username={profileUser.username} />
                     </TabsContent>
+
+                    {githubEnabled && (
+                        <TabsContent value="github">
+                            {profileUser.githubStats ? (
+                                <GithubStats stats={JSON.parse(profileUser.githubStats)} isOwn={currentUser?.id === profileUser.id} />
+                            ) : (
+                                <div className="py-12 border border-dashed border-border rounded-xl bg-surface/30 text-center px-6">
+                                    <Github className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                                    <h4 className="text-base font-bold text-foreground mb-2">GitHub Not Linked</h4>
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                        {currentUser?.id === profileUser.id
+                                            ? "Connect your GitHub account to showcase your stats, repositories, and languages."
+                                            : "This developer hasn't linked their GitHub account yet."
+                                        }
+                                    </p>
+                                    {currentUser?.id === profileUser.id && (
+                                        <Button
+                                            onClick={() => window.location.href = `${import.meta.env.VITE_API_URL}/auth/github`}
+                                            className="gap-2"
+                                        >
+                                            <Github className="h-4 w-4" /> Connect GitHub
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                        </TabsContent>
+                    )}
                 </Tabs>
             </div>
         );
@@ -461,30 +547,28 @@ export default function Profile() {
                     </Link>
                 </div>
 
-                <div className="flex-1 space-y-2 relative z-10">
+                <div className="flex-1 space-y-4 relative z-10">
                     <div className="flex flex-wrap items-center gap-3">
-                        <h1 className="text-3xl font-bold font-headline text-foreground">
+                        <h1 className="text-3xl font-bold font-headline text-foreground tracking-tight">
                             {profileUser.name || profileUser.username}
                         </h1>
                         {levelInfo && (
-                            <div className="flex flex-col gap-1.5 min-w-[140px]">
+                            <div className="flex flex-col gap-1 min-w-[120px]">
                                 <div className="flex items-center gap-2">
                                     <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase font-black tracking-widest border border-primary/20 shadow-[0_0_10px_rgba(var(--primary),0.1)]">
                                         Level {levelInfo.level}
                                     </span>
-                                    <span className="text-[10px] font-bold text-muted-foreground/60 tabular-nums">
-                                        {Math.floor(levelInfo.currentXP)} / {levelInfo.nextLevelXP} XP
+                                    <span className="text-[10px] font-bold text-muted-foreground/40 tabular-nums">
+                                        {levelInfo.progress}%
                                     </span>
                                 </div>
-                                <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden border border-white/5 relative">
+                                <div className="h-1 w-full bg-muted/20 rounded-full overflow-hidden border border-white/5 relative">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${levelInfo.progress}%` }}
                                         transition={{ duration: 1.5, ease: [0.34, 1.56, 0.64, 1] }}
                                         className="h-full bg-gradient-to-r from-primary via-purple-500 to-primary/80 relative"
-                                    >
-                                        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.3)_50%,transparent_100%)] animate-[shimmer_2s_infinite] w-[200%]" />
-                                    </motion.div>
+                                    />
                                 </div>
                             </div>
                         )}
@@ -495,30 +579,56 @@ export default function Profile() {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                        <span className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             @{profileUser.username}
                         </span>
-                        <span>•</span>
-                        <span>Joined {format(new Date(profileUser.createdAt), 'MMM yyyy')}</span>
+
+                        <span className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                            <Calendar className="h-3.5 w-3.5 opacity-50" />
+                            Joined {format(new Date(profileUser.createdAt), 'MMMM yyyy')}
+                        </span>
+
+                        {profileUser.city && (
+                            <span className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                                <MapPin className="h-3.5 w-3.5 opacity-50" />
+                                {profileUser.city}
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-8 py-1">
+                        <div className="flex flex-col">
+                            <span className="text-2xl font-black text-foreground tabular-nums group-hover:text-primary transition-colors">
+                                {profileUser.linkersCount || 0}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Linkers</span>
+                        </div>
+                        <div className="w-px h-8 bg-border/40" />
+                        <div className="flex flex-col">
+                            <span className="text-2xl font-black text-foreground tabular-nums group-hover:text-primary transition-colors">
+                                {profileUser.linkedCount || 0}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Linked</span>
+                        </div>
                     </div>
 
                     {profileUser.bio && (
-                        <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed italic">
+                        <p className="text-sm text-muted-foreground max-w-xl leading-relaxed italic border-l-2 border-primary/20 pl-4 py-1">
                             "{profileUser.bio}"
                         </p>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-4 pt-2">
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
                         {profileUser.githubUrl && (
                             <a
                                 href={profileUser.githubUrl.startsWith('http') ? profileUser.githubUrl : `https://${profileUser.githubUrl}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors border border-border/50 px-2.5 py-1 rounded-lg bg-canvas/50"
+                                className="inline-flex items-center gap-2 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all border border-border/50 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10"
                             >
-                                <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.823 1.102.823 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg>
+                                <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.823 1.102.823 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg>
                                 GitHub
                             </a>
                         )}
@@ -527,9 +637,9 @@ export default function Profile() {
                                 href={profileUser.linkedinUrl.startsWith('http') ? profileUser.linkedinUrl : `https://${profileUser.linkedinUrl}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground hover:text-blue-400 transition-colors border border-border/50 px-2.5 py-1 rounded-lg bg-canvas/50"
+                                className="inline-flex items-center gap-2 text-[10px] font-bold text-muted-foreground hover:text-blue-400 transition-all border border-border/50 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10"
                             >
-                                <Linkedin className="h-3 w-3" />
+                                <Linkedin className="h-3.5 w-3.5" />
                                 LinkedIn
                             </a>
                         )}
@@ -538,31 +648,70 @@ export default function Profile() {
                                 href={profileUser.instagramUrl.startsWith('http') ? profileUser.instagramUrl : `https://${profileUser.instagramUrl}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground hover:text-indigo-400 transition-colors border border-border/50 px-2.5 py-1 rounded-lg bg-canvas/50"
+                                className="inline-flex items-center gap-2 text-[10px] font-bold text-muted-foreground hover:text-indigo-400 transition-all border border-border/50 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10"
                             >
-                                <Users className="h-3 w-3" />
+                                <Users className="h-3.5 w-3.5" />
                                 Connection
                             </a>
                         )}
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-3">
-                    <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-4 self-stretch md:self-auto justify-start items-end">
+                    <div className="flex flex-wrap gap-2 justify-end">
                         {currentUser?.id === profileUser.id && (
                             <Link to="/settings">
-                                <Button variant="outline" size="sm" className="gap-2 font-mono text-xs uppercase tracking-wider h-10 px-4">
-                                    <Settings className="h-3.5 w-3.5" /> Configure Profile
+                                <Button variant="outline" size="sm" className="gap-2 font-mono text-[10px] font-black uppercase tracking-widest h-11 px-4 border-white/10 hover:bg-white/5 transition-all">
+                                    <Settings className="h-4 w-4" /> Configure Profile
                                 </Button>
                             </Link>
+                        )}
+                        {currentUser?.id !== profileUser.id && (
+                            <Button
+                                variant={isLinked ? "outline" : "default"}
+                                size="sm"
+                                className={cn(
+                                    "gap-2 font-mono text-[10px] font-black uppercase tracking-widest h-11 px-6 transition-all",
+                                    !isLinked && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_4px_20px_rgba(var(--primary),0.2)]",
+                                    isLinked && "border-primary/20 text-primary hover:bg-primary/5"
+                                )}
+                                onClick={() => toggleLink()}
+                                disabled={isLinkPending || isPending}
+                            >
+                                {isLinkPending ? (
+                                    <span className="animate-spin text-xs">⟳</span>
+                                ) : isLinked ? (
+                                    <>
+                                        <UserMinus className="h-4 w-4" /> Unlink
+                                    </>
+                                ) : isPending ? (
+                                    <>
+                                        <Info className="h-4 w-4" /> Requested
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserPlus className="h-4 w-4" /> Link
+                                    </>
+                                )}
+                            </Button>
+                        )}
+                        {currentUser?.id !== profileUser.id && (
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="gap-2 font-mono text-[10px] font-black uppercase tracking-widest h-11 px-5 border border-white/5 bg-white/5 hover:bg-white/10 transition-all"
+                                onClick={() => openChatWith({ user: profileUser, unreadCount: 0 })}
+                            >
+                                <MessageSquare className="h-4 w-4 text-primary" /> Message
+                            </Button>
                         )}
                         <Button
                             variant="secondary"
                             size="sm"
-                            className="gap-2 font-mono text-xs uppercase tracking-wider h-10 px-4"
+                            className="gap-2 font-mono text-[10px] font-black uppercase tracking-widest h-11 px-4 border border-white/5 bg-white/5 hover:bg-white/10 transition-all"
                             onClick={() => setIsShareModalOpen(true)}
                         >
-                            <Share2 className="h-3.5 w-3.5 text-primary" /> Share
+                            <Share2 className="h-4 w-4 text-primary" /> Share
                         </Button>
                     </div>
                 </div>
@@ -612,6 +761,14 @@ export default function Profile() {
                     >
                         <Trophy className="h-3.5 w-3.5" /> Badges & Progress
                     </TabsTrigger>
+                    {githubEnabled && profileUser.githubUrl && (
+                        <TabsTrigger
+                            value="github"
+                            className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-xl transition-all duration-300"
+                        >
+                            <Github className="h-3.5 w-3.5" /> GitHub Stats
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -751,6 +908,55 @@ export default function Profile() {
                 <TabsContent value="badges" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     <BadgeTab username={profileUser.username} />
                 </TabsContent>
+
+                {/* GitHub Stats Tab Content */}
+                {githubEnabled && profileUser.githubUrl && (
+                    <TabsContent value="github" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        {(() => {
+                            // Extract username from URL safely
+                            const githubUsername = profileUser.githubUrl.split('/').pop() || '';
+                            const themeString = theme === 'dark' ? 'radical' : 'default'; // 'radical' is a nice dark theme for stats
+
+                            return (
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground flex items-center gap-2">
+                                                <Github className="h-4 w-4" /> General Stats
+                                            </h3>
+                                            <img
+                                                src={`https://github-readme-stats.vercel.app/api?username=${githubUsername}&show_icons=true&theme=${themeString}&hide_border=true&bg_color=00000000`}
+                                                alt="GitHub Stats"
+                                                className="w-full h-auto rounded-xl border border-border bg-surface"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground flex items-center gap-2">
+                                                <Code className="h-4 w-4" /> Top Languages
+                                            </h3>
+                                            <img
+                                                src={`https://github-readme-stats.vercel.app/api/top-langs/?username=${githubUsername}&layout=compact&theme=${themeString}&hide_border=true&bg_color=00000000`}
+                                                alt="Top Languages"
+                                                className="w-full h-auto rounded-xl border border-border bg-surface"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4">
+                                        <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground flex items-center gap-2 mb-4">
+                                            <Calendar className="h-4 w-4" /> Contribution Streak
+                                        </h3>
+                                        <img
+                                            src={`https://github-readme-streak-stats.herokuapp.com/?user=${githubUsername}&theme=${themeString}&hide_border=true&background=00000000`}
+                                            alt="GitHub Streak"
+                                            className="w-full h-auto rounded-xl border border-border bg-surface"
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </TabsContent>
+                )}
             </Tabs>
 
             {
@@ -771,6 +977,86 @@ export default function Profile() {
                     </div>
                 )
             }
+        </div>
+    );
+}
+
+// --- Sub-components ---
+
+function GithubStats({ stats, isOwn }: { stats: any, isOwn: boolean }) {
+    return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Github className="h-5 w-5 text-primary" />
+                    <h2 className="text-xl font-bold font-headline">GitHub Engineering Metrics</h2>
+                </div>
+                {isOwn && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 h-9 text-[10px] font-black uppercase tracking-widest border-white/10 hover:bg-white/5"
+                        onClick={async () => {
+                            try {
+                                const resp = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/users/profile/github/sync`, {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                                });
+                                if (resp.ok) {
+                                    window.location.reload();
+                                }
+                            } catch (e) { }
+                        }}
+                    >
+                        <RefreshCw className="h-3.5 w-3.5" /> Sync Latest
+                    </Button>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-surface border border-border p-6 rounded-xl text-center space-y-1 shadow-sm">
+                    <div className="text-3xl font-black text-foreground">{stats.public_repos || 0}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Public Repositories</div>
+                </div>
+                <div className="bg-surface border border-border p-6 rounded-xl text-center space-y-1 shadow-sm">
+                    <div className="text-3xl font-black text-foreground">{stats.followers || 0}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">GitHub followers</div>
+                </div>
+                <div className="bg-surface border border-border p-6 rounded-xl text-center space-y-1 shadow-sm">
+                    <div className="text-3xl font-black text-foreground">{stats.stars_received || 0}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Stars Received</div>
+                </div>
+            </div>
+
+            {stats.top_languages && stats.top_languages.length > 0 && (
+                <div className="bg-surface border border-border p-8 rounded-xl space-y-6 shadow-sm">
+                    <h3 className="text-sm font-bold font-mono uppercase tracking-widest flex items-center gap-2">
+                        <Code className="h-4 w-4 text-primary" /> Technology Stack Distribution
+                    </h3>
+                    <div className="space-y-4">
+                        {stats.top_languages.map((lang: string) => (
+                            <div key={lang} className="space-y-1.5">
+                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                    <span>{lang}</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: "100%" }}
+                                        className="h-full bg-primary/40 rounded-full"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <div className="text-center">
+                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-40">
+                    Last Compiled: {new Date(stats.last_updated_at).toLocaleString()}
+                </p>
+            </div>
         </div>
     );
 }

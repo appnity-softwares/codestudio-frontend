@@ -15,8 +15,8 @@ interface TabItem {
 const tabs: TabItem[] = [
     { icon: Home, label: "Feed", path: "/feed", requiresAuth: true },
     { icon: Trophy, label: "Arena", path: "/arena", requiresAuth: true },
+    { icon: MessageSquare, label: "Messages", path: "/messages", requiresAuth: true },
     { icon: Globe, label: "Community", path: "/community", requiresAuth: false },
-    { icon: MessageSquare, label: "Feedback", path: "/feedback", requiresAuth: false },
     { icon: User, label: "Profile", path: "/profile", requiresAuth: true },
 ];
 

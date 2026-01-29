@@ -21,7 +21,7 @@ export function MobileSidebar() {
     useSidebar(); // unused but keeping hook to ensure context exists
 
     // Items already in MobileTabBar to filter out
-    const bottomNavPaths = ['/feed', '/arena', '/community', '/feedback', '/profile'];
+    const bottomNavPaths = ['/feed', '/arena', '/community', '/messages', '/profile'];
 
     const { data: systemData } = useQuery({
         queryKey: ['system-status'],

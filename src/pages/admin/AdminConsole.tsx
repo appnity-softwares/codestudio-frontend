@@ -8,8 +8,8 @@ import { Loader2, Check, X, ExternalLink, ImageIcon, DollarSign, Trophy } from '
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ContestManager } from './ContestManager';
-import { ProblemEditor } from './ProblemEditor';
+import ContestManager from './ContestManager';
+import ProblemEditor from './ProblemEditor';
 
 const AdminConsole = () => {
     const { toast } = useToast();

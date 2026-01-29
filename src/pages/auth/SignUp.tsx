@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
-import { Code, Github, Rocket, Terminal, ArrowRight, Sparkles, User, Lock, Check, X } from "lucide-react"
+import { Code, Github, Rocket, Terminal, ArrowRight, Sparkles, User, Lock, Check, X, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +18,7 @@ export default function SignUp() {
     const [loading, setLoading] = useState(false)
     const [maintenanceEta, setMaintenanceEta] = useState<string | undefined>()
     const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
     const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
     const [suggestions, setSuggestions] = useState<string[]>([])
     const { signUp } = useAuth()
@@ -81,7 +82,7 @@ export default function SignUp() {
             } else {
                 toast({
                     title: "Registration failed",
-                    description: "Please check your details and try again.",
+                    description: error.message || "Please check your details and try again.",
                     variant: "destructive",
                 })
             }
@@ -241,15 +242,24 @@ export default function SignUp() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="password" className="text-foreground/80 font-medium ml-0.5">Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    placeholder="Create a password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    className="bg-muted/30 border-input h-11 px-3 focus:border-primary/50 focus:ring-primary/20 transition-all font-medium rounded-lg"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Create a password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        className="bg-muted/30 border-input h-11 px-3 pr-10 focus:border-primary/50 focus:ring-primary/20 transition-all font-medium rounded-lg"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
                                 {password && (
                                     <div className="flex items-center justify-between px-1 pt-1">
                                         <div className="flex bg-muted h-1 w-full rounded-full overflow-hidden gap-0.5">

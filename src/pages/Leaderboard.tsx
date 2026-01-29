@@ -301,7 +301,7 @@ export default function Leaderboard() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-bold">Global Experience</p>
-                                    <p className="text-xs text-muted-foreground">Earned by publishing snippets and getting likes/forks.</p>
+                                    <p className="text-xs text-muted-foreground">Earned by publishing snippets and getting likes/copies.</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
@@ -331,7 +331,7 @@ export default function Leaderboard() {
                             <LayoutDashboard className="h-3 w-3" /> Pro_Protocol
                         </h4>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            Creators receive <span className="text-primary font-bold">50 XP</span> for every verified fork of their logic blocks. Precision pays.
+                            Creators receive <span className="text-primary font-bold">50 XP</span> for every verified copy of their logic blocks. Precision pays.
                         </p>
                     </div>
 

@@ -12,39 +12,20 @@ export const routes = {
     forYou: "/foryou",
     explore: "/explore",
     community: "/community",
-    marketplace: "/marketplace",
-    playground: "/playground",
-    convert: "/convert",
-    agentCreator: "/agent-studio",
-    saved: "/saved",
     settings: "/settings",
     snippets: {
         list: "/snippets",
         new: "/snippets/new",
         detail: (id: string) => `/snippets/${id}`,
     },
-    docs: {
-        list: "/docs",
-        new: "/docs/new",
-        detail: (slug: string) => `/docs/${slug}`,
-    },
-    bugs: {
-        list: "/bugs",
-        detail: (id: string) => `/bugs/${id}`,
-    },
     admin: {
         dashboard: "/admin",
         users: "/admin/users",
-        components: "/admin/components",
     },
     auth: {
         signIn: "/auth/signin",
     },
     user: (username: string) => `/u/${username}`,
-    blocked: "/blocked",
-    dashboard: {
-        components: "/dashboard/components",
-    },
 }
 
 export const navConfig = [
@@ -67,25 +48,5 @@ export const navConfig = [
         title: "Community",
         href: routes.community,
         icon: "Users",
-    },
-    {
-        title: "Marketplace",
-        href: routes.marketplace,
-        icon: "Store",
-    },
-    {
-        title: "Playground",
-        href: routes.playground,
-        icon: "Code",
-    },
-    {
-        title: "Agent Studio",
-        href: routes.agentCreator,
-        icon: "Bot",
-    },
-    {
-        title: "Saved",
-        href: routes.saved,
-        icon: "Bookmark",
     },
 ]

@@ -81,7 +81,7 @@ const STORE_ITEMS = [
         type: 'BOOST',
         cost: 150,
         icon: Zap,
-        longDesc: 'Maximum visibility. Pin your best logic to the top of the global smart feed for everyone to see and fork.'
+        longDesc: 'Maximum visibility. Pin your best logic to the top of the global smart feed for everyone to see and copy.'
     }
 ];
 
