@@ -10,7 +10,7 @@ import {
     MessageCircle, Share2, Shield, Plus, MoreHorizontal,
     Flag, Ban, Terminal, Monitor, Code, ExternalLink, ThumbsDown
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AuraAvatar } from "@/components/AuraAvatar";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { snippetsAPI, playlistsAPI, usersAPI } from "@/lib/api";
@@ -22,7 +22,12 @@ const ReactLivePreview = lazy(() => import("./preview/ReactLivePreview").then(m 
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
-import { toggleLike, toggleDislike, setCopyCount, incrementCopyCount, setLikeState, setDislikeState } from "@/store/slices/snippetSlice";
+import {
+    setCopyCount,
+    incrementCopyCount,
+    setSnippetReaction,
+    updateReactionOptimistically
+} from "@/store/slices/snippetSlice";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
     DropdownMenu,
@@ -91,12 +96,14 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
     // Redux State
     const reduxCopyCount = useSelector((state: RootState) => state.snippets.copyCounts[snippet.id]);
     const hasCopiedLocally = useSelector((state: RootState) => state.snippets.userCopies[snippet.id]);
-    const reduxIsLiked = useSelector((state: RootState) => state.snippets.likeStates[snippet.id]);
-    const reduxIsDisliked = useSelector((state: RootState) => state.snippets.dislikeStates[snippet.id]);
-    const isLiked = !!reduxIsLiked;
-    const isDisliked = !!reduxIsDisliked;
-    const likeCount = useSelector((state: RootState) => state.snippets.likesCounts[snippet.id] ?? snippet.likesCount ?? 0);
-    const dislikeCount = useSelector((state: RootState) => state.snippets.dislikesCounts[snippet.id] ?? snippet.dislikesCount ?? 0);
+    const reduxViewerReaction = useSelector((state: RootState) => state.snippets.viewerReactions[snippet.id]);
+    const reduxLikesCount = useSelector((state: RootState) => state.snippets.likesCounts[snippet.id]);
+    const reduxDislikesCount = useSelector((state: RootState) => state.snippets.dislikesCounts[snippet.id]);
+
+    const isLiked = reduxViewerReaction === 'like';
+    const isDisliked = reduxViewerReaction === 'dislike';
+    const likeCount = reduxLikesCount ?? snippet.likesCount ?? 0;
+    const dislikeCount = reduxDislikesCount ?? snippet.dislikesCount ?? 0;
 
     // Sync Initial State (Copy & Like)
     useEffect(() => {
@@ -104,49 +111,22 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
         if (snippet.id && reduxCopyCount === undefined) {
             dispatch(setCopyCount({ id: snippet.id, count: snippet.copyCount || 0 }));
         }
-        // Sync Like - Only if undefined to avoid overwriting user interaction
-        if (snippet.id && reduxIsLiked === undefined) {
-            dispatch(setLikeState({
+        // Sync Reaction State - Only if undefined in redux
+        if (snippet.id && reduxViewerReaction === undefined) {
+            dispatch(setSnippetReaction({
                 id: snippet.id,
-                isLiked: !!snippet.isLiked,
-                count: snippet.likesCount || 0
+                reaction: snippet.viewerReaction || null,
+                likesCount: snippet.likesCount || 0,
+                dislikesCount: snippet.dislikesCount || 0
             }));
         }
-        // Sync Dislike - Only if undefined
-        if (snippet.id && reduxIsDisliked === undefined) {
-            dispatch(setDislikeState({
-                id: snippet.id,
-                isDisliked: !!snippet.isDisliked,
-                count: snippet.dislikesCount || 0
-            }));
-        }
-    }, [snippet.id, reduxIsLiked, reduxIsDisliked, reduxCopyCount, snippet.copyCount, snippet.likesCount, snippet.dislikesCount, snippet.isLiked, snippet.isDisliked, dispatch]);
+    }, [snippet.id, reduxViewerReaction, reduxCopyCount, snippet.copyCount, snippet.likesCount, snippet.dislikesCount, snippet.viewerReaction, dispatch]);
 
     // Fetch user's playlists
     const { data: playlistsData } = useQuery({
         queryKey: ["my-playlists", user?.id],
         queryFn: () => playlistsAPI.getAll({ authorId: user?.id }),
         enabled: isAddToPlaylistOpen && isAuthenticated && !!user?.id,
-    });
-
-    // Like Status Mutation
-    const likeMutation = useMutation({
-        mutationFn: () => {
-            if (!isAuthenticated) throw new Error("LOGIN_REQUIRED");
-            return snippetsAPI.toggleLike(snippet.id);
-        },
-        onMutate: () => {
-            if (!isAuthenticated) return;
-            dispatch(toggleLike(snippet.id));
-        },
-        onError: (err: any) => {
-            if (err.message === "LOGIN_REQUIRED") {
-                toast({ variant: "destructive", title: "Login Required", description: "You need to be logged in to like snippets." });
-                return;
-            }
-            dispatch(toggleLike(snippet.id));
-            toast({ variant: "destructive", title: "Action failed", description: "Could not toggle like." });
-        }
     });
 
     const [isFollowing, setIsFollowing] = useState(!!snippet.author?.isFollowing);
@@ -175,22 +155,26 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
         setIsFollowing(!!snippet.author?.isFollowing);
     }, [snippet.author?.isFollowing]);
 
-    const dislikeMutation = useMutation({
-        mutationFn: () => {
+    // Unified Reaction Mutation
+    const reactionMutation = useMutation({
+        mutationFn: (reaction: 'like' | 'dislike') => {
             if (!isAuthenticated) throw new Error("LOGIN_REQUIRED");
-            return snippetsAPI.toggleDislike(snippet.id);
+            return snippetsAPI.react(snippet.id, reaction);
         },
-        onMutate: () => {
+        onMutate: (reaction) => {
             if (!isAuthenticated) return;
-            dispatch(toggleDislike(snippet.id));
+            // Optimistically update the UI
+            dispatch(updateReactionOptimistically({ id: snippet.id, reaction }));
         },
         onError: (err: any) => {
             if (err.message === "LOGIN_REQUIRED") {
-                toast({ variant: "destructive", title: "Login Required", description: "You need to be logged in to dislike snippets." });
+                toast({ variant: "destructive", title: "Login Required", description: "You need to be logged in to react to snippets." });
                 return;
             }
-            dispatch(toggleDislike(snippet.id));
-            toast({ variant: "destructive", title: "Action failed", description: "Could not toggle dislike." });
+            // Rollback is handled by refetching in onSettled or we can manually rollback
+            // But usually refetching the specific snippet or invalidating the list is safer
+            queryClient.invalidateQueries({ queryKey: ['snippet', snippet.id] });
+            toast({ variant: "destructive", title: "Action failed", description: "Identity sync interrupted. Please retry." });
         }
     });
 
@@ -292,10 +276,13 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                 {/* 1. Header: Author & Context Menu */}
                 <div className="px-4 py-3 flex items-center justify-between border-b border-border/40 bg-muted/20">
                     <Link to={`/u/${snippet.author?.username || snippet.authorId}`} className="flex items-center gap-3 group/author">
-                        <Avatar className="h-9 w-9 border border-border/60 shadow-sm transition-transform group-hover/author:scale-105">
-                            <AvatarImage src={snippet.author?.image} />
-                            <AvatarFallback className="text-xs font-bold bg-muted text-muted-foreground">{snippet.author?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
-                        </Avatar>
+                        <AuraAvatar
+                            src={snippet.author?.image}
+                            username={snippet.author?.username || "user"}
+                            xp={snippet.author?.xp || 0}
+                            equippedAura={snippet.author?.equippedAura}
+                            size="sm"
+                        />
                         <div className="flex flex-col leading-tight">
                             <div className="flex items-center gap-1.5">
                                 <span className="text-sm font-bold text-foreground/90 group-hover/author:text-primary transition-colors">{snippet.author?.name || 'Anonymous'}</span>
@@ -463,7 +450,15 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                                     title={`Reference: ${snippet.referenceUrl}`}
                                 >
                                     <ExternalLink className="h-3 w-3" />
-                                    <span className="hidden sm:inline-block max-w-[100px] truncate">{new URL(snippet.referenceUrl).hostname}</span>
+                                    <span className="hidden sm:inline-block max-w-[100px] truncate">
+                                        {(() => {
+                                            try {
+                                                return new URL(snippet.referenceUrl).hostname;
+                                            } catch {
+                                                return snippet.referenceUrl;
+                                            }
+                                        })()}
+                                    </span>
                                 </a>
                             )}
                         </div>
@@ -483,7 +478,8 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <button
-                                            onClick={() => likeMutation.mutate()}
+                                            onClick={() => reactionMutation.mutate('like')}
+                                            disabled={reactionMutation.isPending}
                                             className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border", isLiked ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground")}
                                         >
                                             <Heart className={cn("h-3.5 w-3.5 transition-transform active:scale-95", isLiked && "fill-current")} />
@@ -496,7 +492,8 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <button
-                                            onClick={() => dislikeMutation.mutate()}
+                                            onClick={() => reactionMutation.mutate('dislike')}
+                                            disabled={reactionMutation.isPending}
                                             className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border", isDisliked ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground")}
                                         >
                                             <ThumbsDown className={cn("h-3.5 w-3.5 transition-transform active:scale-95", isDisliked && "fill-current")} />

@@ -47,32 +47,43 @@ export const STORE_ITEMS = [
     {
         id: 'aura_neon_cyberpunk',
         name: 'Neon Cyberpunk',
-        description: 'A glowing cyan and magenta border for your avatar with high-frequency pulse.',
+        description: 'A glowing cyan and magenta border for your avatar.',
         type: 'AURA',
         cost: 500,
-        effect: 'ring-2 ring-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.8)] animate-pulse',
-        previewClass: 'ring-2 ring-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.8)] animate-pulse',
-        longDesc: 'Engineered for the night owls. This aura utilizes high-intensity CSS filters to create a persistent neon glow.'
+        effect: 'ring-4 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)] brightness-150',
+        previewClass: 'ring-4 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)] brightness-150',
+        longDesc: 'Engineered for the night owls. A sharp cyan ring with high-intensity neon glow.'
     },
     {
         id: 'aura_golden_master',
         name: 'Golden Master',
-        description: 'Elite gold aura for top-tier developers. Reflects your status.',
+        description: 'Elite gold aura for top-tier developers.',
         type: 'AURA',
         cost: 1200,
-        effect: 'ring-4 ring-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.7)] brightness-125',
-        previewClass: 'ring-4 ring-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.7)] brightness-125',
-        longDesc: 'The ultimate symbol of prestige. The Golden Master aura signifies benchmark excellence.'
+        effect: 'ring-4 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6)] brightness-150',
+        previewClass: 'ring-4 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6)] brightness-150',
+        longDesc: 'The ultimate symbol of prestige. A golden aura that signifies absolute excellence.'
     },
     {
         id: 'aura_void_walker',
         name: 'Void Walker',
-        description: 'Deep purple shadows that pulse with dark energy.',
+        description: 'Deep purple sharp ring.',
         type: 'AURA',
         cost: 2000,
-        effect: 'ring-2 ring-purple-600 shadow-[0_0_30px_rgba(147,51,234,0.6)] blur-[1px] hover:blur-none transition-all',
-        previewClass: 'ring-2 ring-purple-600 shadow-[0_0_30px_rgba(147,51,234,0.6)] blur-[1px] hover:blur-none transition-all',
-        longDesc: 'For those who dance in the darkness. Features a custom spatial shadow effect.'
+        effect: 'ring-4 ring-purple-600 shadow-[0_0_25px_rgba(147,51,234,0.5)] brightness-150',
+        previewClass: 'ring-4 ring-purple-600 shadow-[0_0_25px_rgba(147,51,234,0.5)] brightness-150',
+        longDesc: 'For those who dance in the darkness. A purple ring pulsing with void energy.'
+    },
+    {
+        id: 'aura_admin_nexus',
+        name: 'Admin Nexus',
+        description: 'The ultimate authority. Exclusive to DevConnect Admins.',
+        type: 'AURA',
+        cost: 0,
+        adminOnly: true,
+        effect: 'ring-4 ring-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.8)] brightness-200 animate-pulse',
+        previewClass: 'ring-4 ring-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.8)] brightness-200 animate-pulse',
+        longDesc: 'Woven from the core fibers of the platform. This aura grants the wearer a presence that cannot be ignored.'
     },
     {
         id: 'theme_dracula',

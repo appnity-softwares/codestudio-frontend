@@ -3,18 +3,16 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 interface SnippetState {
     copyCounts: Record<string, number>;
     userCopies: Record<string, boolean>;
-    likeStates: Record<string, boolean>;
+    viewerReactions: Record<string, 'like' | 'dislike' | null>;
     likesCounts: Record<string, number>;
-    dislikeStates: Record<string, boolean>;
     dislikesCounts: Record<string, number>;
 }
 
 const initialState: SnippetState = {
     copyCounts: {},
     userCopies: {},
-    likeStates: {},
+    viewerReactions: {},
     likesCounts: {},
-    dislikeStates: {},
     dislikesCounts: {},
 };
 
@@ -30,42 +28,35 @@ const snippetSlice = createSlice({
             state.copyCounts[id] = (state.copyCounts[id] || 0) + 1;
             state.userCopies[id] = true;
         },
-        setLikeState: (state, action: PayloadAction<{ id: string; isLiked: boolean; count: number }>) => {
-            state.likeStates[action.payload.id] = action.payload.isLiked;
-            state.likesCounts[action.payload.id] = action.payload.count;
+        setSnippetReaction: (state, action: PayloadAction<{ id: string; reaction: 'like' | 'dislike' | null; likesCount: number; dislikesCount: number }>) => {
+            const { id, reaction, likesCount, dislikesCount } = action.payload;
+            state.viewerReactions[id] = reaction;
+            state.likesCounts[id] = likesCount;
+            state.dislikesCounts[id] = dislikesCount;
         },
-        setDislikeState: (state, action: PayloadAction<{ id: string; isDisliked: boolean; count: number }>) => {
-            state.dislikeStates[action.payload.id] = action.payload.isDisliked;
-            state.dislikesCounts[action.payload.id] = action.payload.count;
-        },
-        toggleLike: (state, action: PayloadAction<string>) => {
-            const id = action.payload;
-            const currentlyLiked = !!state.likeStates[id];
+        // For optimistic updates
+        updateReactionOptimistically: (state, action: PayloadAction<{ id: string; reaction: 'like' | 'dislike' }>) => {
+            const { id, reaction } = action.payload;
+            const current = state.viewerReactions[id] || null;
 
-            // If liking (and not unliking), remove dislike if exists
-            if (!currentlyLiked && state.dislikeStates[id]) {
-                state.dislikeStates[id] = false;
-                state.dislikesCounts[id] = Math.max((state.dislikesCounts[id] || 0) - 1, 0);
+            if (current === reaction) {
+                // Toggle off
+                if (reaction === 'like') state.likesCounts[id] = Math.max((state.likesCounts[id] || 0) - 1, 0);
+                else state.dislikesCounts[id] = Math.max((state.dislikesCounts[id] || 0) - 1, 0);
+                state.viewerReactions[id] = null;
+            } else {
+                // Switch or add
+                if (current === 'like') state.likesCounts[id] = Math.max((state.likesCounts[id] || 0) - 1, 0);
+                if (current === 'dislike') state.dislikesCounts[id] = Math.max((state.dislikesCounts[id] || 0) - 1, 0);
+
+                if (reaction === 'like') state.likesCounts[id] = (state.likesCounts[id] || 0) + 1;
+                else state.dislikesCounts[id] = (state.dislikesCounts[id] || 0) + 1;
+
+                state.viewerReactions[id] = reaction;
             }
-
-            state.likeStates[id] = !currentlyLiked;
-            state.likesCounts[id] = (state.likesCounts[id] || 0) + (currentlyLiked ? -1 : 1);
         },
-        toggleDislike: (state, action: PayloadAction<string>) => {
-            const id = action.payload;
-            const currentlyDisliked = !!state.dislikeStates[id];
-
-            // If disliking (and not undisliking), remove like if exists
-            if (!currentlyDisliked && state.likeStates[id]) {
-                state.likeStates[id] = false;
-                state.likesCounts[id] = Math.max((state.likesCounts[id] || 0) - 1, 0);
-            }
-
-            state.dislikeStates[id] = !currentlyDisliked;
-            state.dislikesCounts[id] = (state.dislikesCounts[id] || 0) + (currentlyDisliked ? -1 : 1);
-        }
     }
 });
 
-export const { setCopyCount, incrementCopyCount, setLikeState, setDislikeState, toggleLike, toggleDislike } = snippetSlice.actions;
+export const { setCopyCount, incrementCopyCount, setSnippetReaction, updateReactionOptimistically } = snippetSlice.actions;
 export default snippetSlice.reducer;

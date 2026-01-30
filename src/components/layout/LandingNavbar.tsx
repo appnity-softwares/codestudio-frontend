@@ -53,6 +53,7 @@ export function LandingNavbar() {
                                             src={user?.image}
                                             username={user?.username || ""}
                                             xp={user?.xp || 0}
+                                            equippedAura={user?.equippedAura}
                                             size="sm"
                                             className="ring-2 ring-white/5 group-hover:ring-primary/40 transition-all"
                                         />

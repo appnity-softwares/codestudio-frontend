@@ -33,6 +33,7 @@ const Community = lazy(() => import("./pages/Community"))
 const LinkRequests = lazy(() => import("./pages/social/LinkRequests"))
 const ContestHistory = lazy(() => import("./pages/profile/ContestHistory").then(m => ({ default: m.ContestHistory })))
 const Settings = lazy(() => import("./pages/Settings"))
+const GithubSettings = lazy(() => import("./pages/settings/GithubSettings"))
 const SignIn = lazy(() => import("@/pages/auth/SignIn"))
 const SignUp = lazy(() => import("@/pages/auth/SignUp"))
 const Onboarding = lazy(() => import("@/pages/auth/Onboarding"))
@@ -137,6 +138,18 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <>{children}</>
 }
 
+// Landing Redirect Handler
+function LandingRedirect({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated, user } = useAuth()
+    const location = useLocation()
+
+    if (isAuthenticated && user && !user.onboardingCompleted) {
+        return <Navigate to="/onboarding" state={{ from: location }} replace />
+    }
+
+    return <>{children}</>
+}
+
 // Global Maintenance Handler
 import { useNavigate } from "react-router-dom";
 
@@ -179,7 +192,14 @@ function AppRoutes() {
                 />
                 <Route path="/oauth-callback" element={<OAuthCallback />} />
 
-                <Route path="/" element={<Landing />} />
+                <Route
+                    path="/"
+                    element={
+                        <LandingRedirect>
+                            <Landing />
+                        </LandingRedirect>
+                    }
+                />
                 <Route path="/changelog" element={<Changelog />} />
 
                 <Route element={<DashboardLayout />}>
@@ -219,6 +239,7 @@ function AppRoutes() {
                                     <Route path="profile/me" element={<ProtectedRoute><RedirectToProfile /></ProtectedRoute>} />
                                     <Route path="profile/history" element={<ProtectedRoute><ContestHistory /></ProtectedRoute>} />
                                     <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                                    <Route path="settings/github" element={<ProtectedRoute><GithubSettings /></ProtectedRoute>} />
                                     <Route path="settings/avatars" element={<ProtectedRoute><AvatarPicker /></ProtectedRoute>} />
                                     <Route path="community" element={<ProtectedRoute><FeatureGuard featureKey="feature_sidebar_community"><Community /></FeatureGuard></ProtectedRoute>} />
                                     <Route path="leaderboard" element={<ProtectedRoute><FeatureGuard featureKey="feature_sidebar_leaderboard"><Leaderboard /></FeatureGuard></ProtectedRoute>} />

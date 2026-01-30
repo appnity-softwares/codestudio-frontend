@@ -1,75 +1,125 @@
-"use client";
-
-import { Share2 } from "lucide-react";
+import { Heart, ThumbsDown, Share2, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-// import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
-// import { snippetsAPI } from "@/lib/api";
-
+import { snippetsAPI } from "@/lib/api";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { setSnippetReaction, updateReactionOptimistically } from "@/store/slices/snippetSlice";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type InteractionProps = {
     snippet: any;
     className?: string;
     onCommentClick?: () => void;
-    onShareClick?: (e?: MouseEvent) => void;
+    onShareClick?: () => void;
 };
 
 export function SnippetInteraction({ snippet, className, onShareClick }: InteractionProps) {
-    // const { isAuthenticated } = useAuth();
+    const { isAuthenticated } = useAuth();
     const { toast } = useToast();
+    const dispatch = useDispatch();
+    const queryClient = useQueryClient();
 
-    // const [isLiked, setIsLiked] = useState(snippet.isLiked ?? false);
-    // const [likeCount, setLikeCount] = useState(snippet.likeCount || 0);
-    // const [isSaved, setIsSaved] = useState(snippet.isSaved ?? false);
+    const reduxViewerReaction = useSelector((state: RootState) => state.snippets.viewerReactions[snippet.id]);
+    const reduxLikesCount = useSelector((state: RootState) => state.snippets.likesCounts[snippet.id]);
+    const reduxDislikesCount = useSelector((state: RootState) => state.snippets.dislikesCounts[snippet.id]);
 
-    // Instagram style icons are usually outlines unless active
-    /*
-    const handleLike = async () => {
-        if (!isAuthenticated) return toast({ variant: "destructive", title: "Authentication required" });
+    const isLiked = reduxViewerReaction === 'like';
+    const isDisliked = reduxViewerReaction === 'dislike';
+    const likeCount = reduxLikesCount ?? snippet.likesCount ?? 0;
+    const dislikeCount = reduxDislikesCount ?? snippet.dislikesCount ?? 0;
 
-        setIsLiked(!isLiked);
-        setLikeCount((prev: number) => isLiked ? prev - 1 : prev + 1); // Optimistic update
-
-        try {
-            await snippetsAPI.like(snippet.id);
-        } catch (e) {
-            setIsLiked(isLiked); // Revert
-            setLikeCount((prev: number) => isLiked ? prev + 1 : prev - 1); // Revert count
+    // Sync Initial State
+    useEffect(() => {
+        if (snippet.id && reduxViewerReaction === undefined) {
+            dispatch(setSnippetReaction({
+                id: snippet.id,
+                reaction: snippet.viewerReaction || null,
+                likesCount: snippet.likesCount || 0,
+                dislikesCount: snippet.dislikesCount || 0
+            }));
         }
-    };
+    }, [snippet.id, reduxViewerReaction, snippet.viewerReaction, snippet.likesCount, snippet.dislikesCount, dispatch]);
 
-    const handleSave = async () => {
-        if (!isAuthenticated) return toast({ variant: "destructive", title: "Authentication required" });
-        setIsSaved(!isSaved);
-        try { await snippetsAPI.save(snippet.id); } catch (e) { setIsSaved(isSaved); }
-    };
-    */
+    const reactionMutation = useMutation({
+        mutationFn: (reaction: 'like' | 'dislike') => {
+            if (!isAuthenticated) throw new Error("LOGIN_REQUIRED");
+            return snippetsAPI.react(snippet.id, reaction);
+        },
+        onMutate: (reaction) => {
+            if (!isAuthenticated) return;
+            dispatch(updateReactionOptimistically({ id: snippet.id, reaction }));
+        },
+        onError: (err: any) => {
+            if (err.message === "LOGIN_REQUIRED") {
+                toast({ variant: "destructive", title: "Login Required", description: "You need to be logged in to react." });
+                return;
+            }
+            queryClient.invalidateQueries({ queryKey: ['snippet', snippet.id] });
+            toast({ variant: "destructive", title: "Action failed", description: "Identity sync interrupted." });
+        }
+    });
 
     return (
-        <div className={cn("flex justify-between items-center w-full", className)}>
-            <div className="flex items-center gap-6">
-                {/* Share Button (Active) */}
-                <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    className="group relative transition-all duration-300 focus:outline-none flex items-center gap-2"
-                    onClick={() => {
-                        if (onShareClick) {
-                            onShareClick();
-                        } else {
-                            navigator.clipboard.writeText(`${window.location.origin}/snippets/${snippet.id}`);
-                            toast({ title: "Link copied!", description: "Share this snippet with others." });
-                        }
-                    }}
-                >
-                    <div className="absolute -inset-2 bg-primary/10 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Share2 className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors relative" />
-                    <span className="text-xs font-mono text-muted-foreground group-hover:text-primary transition-colors">Share</span>
-                </motion.button>
-            </div>
+        <TooltipProvider>
+            <div className={cn("flex items-center gap-4 w-full", className)}>
+                <div className="flex items-center gap-1 sm:gap-2">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => reactionMutation.mutate('like')}
+                                disabled={reactionMutation.isPending}
+                                className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border", isLiked ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground")}
+                            >
+                                <Heart className={cn("h-3.5 w-3.5 transition-transform active:scale-95", isLiked && "fill-current")} />
+                                <span>{likeCount}</span>
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Like this snippet</TooltipContent>
+                    </Tooltip>
 
-            {/* Disabled Interactions Placeholder */}
-            {/* Comments and Likes disabled for MVP */}
-        </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => reactionMutation.mutate('dislike')}
+                                disabled={reactionMutation.isPending}
+                                className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border", isDisliked ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground")}
+                            >
+                                <ThumbsDown className={cn("h-3.5 w-3.5 transition-transform active:scale-95", isDisliked && "fill-current")} />
+                                <span>{dislikeCount}</span>
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Dislike this snippet</TooltipContent>
+                    </Tooltip>
+
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground transition-all border border-transparent">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        <span>Discuss</span>
+                    </button>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => {
+                                    if (onShareClick) onShareClick();
+                                    else {
+                                        navigator.clipboard.writeText(window.location.href);
+                                        toast({ title: "Link copied!" });
+                                    }
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground transition-all border border-transparent"
+                            >
+                                <Share2 className="h-3.5 w-3.5" />
+                                <span>Share</span>
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Share snippet</TooltipContent>
+                    </Tooltip>
+                </div>
+            </div>
+        </TooltipProvider>
     );
 }

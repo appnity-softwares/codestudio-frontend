@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/store";
-import { spendXP, equipAura } from "@/store/slices/userSlice";
+import { useDispatch } from "react-redux";
+import { spendXP, equipAura, equipTheme } from "@/store/slices/userSlice";
+import { AuraAvatar } from "@/components/AuraAvatar";
 import { STORE_ITEMS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { ShoppingBag, Sparkles, Palette, Zap, ArrowLeft, Trophy, Lock, Check, Info, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { usersAPI } from "@/lib/api";
+import { usersAPI, systemAPI } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import {
     Dialog,
     DialogContent,
@@ -27,18 +29,29 @@ export default function XPStore() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { toast } = useToast();
-    const user = useSelector((state: RootState) => state.user);
+    const { user, updateUser } = useAuth();
     const [activeTab, setActiveTab] = useState("auras");
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [previewItem, setPreviewItem] = useState<any>(null);
 
+    const isOwned = (itemId: string) => {
+        const inventory = user?.inventory || user?.purchasedComponentIds || [];
+        return inventory.includes(itemId);
+    };
+
+    const { data: systemData } = useQuery({ queryKey: ["system-public"], queryFn: () => systemAPI.getPublicStatus() });
+    const settings = systemData?.settings || {};
+    const isFeatureEnabled = (key: string) => settings[key] === "true";
+
+    const activeBoosts = STORE_ITEMS.filter(i => i.type === 'BOOST' && isOwned(i.id));
+
     const handlePurchase = async () => {
         if (!selectedItem) return;
 
-        if (user.xp < selectedItem.cost) {
+        if (user && (user.xp || 0) < selectedItem.cost) {
             toast({
                 title: "Insufficient XP",
-                description: `You need ${selectedItem.cost - user.xp} more XP to buy this.`,
+                description: `You need ${selectedItem.cost - (user?.xp || 0)} more XP to buy this.`,
                 variant: "destructive"
             });
             setSelectedItem(null);
@@ -48,6 +61,13 @@ export default function XPStore() {
         try {
             await usersAPI.spendXP(selectedItem.id, selectedItem.cost);
             dispatch(spendXP({ amount: selectedItem.cost, itemId: selectedItem.id, type: selectedItem.type as any }));
+            // Also update AuthContext
+            if (user) {
+                updateUser({
+                    xp: (user.xp || 0) - selectedItem.cost,
+                    inventory: [...(user.inventory || []), selectedItem.id]
+                });
+            }
 
             toast({
                 title: "Purchase Successful!",
@@ -68,6 +88,8 @@ export default function XPStore() {
         try {
             await usersAPI.equipAura(auraId);
             dispatch(equipAura(auraId));
+            // Critical fix: Sync to AuthContext to avoid refresh requirement
+            updateUser({ equippedAura: auraId });
             toast({ title: "Equipped!", description: "Your avatar style has been updated." });
         } catch (error: any) {
             toast({
@@ -78,7 +100,52 @@ export default function XPStore() {
         }
     };
 
-    const isOwned = (itemId: string) => user.inventory.includes(itemId);
+    const handleEquipTheme = async (themeId: string) => {
+        try {
+            await usersAPI.equipTheme(themeId);
+            dispatch(equipTheme(themeId));
+            updateUser({ equippedTheme: themeId });
+            toast({ title: "Theme Equipped!", description: "IDE style updated." });
+        } catch (error: any) {
+            toast({
+                title: "Equipment Failed",
+                description: error.message || "Failed to equip theme",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleUnequipTheme = async () => {
+        try {
+            await usersAPI.equipTheme("");
+            dispatch(equipTheme(null));
+            updateUser({ equippedTheme: null });
+            toast({ title: "Theme Reset", description: "Default theme restored." });
+        } catch (error: any) {
+            toast({
+                title: "Reset Failed",
+                description: error.message || "Failed to reset theme",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleUnequip = async () => {
+        try {
+            await usersAPI.equipAura("");
+            dispatch(equipAura(null));
+            updateUser({ equippedAura: null });
+            toast({ title: "Unequipped", description: "Aura removed successfully." });
+        } catch (error: any) {
+            toast({
+                title: "Unequip Failed",
+                description: error.message || "Failed to remove aura",
+                variant: "destructive"
+            });
+        }
+    };
+
+
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 pb-24">
@@ -108,7 +175,7 @@ export default function XPStore() {
                     <div className="flex items-center gap-3 bg-muted/30 px-3 md:px-4 py-2 rounded-xl border border-border">
                         <div className="text-right">
                             <span className="block text-[8px] md:text-[10px] font-black uppercase text-muted-foreground tracking-wider">Balance</span>
-                            <span className="font-mono text-sm md:text-lg font-black text-primary tabular-nums text-nowrap">{user.xp} XP</span>
+                            <span className="font-mono text-sm md:text-lg font-black text-primary tabular-nums text-nowrap">{user?.xp || 0} XP</span>
                         </div>
                         <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
                             <Trophy className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
@@ -118,18 +185,45 @@ export default function XPStore() {
             </div>
 
             <main className="container max-w-6xl mx-auto py-10 px-4">
+
+                {activeBoosts.length > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex items-center gap-4"
+                    >
+                        <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
+                            <Zap className="h-5 w-5 fill-current" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-emerald-500 text-sm uppercase tracking-wide">Active Powerups</h3>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                {activeBoosts.map(boost => (
+                                    <Badge key={boost.id} variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-none hover:bg-emerald-500/20">
+                                        {boost.name}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
                     <div className="w-full overflow-x-auto no-scrollbar pb-2">
                         <TabsList className="bg-muted/40 p-1 border border-border rounded-xl h-auto flex w-max sm:w-auto">
                             <TabsTrigger value="auras" className="px-5 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all gap-2 text-xs md:text-sm font-bold whitespace-nowrap">
                                 <Sparkles className="h-4 w-4" /> Auras
                             </TabsTrigger>
-                            <TabsTrigger value="themes" className="px-5 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all gap-2 text-xs md:text-sm font-bold whitespace-nowrap">
-                                <Palette className="h-4 w-4" /> IDE Themes
-                            </TabsTrigger>
-                            <TabsTrigger value="boosts" className="px-5 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all gap-2 text-xs md:text-sm font-bold whitespace-nowrap">
-                                <Zap className="h-4 w-4" /> Power-Ups
-                            </TabsTrigger>
+                            {isFeatureEnabled("feature_store_themes") && (
+                                <TabsTrigger value="themes" className="px-5 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all gap-2 text-xs md:text-sm font-bold whitespace-nowrap">
+                                    <Palette className="h-4 w-4" /> IDE Themes
+                                </TabsTrigger>
+                            )}
+                            {isFeatureEnabled("feature_store_powerups") && (
+                                <TabsTrigger value="boosts" className="px-5 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all gap-2 text-xs md:text-sm font-bold whitespace-nowrap">
+                                    <Zap className="h-4 w-4" /> Power-Ups
+                                </TabsTrigger>
+                            )}
                         </TabsList>
                     </div>
 
@@ -143,9 +237,9 @@ export default function XPStore() {
                         >
                             <TabsContent value="auras" className="m-0 mt-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {STORE_ITEMS.filter(i => i.type === 'AURA').map((item: any) => {
+                                    {STORE_ITEMS.filter(i => i.type === 'AURA' && (!i.adminOnly || user?.role === 'ADMIN')).map((item: any) => {
                                         const owned = isOwned(item.id);
-                                        const equipped = user.equippedAura === item.id;
+                                        const equipped = user?.equippedAura === item.id;
 
                                         return (
                                             <div key={item.id} className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg flex flex-col">
@@ -177,20 +271,19 @@ export default function XPStore() {
                                                         </Button>
                                                         {owned ? (
                                                             <Button
-                                                                className={cn("flex-1 font-black uppercase text-xs tracking-widest", equipped ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20" : "")}
+                                                                className={cn("flex-1 font-black uppercase text-xs tracking-widest", equipped ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border border-rose-500/20" : "")}
                                                                 variant={equipped ? "outline" : "secondary"}
-                                                                disabled={equipped}
-                                                                onClick={() => handleEquip(item.id)}
+                                                                onClick={() => equipped ? handleUnequip() : handleEquip(item.id)}
                                                             >
-                                                                {equipped ? <><Check className="mr-2 h-4 w-4" /> Equipped</> : "Equip"}
+                                                                {equipped ? <><Check className="mr-2 h-4 w-4" /> Unequip</> : "Equip"}
                                                             </Button>
                                                         ) : (
                                                             <Button
                                                                 className="flex-1 font-black uppercase text-xs tracking-widest"
                                                                 onClick={() => setSelectedItem(item)}
-                                                                disabled={user.xp < item.cost}
+                                                                disabled={(user?.xp || 0) < item.cost}
                                                             >
-                                                                {user.xp < item.cost ? <Lock className="mr-2 h-3 w-3" /> : null}
+                                                                {(user?.xp || 0) < item.cost ? <Lock className="mr-2 h-3 w-3" /> : null}
                                                                 Unlock
                                                             </Button>
                                                         )}
@@ -202,99 +295,108 @@ export default function XPStore() {
                                 </div>
                             </TabsContent>
 
-                            <TabsContent value="themes" className="m-0 mt-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {STORE_ITEMS.filter(i => i.type === 'THEME').map((item: any) => {
-                                        const owned = isOwned(item.id);
-                                        return (
-                                            <div key={item.id} className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg flex flex-col">
-                                                <div className="h-40 flex items-center justify-center relative border-b border-border overflow-hidden" style={{ backgroundColor: item.color }}>
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-                                                    <div className="font-mono text-[10px] text-white/50 bg-black/40 px-3 py-1.5 rounded-md border border-white/10 backdrop-blur-sm group-hover:scale-110 transition-transform">
-                                                        <span className="text-purple-400">const</span> <span className="text-yellow-400">theme</span> = <span className="text-emerald-400">"{item.name}"</span>;
+                            {isFeatureEnabled("feature_store_themes") && (
+                                <TabsContent value="themes" className="m-0 mt-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {STORE_ITEMS.filter(i => i.type === 'THEME' && (!i.adminOnly || user?.role === 'ADMIN')).map((item: any) => {
+                                            const owned = isOwned(item.id);
+                                            const equipped = user?.equippedTheme === item.id;
+                                            return (
+                                                <div key={item.id} className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg flex flex-col">
+                                                    <div className="h-40 flex items-center justify-center relative border-b border-border overflow-hidden" style={{ backgroundColor: item.color }}>
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                                                        <div className="font-mono text-[10px] text-white/50 bg-black/40 px-3 py-1.5 rounded-md border border-white/10 backdrop-blur-sm group-hover:scale-110 transition-transform">
+                                                            <span className="text-purple-400">const</span> <span className="text-yellow-400">theme</span> = <span className="text-emerald-400">"{item.name}"</span>;
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="p-6 flex-1 flex flex-col">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <h3 className="font-bold text-lg">{item.name}</h3>
-                                                        {!owned && <Badge variant="outline" className="font-mono text-primary border-primary/30 bg-primary/5">{item.cost} XP</Badge>}
-                                                    </div>
-                                                    <p className="text-sm text-muted-foreground mb-6 flex-1 line-clamp-2">{item.description}</p>
+                                                    <div className="p-6 flex-1 flex flex-col">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h3 className="font-bold text-lg">{item.name}</h3>
+                                                            {!owned && <Badge variant="outline" className="font-mono text-primary border-primary/30 bg-primary/5">{item.cost} XP</Badge>}
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground mb-6 flex-1 line-clamp-2">{item.description}</p>
 
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="shrink-0 h-10 w-10 border-border hover:bg-muted"
-                                                            onClick={() => setPreviewItem(item)}
-                                                        >
-                                                            <Info className="h-4 w-4 text-muted-foreground" />
-                                                        </Button>
-                                                        {owned ? (
-                                                            <Button variant="secondary" disabled className="flex-1 font-black uppercase text-xs tracking-widest opacity-50">
-                                                                Unlocked
-                                                            </Button>
-                                                        ) : (
+                                                        <div className="flex gap-2">
                                                             <Button
-                                                                className="flex-1 font-black uppercase text-xs tracking-widest"
-                                                                onClick={() => setSelectedItem(item)}
-                                                                disabled={user.xp < item.cost}
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="shrink-0 h-10 w-10 border-border hover:bg-muted"
+                                                                onClick={() => setPreviewItem(item)}
                                                             >
-                                                                {user.xp < item.cost ? <Lock className="mr-2 h-3 w-3" /> : null}
-                                                                Unlock
+                                                                <Info className="h-4 w-4 text-muted-foreground" />
                                                             </Button>
-                                                        )}
+                                                            {owned ? (
+                                                                <Button
+                                                                    className={cn("flex-1 font-black uppercase text-xs tracking-widest", equipped ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border border-rose-500/20" : "")}
+                                                                    variant={equipped ? "outline" : "secondary"}
+                                                                    onClick={() => equipped ? handleUnequipTheme() : handleEquipTheme(item.id)}
+                                                                >
+                                                                    {equipped ? <><Check className="mr-2 h-4 w-4" /> Unequip</> : "Equip"}
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    className="flex-1 font-black uppercase text-xs tracking-widest"
+                                                                    onClick={() => setSelectedItem(item)}
+                                                                    disabled={(user?.xp || 0) < item.cost}
+                                                                >
+                                                                    {(user?.xp || 0) < item.cost ? <Lock className="mr-2 h-3 w-3" /> : null}
+                                                                    Unlock
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </TabsContent>
+                                            );
+                                        })}
+                                    </div>
+                                </TabsContent>
+                            )}
 
-                            <TabsContent value="boosts" className="m-0 mt-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {STORE_ITEMS.filter(i => i.type === 'BOOST').map((item: any) => {
-                                        const owned = isOwned(item.id);
-                                        return (
-                                            <div key={item.id} className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg flex flex-col">
-                                                <div className="h-40 bg-muted/30 flex items-center justify-center relative overflow-hidden">
-                                                    <div className="absolute inset-0 bg-grid opacity-20" />
-                                                    <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-all duration-300 group-hover:rotate-6">
-                                                        {item.icon && <item.icon className="h-8 w-8 text-primary" />}
+                            {isFeatureEnabled("feature_store_powerups") && (
+                                <TabsContent value="boosts" className="m-0 mt-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {STORE_ITEMS.filter(i => i.type === 'BOOST' && (!i.adminOnly || user?.role === 'ADMIN')).map((item: any) => {
+                                            const owned = isOwned(item.id);
+                                            return (
+                                                <div key={item.id} className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg flex flex-col">
+                                                    <div className="h-40 bg-muted/30 flex items-center justify-center relative overflow-hidden">
+                                                        <div className="absolute inset-0 bg-grid opacity-20" />
+                                                        <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-all duration-300 group-hover:rotate-6">
+                                                            {item.icon && <item.icon className="h-8 w-8 text-primary" />}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="p-6 flex-1 flex flex-col">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <h3 className="font-bold text-lg">{item.name}</h3>
-                                                        {!owned && <Badge variant="outline" className="font-mono text-primary border-primary/30 bg-primary/5">{item.cost} XP</Badge>}
-                                                    </div>
-                                                    <p className="text-sm text-muted-foreground mb-6 flex-1 line-clamp-2">{item.description}</p>
+                                                    <div className="p-6 flex-1 flex flex-col">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h3 className="font-bold text-lg">{item.name}</h3>
+                                                            {!owned && <Badge variant="outline" className="font-mono text-primary border-primary/30 bg-primary/5">{item.cost} XP</Badge>}
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground mb-6 flex-1 line-clamp-2">{item.description}</p>
 
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="shrink-0 h-10 w-10 border-border hover:bg-muted"
-                                                            onClick={() => setPreviewItem(item)}
-                                                        >
-                                                            <Info className="h-4 w-4 text-muted-foreground" />
-                                                        </Button>
-                                                        <Button
-                                                            className="flex-1 font-black uppercase text-xs tracking-widest"
-                                                            onClick={() => setSelectedItem(item)}
-                                                            disabled={user.xp < item.cost}
-                                                        >
-                                                            {user.xp < item.cost ? <Lock className="mr-2 h-3 w-3" /> : null}
-                                                            Buy Boost
-                                                        </Button>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="shrink-0 h-10 w-10 border-border hover:bg-muted"
+                                                                onClick={() => setPreviewItem(item)}
+                                                            >
+                                                                <Info className="h-4 w-4 text-muted-foreground" />
+                                                            </Button>
+                                                            <Button
+                                                                className={cn("flex-1 font-black uppercase text-xs tracking-widest", owned ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "")}
+                                                                variant={owned ? "outline" : "default"}
+                                                                onClick={() => !owned && setSelectedItem(item)}
+                                                                disabled={!owned && (user?.xp || 0) < item.cost}
+                                                            >
+                                                                {owned ? "Active" : <>Buy Boost</>}
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </TabsContent>
+                                            );
+                                        })}
+                                    </div>
+                                </TabsContent>
+                            )}
                         </motion.div>
                     </AnimatePresence>
                 </Tabs>
@@ -342,8 +444,17 @@ export default function XPStore() {
                                 previewItem?.type === 'THEME' ? "" : "bg-primary/5"
                         )} style={previewItem?.type === 'THEME' ? { backgroundColor: previewItem.color } : {}}>
                             {previewItem?.type === 'AURA' && (
-                                <div className={cn("h-32 w-32 rounded-full bg-background border-4 border-muted flex items-center justify-center transition-all duration-500", previewItem.previewClass)}>
-                                    <span className="font-black text-xs text-muted-foreground/30 uppercase">LIVE</span>
+                                <div className="relative">
+                                    <AuraAvatar
+                                        username={user?.username || "Friend"}
+                                        src={user?.image}
+                                        xp={user?.xp || 0}
+                                        equippedAura={previewItem.id}
+                                        size="xl"
+                                    />
+                                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-background border border-border px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                        Live Preview
+                                    </div>
                                 </div>
                             )}
                             {previewItem?.type === 'THEME' && (
@@ -393,7 +504,7 @@ export default function XPStore() {
                                             setSelectedItem(previewItem);
                                             setPreviewItem(null);
                                         }}
-                                        disabled={user.xp < previewItem?.cost}
+                                        disabled={(user?.xp || 0) < (previewItem?.cost || 0)}
                                     >
                                         Unlock Permanently
                                     </Button>

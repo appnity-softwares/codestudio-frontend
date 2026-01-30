@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { snippetsAPI } from "@/lib/api";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AuraAvatar } from "@/components/AuraAvatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from "date-fns";
@@ -71,10 +71,13 @@ export function CommentSection({ snippetId }: CommentSectionProps) {
                         onSubmit={handleSubmit}
                         className="flex gap-4 p-4 border rounded-xl bg-muted/50"
                     >
-                        <Avatar className="h-10 w-10">
-                            <AvatarImage src={user.image} />
-                            <AvatarFallback>{(user?.username?.[0] || '?').toUpperCase()}</AvatarFallback>
-                        </Avatar>
+                        <AuraAvatar
+                            src={user.image}
+                            username={user.username || "user"}
+                            xp={user.xp || 0}
+                            equippedAura={user.equippedAura}
+                            size="md"
+                        />
                         <div className="flex-1 space-y-3">
                             <Textarea
                                 placeholder="Add a comment..."
@@ -128,10 +131,13 @@ export function CommentSection({ snippetId }: CommentSectionProps) {
                                     exit={{ opacity: 0 }}
                                     className="flex gap-4"
                                 >
-                                    <Avatar className="h-10 w-10 shrink-0">
-                                        <AvatarImage src={comment.User?.image} />
-                                        <AvatarFallback>{(comment.user?.username || comment.User?.username || '?').substring(0, 1).toUpperCase()}</AvatarFallback>
-                                    </Avatar>
+                                    <AuraAvatar
+                                        src={comment.User?.image}
+                                        username={comment.User?.username || "user"}
+                                        xp={comment.User?.xp || 0}
+                                        equippedAura={comment.User?.equippedAura}
+                                        size="md"
+                                    />
 
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-2">

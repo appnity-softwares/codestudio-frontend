@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { calculateLevel } from "@/lib/xp";
 import {
     Home,
     Trophy,
@@ -42,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { Logo } from "@/components/ui/Logo";
 import { AuraAvatar } from "@/components/AuraAvatar";
+import { Badge } from "@/components/ui/badge";
 
 import { useQuery } from "@tanstack/react-query";
 import { useDispatch, useSelector } from "react-redux";
@@ -312,46 +314,56 @@ export function Dock() {
                 </TooltipProvider>
             </div>
 
-            {/* Bottom: User Menu & Toggle */}
-            <div className="p-4 mt-auto space-y-4 bg-muted/20 border-t border-border">
+            {/* Bottom: User Dock */}
+            <div className="p-3 mt-auto space-y-2">
+                {/* Sidebar Toggle */}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={setIsCollapsed}
+                    className={cn(
+                        "w-full h-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all mb-2",
+                        isCollapsed ? "justify-center px-0" : "justify-between px-3"
+                    )}
+                >
+                    {!isCollapsed && <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Collapse View</span>}
+                    {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4 opacity-50" />}
+                </Button>
+
                 {/* User Menu */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className={cn(
-                            "w-full flex items-center gap-3 hover:bg-muted/50 transition-all h-auto py-3 group/user px-2 rounded-xl user-xp-display",
-                            isCollapsed ? "justify-center" : "justify-start px-3"
+                            "w-full flex items-center gap-3 hover:bg-muted/50 transition-all h-auto py-2 px-2 rounded-xl group/user border border-transparent hover:border-border/50",
+                            isCollapsed ? "justify-center" : "justify-start"
                         )}>
                             <div className="relative shrink-0">
                                 <AuraAvatar
                                     src={user?.image}
                                     username={user?.username || "user"}
                                     xp={userXP || user?.xp || 0}
+                                    equippedAura={user?.equippedAura}
                                     size="sm"
+                                    className="h-9 w-9"
                                 />
                                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-surface rounded-full shadow-sm z-20" />
                             </div>
                             {!isCollapsed && (
-                                <div className="flex flex-col items-start text-left overflow-hidden">
-                                    <span className="text-sm font-black truncate w-full text-foreground tracking-tight">
+                                <div className="flex flex-col items-start text-left overflow-hidden min-w-0 flex-1">
+                                    <span className="text-sm font-bold truncate w-full text-foreground tracking-tight">
                                         {user?.name || user?.username}
                                     </span>
-                                    <div className="flex items-center gap-1.5 w-full">
-                                        <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden mt-0.5 max-w-[80px]">
-                                            <motion.div
-                                                className="h-full bg-primary"
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${((userXP || user?.xp || 0) % 1000) / 10}%` }}
-                                                transition={{ duration: 1, ease: "easeOut" }}
-                                            />
-                                        </div>
-                                        <span className="text-[9px] font-black text-primary uppercase">LVL {Math.floor((userXP || user?.xp || 0) / 1000) + 1}</span>
+                                    <div className="flex items-center gap-2 w-full mt-0.5">
+                                        <Badge variant="outline" className="text-[9px] h-4 px-1 py-0 border-primary/20 bg-primary/5 text-primary">
+                                            LVL {calculateLevel(userXP || user?.xp || 0).level}
+                                        </Badge>
                                     </div>
                                 </div>
                             )}
-                            {!isCollapsed && <MoreHorizontal className="w-4 h-4 ml-auto text-muted-foreground group-hover/user:text-foreground transition-colors" />}
+                            {!isCollapsed && <MoreHorizontal className="w-4 h-4 text-muted-foreground group-hover/user:text-foreground transition-colors shrink-0" />}
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" side="top" className="w-64 mb-3" sideOffset={12}>
+                    <DropdownMenuContent align="start" side="top" className="w-64 mb-2" sideOffset={12}>
                         <DropdownMenuLabel className="font-normal px-3 py-3">
                             <div className="flex flex-col space-y-1">
                                 <p className="text-xs font-black text-primary uppercase tracking-widest flex items-center justify-between">
@@ -386,37 +398,6 @@ export function Dock() {
                         </div>
                     </DropdownMenuContent>
                 </DropdownMenu>
-
-                <div className="flex flex-col gap-2">
-                    {/* Toggle Button */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={setIsCollapsed}
-                        className={cn(
-                            "w-full flex items-center bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-all h-9 rounded-xl border border-border",
-                            isCollapsed ? "justify-center" : "justify-center"
-                        )}
-                    >
-                        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-                    </Button>
-
-                    {!isCollapsed && (
-                        <div className="pt-2 px-3 pb-2 text-[9px] text-muted-foreground/40 font-black animate-in fade-in duration-700">
-                            <div className="flex items-center justify-between pt-2">
-                                <span className="tracking-[0.2em] uppercase">R3 Build</span>
-                                <a
-                                    href="https://appnity.co.in"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:text-primary transition-colors flex items-center gap-1 opacity-50 hover:opacity-100"
-                                >
-                                    APPNITY
-                                </a>
-                            </div>
-                        </div>
-                    )}
-                </div>
             </div>
         </aside>
     );

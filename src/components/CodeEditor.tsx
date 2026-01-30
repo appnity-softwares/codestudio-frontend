@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import Editor, { OnMount } from "@monaco-editor/react";
 import { useTheme } from "@/context/ThemeContext";
+import { useSelector } from "react-redux";
+import { STORE_ITEMS } from "@/lib/constants";
 
 // STRICT BOILERPLATES (IO Centered)
 export const BOILERPLATES: Record<string, string> = {
@@ -84,10 +86,39 @@ export function CodeEditor({
     readOnly = false
 }: CodeEditorProps) {
     const { resolvedTheme } = useTheme(); // 'dark' or 'light'
+    const equippedThemeId = useSelector((state: any) => state.user.equippedTheme);
     const editorRef = useRef<any>(null);
+    const monacoRef = useRef<any>(null);
 
-    const handleEditorDidMount: OnMount = (editor) => {
+    const handleBeforeMount = (monaco: any) => {
+        // Register custom themes if they are in STORE_ITEMS
+        try {
+            STORE_ITEMS.filter(i => i.type === 'THEME').forEach(theme => {
+                monaco.editor.defineTheme(theme.id, {
+                    base: 'vs-dark',
+                    inherit: true,
+                    rules: [],
+                    colors: {
+                        'editor.background': theme.color,
+                    }
+                });
+            });
+        } catch (e) {
+            console.error("Failed to register themes:", e);
+        }
+    };
+
+    const handleEditorDidMount: OnMount = (editor, monaco) => {
         editorRef.current = editor;
+        monacoRef.current = monaco;
+
+        // Apply theme after mount to ensure it's registered
+        if (equippedThemeId) {
+            const theme = STORE_ITEMS.find(i => i.id === equippedThemeId);
+            if (theme) {
+                monaco.editor.setTheme(theme.id);
+            }
+        }
 
         // Anti-Cheat: Paste Detection
         editor.onDidPaste((e) => {
@@ -100,6 +131,21 @@ export function CodeEditor({
             }
         });
     };
+
+    // React to theme changes
+    useEffect(() => {
+        if (monacoRef.current) {
+            if (equippedThemeId) {
+                const theme = STORE_ITEMS.find(i => i.id === equippedThemeId);
+                if (theme) {
+                    monacoRef.current.editor.setTheme(equippedThemeId);
+                    return;
+                }
+            }
+            // Fallback
+            monacoRef.current.editor.setTheme(resolvedTheme === "dark" ? "vs-dark" : "light");
+        }
+    }, [equippedThemeId, resolvedTheme]);
 
     // Auto-update layout when container resizes
     useEffect(() => {
@@ -114,9 +160,10 @@ export function CodeEditor({
             height="100%"
             language={language.toLowerCase() === 'c++' ? 'cpp' : language.toLowerCase()}
             value={code}
-            theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
+            theme={resolvedTheme === "dark" ? "vs-dark" : "light"} // Safe default, updated via effect
             onChange={onChange}
             onMount={handleEditorDidMount}
+            beforeMount={handleBeforeMount}
             options={{
                 minimap: { enabled: false },
                 fontSize: 16,

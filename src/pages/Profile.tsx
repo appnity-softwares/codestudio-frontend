@@ -1,17 +1,17 @@
 import { useState, useEffect, useMemo } from "react";
 import { calculateLevel } from "@/lib/xp";
 import { motion } from "framer-motion";
-import { useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
-    Code, Users, Settings, Shield, Terminal, Trophy, Linkedin, Share2, Plus, UserPlus, UserMinus, MessageSquare, Calendar, MapPin, Github, RefreshCw, Info
+    Code, Users, Settings, Shield, Terminal, Trophy, Linkedin, Share2, Plus, UserPlus, UserMinus, MessageSquare, Calendar, MapPin, Github, RefreshCw, Info, ExternalLink
 } from "lucide-react";
 import { ShareProfileModal } from "@/components/profile/ShareProfileModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import SEO from "@/components/SeoMeta";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AuraAvatar } from "@/components/AuraAvatar";
 import { usersAPI, authAPI } from "@/lib/api";
 import { SnippetCard } from "@/components/SnippetCard";
 import { useAuth } from "@/context/AuthContext";
@@ -244,12 +244,14 @@ export default function Profile() {
 
                 {/* Instagram-style Header - Centered Avatar */}
                 <div className="text-center space-y-4">
-                    <Avatar className="h-24 w-24 mx-auto border-4 border-primary/20 shadow-lg">
-                        <AvatarImage src={profileUser.image} className="object-cover" />
-                        <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                            {profileUser.username[0].toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
+                    <AuraAvatar
+                        src={profileUser.image}
+                        username={profileUser.username}
+                        xp={profileUser.xp || 0}
+                        equippedAura={profileUser.equippedAura}
+                        size="lg"
+                        className="mx-auto"
+                    />
 
                     <div className="space-y-1">
                         <h1 className="text-xl font-bold font-headline text-foreground">
@@ -461,7 +463,7 @@ export default function Profile() {
                                     </p>
                                     {currentUser?.id === profileUser.id && (
                                         <Button
-                                            onClick={() => window.location.href = `${import.meta.env.VITE_API_URL}/auth/github`}
+                                            onClick={() => window.location.href = `${import.meta.env.VITE_API_URL}/auth/github/login?auth_token=${localStorage.getItem('authToken')}`}
                                             className="gap-2"
                                         >
                                             <Github className="h-4 w-4" /> Connect GitHub
@@ -518,23 +520,13 @@ export default function Profile() {
 
                 <div className="relative">
                     {/* Replace standard Avatar with AuraAvatar if available, else standard */}
-                    <Link to="/settings/avatars" className="block relative group">
-                        <Avatar className={cn("h-24 w-24 border-4 border-canvas shadow-lg transition-transform group-hover:scale-105",
-                            currentUser?.equippedAura === 'aura_neon_cyberpunk' && "ring-4 ring-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.6)]",
-                            currentUser?.equippedAura === 'aura_golden_master' && "ring-4 ring-amber-400 shadow-[0_0_30px_rgba(251,191,36,0.6)]",
-                            currentUser?.equippedAura === 'aura_void_walker' && "ring-4 ring-purple-600 shadow-[0_0_30px_rgba(147,51,234,0.6)]",
-                        )}>
-                            <AvatarImage src={profileUser.image} className="object-cover" />
-                            <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                                {profileUser.username[0].toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-                        {currentUser?.id === profileUser.id && (
-                            <div className="absolute bottom-0 right-0 bg-background border border-border p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Settings className="h-3 w-3 text-muted-foreground" />
-                            </div>
-                        )}
-                    </Link>
+                    <AuraAvatar
+                        src={profileUser.image}
+                        username={profileUser.username}
+                        xp={profileUser.xp || 0}
+                        equippedAura={profileUser.equippedAura}
+                        size="lg"
+                    />
                 </div>
 
                 <div className="flex-1 space-y-4 relative z-10">
@@ -751,7 +743,7 @@ export default function Profile() {
                     >
                         <Trophy className="h-3.5 w-3.5" /> Badges & Progress
                     </TabsTrigger>
-                    {githubEnabled && profileUser.githubUrl && (
+                    {githubEnabled && (
                         <TabsTrigger
                             value="github"
                             className="gap-2 px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-xl transition-all duration-300"
@@ -900,51 +892,32 @@ export default function Profile() {
                 </TabsContent>
 
                 {/* GitHub Stats Tab Content */}
-                {githubEnabled && profileUser.githubUrl && (
+                {githubEnabled && (
                     <TabsContent value="github" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        {(() => {
-                            // Extract username from URL safely
-                            const githubUsername = profileUser.githubUrl.split('/').pop() || '';
-                            const themeString = theme === 'dark' ? 'radical' : 'default'; // 'radical' is a nice dark theme for stats
-
-                            return (
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground flex items-center gap-2">
-                                                <Github className="h-4 w-4" /> General Stats
-                                            </h3>
-                                            <img
-                                                src={`https://github-readme-stats.vercel.app/api?username=${githubUsername}&show_icons=true&theme=${themeString}&hide_border=true&bg_color=00000000`}
-                                                alt="GitHub Stats"
-                                                className="w-full h-auto rounded-xl border border-border bg-surface"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground flex items-center gap-2">
-                                                <Code className="h-4 w-4" /> Top Languages
-                                            </h3>
-                                            <img
-                                                src={`https://github-readme-stats.vercel.app/api/top-langs/?username=${githubUsername}&layout=compact&theme=${themeString}&hide_border=true&bg_color=00000000`}
-                                                alt="Top Languages"
-                                                className="w-full h-auto rounded-xl border border-border bg-surface"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-4">
-                                        <h3 className="text-sm font-bold font-mono uppercase tracking-widest text-foreground flex items-center gap-2 mb-4">
-                                            <Calendar className="h-4 w-4" /> Contribution Streak
-                                        </h3>
-                                        <img
-                                            src={`https://github-readme-streak-stats.herokuapp.com/?user=${githubUsername}&theme=${themeString}&hide_border=true&background=00000000`}
-                                            alt="GitHub Streak"
-                                            className="w-full h-auto rounded-xl border border-border bg-surface"
-                                        />
-                                    </div>
+                        {profileUser.githubStats ? (
+                            <GithubStats stats={JSON.parse(profileUser.githubStats)} isOwn={currentUser?.id === profileUser.id} />
+                        ) : (
+                            <div className="py-20 border border-dashed border-border rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center px-6">
+                                <div className="h-16 w-16 rounded-full bg-muted/20 flex items-center justify-center mb-6">
+                                    <Github className="h-8 w-8 text-muted-foreground" />
                                 </div>
-                            );
-                        })()}
+                                <h4 className="text-lg font-bold text-foreground mb-2">GitHub Not Linked</h4>
+                                <p className="text-muted-foreground mb-6 max-w-md">
+                                    {currentUser?.id === profileUser.id
+                                        ? "Connect your GitHub account to showcase your stats, repositories, and languages."
+                                        : "This developer hasn't linked their GitHub account yet."
+                                    }
+                                </p>
+                                {currentUser?.id === profileUser.id && (
+                                    <Button
+                                        onClick={() => window.location.href = `${import.meta.env.VITE_API_URL}/auth/github/login?auth_token=${localStorage.getItem('authToken')}`}
+                                        className="gap-2"
+                                    >
+                                        <Github className="h-4 w-4" /> Connect GitHub
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </TabsContent>
                 )}
             </Tabs>
@@ -973,78 +946,215 @@ export default function Profile() {
 
 // --- Sub-components ---
 
+// Default settings if undefined (migration case)
 function GithubStats({ stats, isOwn }: { stats: any, isOwn: boolean }) {
+    // Default settings if undefined (migration case)
+    const settings = stats.settings || {
+        show_bio: true,
+        show_company: true,
+        show_location: true,
+        show_blog: true,
+        show_twitter: true,
+        show_stats: true,
+        show_repos: true,
+        show_languages: true
+    };
+    const navigate = useNavigate();
+    const hasFullStats = !!stats.username;
+
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Github className="h-5 w-5 text-primary" />
-                    <h2 className="text-xl font-bold font-headline">GitHub Engineering Metrics</h2>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            {/* Header: GitHub Identity */}
+            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        <div className="h-16 w-16 rounded-xl overflow-hidden border border-border">
+                            {/* Use avatar url from stats if available, else generic */}
+                            <img
+                                src={stats.username ? `https://avatars.githubusercontent.com/${stats.username}` : "https://github.com/ghost.png"}
+                                alt={stats.username || "GitHub Ghost"}
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                    // Fallback if avatar fail
+                                    (e.target as HTMLImageElement).src = "https://github.com/ghost.png";
+                                }}
+                            />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 bg-surface rounded-full p-0.5 border border-border">
+                            <Github className="h-4 w-4 text-foreground" />
+                        </div>
+                    </div>
+                    <div>
+                        {hasFullStats ? (
+                            <>
+                                <h2 className="text-xl font-bold font-headline flex items-center gap-2">
+                                    {stats.username}
+                                    <a href={`https://github.com/${stats.username}`} target="_blank" rel="noopener noreferrer" className="opacity-50 hover:opacity-100 transition-opacity">
+                                        <Share2 className="h-3 w-3" />
+                                    </a>
+                                </h2>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
+                                    {settings.show_company && stats.company && (
+                                        <span className="flex items-center gap-1">
+                                            <Users className="h-3 w-3 opacity-70" /> {stats.company}
+                                        </span>
+                                    )}
+                                    {settings.show_location && stats.location && (
+                                        <span className="flex items-center gap-1">
+                                            <MapPin className="h-3 w-3 opacity-70" /> {stats.location}
+                                        </span>
+                                    )}
+                                    {settings.show_blog && stats.blog && (
+                                        <a href={stats.blog.startsWith('http') ? stats.blog : `https://${stats.blog}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
+                                            <ExternalLink className="h-3 w-3 opacity-70" /> Website
+                                        </a>
+                                    )}
+                                    {settings.show_twitter && stats.twitter_username && (
+                                        <a href={`https://twitter.com/${stats.twitter_username}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
+                                            <Linkedin className="h-3 w-3 opacity-70" /> @{stats.twitter_username}
+                                        </a>
+                                    )}
+                                    {stats.created_at && (
+                                        <span className="flex items-center gap-1">
+                                            <Calendar className="h-3 w-3 opacity-70" /> Joined {new Date(stats.created_at).getFullYear()}
+                                        </span>
+                                    )}
+                                </div>
+                                {settings.show_bio && stats.bio && (
+                                    <p className="text-sm text-foreground/80 mt-2 max-w-lg italic">"{stats.bio}"</p>
+                                )}
+                            </>
+                        ) : (
+                            <div>
+                                <h2 className="text-xl font-bold font-headline text-muted-foreground">Stats outdated</h2>
+                                <p className="text-xs text-muted-foreground">Sync to see profile details.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
+
                 {isOwn && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2 h-9 text-[10px] font-black uppercase tracking-widest border-white/10 hover:bg-white/5"
-                        onClick={async () => {
-                            try {
-                                const resp = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/users/profile/github/sync`, {
-                                    method: 'POST',
-                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-                                });
-                                if (resp.ok) {
-                                    window.location.reload();
-                                }
-                            } catch (e) { }
-                        }}
-                    >
-                        <RefreshCw className="h-3.5 w-3.5" /> Sync Latest
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 h-9 text-[10px] font-black uppercase tracking-widest border-white/10 hover:bg-white/5"
+                            onClick={() => navigate('/settings/github')}
+                        >
+                            <Settings className="h-3.5 w-3.5" /> Manage
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 h-9 text-[10px] font-black uppercase tracking-widest border-white/10 hover:bg-white/5"
+                            onClick={() => {
+                                // Full OAuth redirect to refresh token and fetch fresh stats
+                                window.location.href = `${import.meta.env.VITE_API_URL}/auth/github/login?auth_token=${localStorage.getItem('authToken')}`;
+                            }}
+                        >
+                            <RefreshCw className="h-3.5 w-3.5" /> Sync
+                        </Button>
+                    </div>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-surface border border-border p-6 rounded-xl text-center space-y-1 shadow-sm">
-                    <div className="text-3xl font-black text-foreground">{stats.public_repos || 0}</div>
-                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Public Repositories</div>
-                </div>
-                <div className="bg-surface border border-border p-6 rounded-xl text-center space-y-1 shadow-sm">
-                    <div className="text-3xl font-black text-foreground">{stats.followers || 0}</div>
-                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">GitHub followers</div>
-                </div>
-                <div className="bg-surface border border-border p-6 rounded-xl text-center space-y-1 shadow-sm">
-                    <div className="text-3xl font-black text-foreground">{stats.stars_received || 0}</div>
-                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Stars Received</div>
-                </div>
-            </div>
-
-            {stats.top_languages && stats.top_languages.length > 0 && (
-                <div className="bg-surface border border-border p-8 rounded-xl space-y-6 shadow-sm">
-                    <h3 className="text-sm font-bold font-mono uppercase tracking-widest flex items-center gap-2">
-                        <Code className="h-4 w-4 text-primary" /> Technology Stack Distribution
-                    </h3>
-                    <div className="space-y-4">
-                        {stats.top_languages.map((lang: string) => (
-                            <div key={lang} className="space-y-1.5">
-                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                    <span>{lang}</span>
-                                </div>
-                                <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: "100%" }}
-                                        className="h-full bg-primary/40 rounded-full"
-                                    />
-                                </div>
-                            </div>
-                        ))}
+            {/* Stats Grid */}
+            {settings.show_stats && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Code className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                            <div className="text-2xl font-black text-foreground">{stats.public_repos || 0}</div>
+                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Repositories</div>
+                        </div>
+                    </div>
+                    <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-purple-500" />
+                        </div>
+                        <div>
+                            <div className="text-2xl font-black text-foreground">{stats.followers || 0}</div>
+                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Followers</div>
+                        </div>
+                    </div>
+                    <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                            <Trophy className="h-5 w-5 text-yellow-500" />
+                        </div>
+                        <div>
+                            <div className="text-2xl font-black text-foreground">{stats.stars_received || 0}</div>
+                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Total Stars</div>
+                        </div>
                     </div>
                 </div>
             )}
 
-            <div className="text-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Top Repositories */}
+                {settings.show_repos && stats.top_repos && stats.top_repos.length > 0 && (
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold font-mono uppercase tracking-widest flex items-center gap-2 text-foreground">
+                            <Trophy className="h-4 w-4 text-primary" /> Top Repositories
+                        </h3>
+                        <div className="space-y-3">
+                            {stats.top_repos.map((repo: any) => (
+                                <a
+                                    key={repo.name}
+                                    href={repo.html_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block p-4 rounded-xl border border-border bg-surface hover:bg-white/5 transition-all group"
+                                >
+                                    <div className="flex justify-between items-start mb-1">
+                                        <div className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{repo.name}</div>
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                            <Trophy className="h-3 w-3 text-yellow-500" /> {repo.stars}
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{repo.description || "No description provided."}</p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-primary" />
+                                        <span className="text-[10px] font-mono text-muted-foreground uppercase">{repo.language || "Unknown"}</span>
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Languages */}
+                {settings.show_languages && stats.top_languages && stats.top_languages.length > 0 && (
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold font-mono uppercase tracking-widest flex items-center gap-2 text-foreground">
+                            <Code className="h-4 w-4 text-purple-500" /> Languages
+                        </h3>
+                        <div className="bg-surface border border-border p-6 rounded-xl space-y-4">
+                            {stats.top_languages.map((lang: string, i: number) => (
+                                <div key={lang} className="space-y-1.5">
+                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                        <span>{lang}</span>
+                                        <span className="opacity-50">#{i + 1}</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-muted/20 rounded-full overflow-hidden">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: "100%" }}
+                                            transition={{ delay: i * 0.1, duration: 1 }}
+                                            className="h-full bg-gradient-to-r from-primary/60 to-purple-500/60 rounded-full"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="text-center pt-4">
                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-40">
-                    Last Compiled: {new Date(stats.last_updated_at).toLocaleString()}
+                    Last Synced: {new Date(stats.last_updated_at).toLocaleString()}
                 </p>
             </div>
         </div>

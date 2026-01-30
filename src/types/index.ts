@@ -24,8 +24,10 @@ export interface User {
     streak?: number
     inventory?: string[]
     equippedAura?: string | null
+    equippedTheme?: string | null
     unlockedThemes?: string[]
     influence?: number
+    githubStats?: string
 }
 
 export interface Snippet {

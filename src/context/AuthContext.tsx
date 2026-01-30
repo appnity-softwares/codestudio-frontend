@@ -13,6 +13,7 @@ interface AuthContextType {
     signOut: () => void;
     updateUser: (user: Partial<User>) => void;
     loginWithToken: (token: string) => Promise<void>;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,11 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         xp: response.user.xp || 0,
                         level: response.user.level || 1,
                         streak: response.user.streak || 0,
-                        inventory: response.user.inventory || [],
+                        inventory: response.user.purchasedComponentIds || response.user.inventory || [],
                         equippedAura: response.user.equippedAura || null,
+                        equippedTheme: response.user.equippedTheme || null,
                         unlockedThemes: response.user.unlockedThemes || ['default'],
                         influence: response.user.influence || 15,
-                        profileImage: response.user.avatar || null
+                        profileImage: response.user.image || response.user.avatar || null
                     }));
                 }
             } catch (error: any) {
@@ -90,7 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     xp: response.user.xp || 0,
                     level: response.user.level || 1,
                     streak: response.user.streak || 0,
-                    profileImage: response.user.avatar || null
+                    inventory: response.user.purchasedComponentIds || response.user.inventory || [],
+                    equippedAura: response.user.equippedAura || null,
+                    equippedTheme: response.user.equippedTheme || null,
+                    unlockedThemes: response.user.unlockedThemes || ['default'],
+                    influence: response.user.influence || 15,
+                    profileImage: response.user.image || response.user.avatar || null
                 }));
             }
         } catch (error) {
@@ -111,7 +118,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     xp: response.user.xp || 0,
                     level: response.user.level || 1,
                     streak: response.user.streak || 0,
-                    profileImage: response.user.avatar || null
+                    inventory: response.user.purchasedComponentIds || response.user.inventory || [],
+                    equippedAura: response.user.equippedAura || null,
+                    equippedTheme: response.user.equippedTheme || null,
+                    unlockedThemes: response.user.unlockedThemes || ['default'],
+                    influence: response.user.influence || 15,
+                    profileImage: response.user.image || response.user.avatar || null
                 }));
             }
         } catch (error) {
@@ -132,7 +144,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     xp: response.user.xp || 0,
                     level: response.user.level || 1,
                     streak: response.user.streak || 0,
-                    profileImage: response.user.avatar || null
+                    inventory: response.user.purchasedComponentIds || response.user.inventory || [],
+                    equippedAura: response.user.equippedAura || null,
+                    equippedTheme: response.user.equippedTheme || null,
+                    unlockedThemes: response.user.unlockedThemes || ['default'],
+                    influence: response.user.influence || 15,
+                    profileImage: response.user.image || response.user.avatar || null
                 }));
             }
         } catch (error) {
@@ -161,8 +178,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null; // Or a loading spinner
     }
 
+    const refreshUser = async () => {
+        try {
+            const response = await authAPI.me();
+            setUser(response.user);
+            // Sync to Redux
+            if (response.user) {
+                dispatch(setUserData({
+                    xp: response.user.xp || 0,
+                    level: response.user.level || 1,
+                    streak: response.user.streak || 0,
+                    inventory: response.user.purchasedComponentIds || response.user.inventory || [],
+                    equippedAura: response.user.equippedAura || null,
+                    equippedTheme: response.user.equippedTheme || null,
+                    unlockedThemes: response.user.unlockedThemes || ['default'],
+                    influence: response.user.influence || 15,
+                    profileImage: response.user.image || response.user.avatar || null
+                }));
+            }
+        } catch (error) {
+            console.error("Failed to refresh user:", error);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, signIn, signUp, signOut, updateUser, loginWithToken }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, signIn, signUp, signOut, updateUser, loginWithToken, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

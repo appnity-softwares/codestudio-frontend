@@ -9,10 +9,11 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { usersAPI } from "@/lib/api"
+import { usersAPI, messagesAPI, systemAPI, API_URL } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
@@ -45,11 +46,11 @@ export function ShareDialog({ open, onOpenChange, url, title }: ShareDialogProps
             const shortenUrl = async () => {
                 setIsShortening(true);
                 try {
-                    const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
-                    if (response.ok) {
-                        const shortened = await response.text();
-                        setShortUrl(shortened);
-                    }
+                    const response = await systemAPI.shortenURL(url);
+                    // Construct full URL. Backend returns /s/CODE.
+                    // We assume API_URL is http://host:port/api, so we strip /api
+                    const baseUrl = API_URL.replace(/\/api\/?$/, '');
+                    setShortUrl(`${baseUrl}${response.shortUrl}`);
                 } catch (error) {
                     console.error("Failed to shorten URL", error);
                 } finally {
@@ -83,8 +84,15 @@ export function ShareDialog({ open, onOpenChange, url, title }: ShareDialogProps
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const handleSend = (userId: string) => {
-        setSentUsers(prev => new Set(prev).add(userId));
+    const handleSend = async (userId: string) => {
+        try {
+            await messagesAPI.sendMessage(userId, `Check out this snippet: ${title}\n\n${shortUrl}`, {
+                type: 'text'
+            });
+            setSentUsers(prev => new Set(prev).add(userId));
+        } catch (error) {
+            console.error("Failed to send snippet to friend", error);
+        }
     };
 
     const filteredFollowing = following.filter(u =>
@@ -135,9 +143,9 @@ export function ShareDialog({ open, onOpenChange, url, title }: ShareDialogProps
                     <div className="flex items-center justify-between">
                         <div>
                             <DialogTitle className="text-xl font-bold">Share Snippet</DialogTitle>
-                            <p className="text-sm text-zinc-400 mt-1">
+                            <DialogDescription className="text-sm text-zinc-400 mt-1">
                                 Share <span className="text-white font-medium">"{title}"</span> with your network.
-                            </p>
+                            </DialogDescription>
                         </div>
                     </div>
                 </DialogHeader>

@@ -83,8 +83,8 @@ export function MobileTabBar() {
                                         src={user.image}
                                         username={user.username || "user"}
                                         xp={user.xp || 0}
+                                        equippedAura={user.equippedAura}
                                         size="sm"
-                                        hideBadge
                                         className={cn(
                                             "transition-all",
                                             isActive && "ring-2 ring-primary ring-offset-2 ring-offset-[#0a0a0c]"

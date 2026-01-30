@@ -176,6 +176,18 @@ export default function AdminSystem() {
             title: "Personalized Activity Feed",
             description: "Show social updates and activity from followed developers.",
             icon: CheckCircle
+        },
+        {
+            key: "feature_store_powerups",
+            title: "XP Store: Powerups",
+            description: "Show 'Powerups' tab in the XP Store.",
+            icon: CheckCircle
+        },
+        {
+            key: "feature_store_themes",
+            title: "XP Store: IDE Themes",
+            description: "Show 'IDE Themes' tab in the XP Store.",
+            icon: CheckCircle
         }
     ];
 

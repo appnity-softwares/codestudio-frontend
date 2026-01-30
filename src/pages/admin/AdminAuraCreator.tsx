@@ -4,7 +4,6 @@ import { Sparkles, Save, Trash2, ArrowLeft, RefreshCw, Info } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { adminAPI } from "@/lib/api";
 import { AuraAvatar } from "@/components/AuraAvatar";
@@ -18,7 +17,6 @@ export default function AdminAuraCreator() {
     // Editor State
     const [name, setName] = useState("");
     const [gradient, setGradient] = useState("from-cyan-400 via-blue-500 to-purple-600");
-    const [pulse, setPulse] = useState(2);
     const [minXP, setMinXP] = useState(0);
 
     // Fetch existing settings
@@ -58,7 +56,7 @@ export default function AdminAuraCreator() {
             id: Date.now().toString(),
             name,
             gradient,
-            pulse,
+            pulse: 1, // Fixed to 1 for minimal rings
             minXP
         };
 
@@ -147,15 +145,8 @@ export default function AdminAuraCreator() {
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <label className="text-sm font-bold uppercase text-muted-foreground">Pulse Intensity: {pulse}x</label>
-                            <Slider
-                                value={[pulse]}
-                                min={0}
-                                max={5}
-                                step={0.5}
-                                onValueChange={(val: number[]) => setPulse(val[0])}
-                            />
+                        <div className="space-y-4 pt-4 border-t border-border">
+                            <p className="text-[10px] text-muted-foreground uppercase font-black italic">System Note: All auras now use a dynamic size-aware system (1px-4px) for perfect scaling across the Dock, Feed, and Profile views.</p>
                         </div>
 
                         <div className="space-y-2">
@@ -190,7 +181,7 @@ export default function AdminAuraCreator() {
                                         username={user?.username || "Preview"}
                                         xp={minXP}
                                         size="sm"
-                                        customAura={{ color: gradient, pulse }}
+                                        customAura={{ color: gradient, pulse: 0 }} // pulse set to 0 for sharp ring
                                     />
                                 </div>
                                 <div className="flex flex-col items-center gap-2">
@@ -199,7 +190,7 @@ export default function AdminAuraCreator() {
                                         username={user?.username || "Preview"}
                                         xp={minXP}
                                         size="md"
-                                        customAura={{ color: gradient, pulse }}
+                                        customAura={{ color: gradient, pulse: 0 }} // pulse set to 0 for sharp ring
                                     />
                                 </div>
                                 <div className="flex flex-col items-center gap-2">
@@ -208,7 +199,7 @@ export default function AdminAuraCreator() {
                                         username={user?.username || "Preview"}
                                         xp={minXP}
                                         size="lg"
-                                        customAura={{ color: gradient, pulse }}
+                                        customAura={{ color: gradient, pulse: 1 }}
                                     />
                                 </div>
                             </div>

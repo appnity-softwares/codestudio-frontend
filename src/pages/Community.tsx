@@ -130,6 +130,7 @@ export default function Community() {
                                         src={user.image}
                                         username={user.username}
                                         xp={user.xp || 0}
+                                        equippedAura={user.equippedAura}
                                         size="lg"
                                     />
                                     {user.trustScore >= 90 && (

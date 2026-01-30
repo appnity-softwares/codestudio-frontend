@@ -203,19 +203,15 @@ export const snippetsAPI = {
         }),
 
     // Stubs for Social Features
-    // Social Features
-    toggleLike: (id: string) =>
-        apiRequest<{ liked: boolean }>(`/snippets/${id}/like`, {
-            method: 'POST'
+    // Unified Reaction System
+    react: (id: string, reaction: 'like' | 'dislike') =>
+        apiRequest<{ status: string; reaction: 'like' | 'dislike' | '' }>(`/snippets/${id}/react`, {
+            method: 'POST',
+            body: JSON.stringify({ reaction })
         }),
 
-    toggleDislike: (id: string) =>
-        apiRequest<{ disliked: boolean }>(`/snippets/${id}/dislike`, {
-            method: 'POST'
-        }),
-
-    checkLike: (id: string) =>
-        apiRequest<{ liked: boolean }>(`/snippets/${id}/like`),
+    checkReaction: (id: string) =>
+        apiRequest<{ reaction: 'like' | 'dislike' | '' }>(`/snippets/${id}/react`),
 
     comment: (id: string, content: string, _parentId?: string) =>
         apiRequest<{ comment: any }>(`/snippets/${id}/comments`, {
@@ -382,6 +378,12 @@ export const usersAPI = {
         apiRequest<{ message: string; equippedAura: string }>('/users/profile/equip-aura', {
             method: 'POST',
             body: JSON.stringify({ auraId }),
+        }),
+
+    equipTheme: (themeId: string) =>
+        apiRequest<{ message: string; equippedTheme: string }>('/users/profile/equip-theme', {
+            method: 'POST',
+            body: JSON.stringify({ themeId }),
         }),
 
     generateVaultKey: () => apiRequest<{ vaultKey: string }>('/users/vault/key', { method: 'POST' }),
@@ -850,6 +852,10 @@ export const systemAPI = {
             method: 'POST',
             body: JSON.stringify(data)
         }),
+    shortenURL: (url: string) => apiRequest<{ originalUrl: string; code: string; shortUrl: string }>('/system/shorten', {
+        method: 'POST',
+        body: JSON.stringify({ url })
+    }),
 };
 
 

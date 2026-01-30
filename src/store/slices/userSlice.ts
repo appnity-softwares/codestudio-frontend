@@ -6,6 +6,7 @@ interface UserState {
     streak: number;
     inventory: string[];
     equippedAura: string | null;
+    equippedTheme: string | null;
     unlockedThemes: string[];
     influence: number;
     profileImage: string | null;
@@ -18,6 +19,7 @@ const initialState: UserState = {
     streak: 0,
     inventory: [],
     equippedAura: null,
+    equippedTheme: null,
     unlockedThemes: ['default'],
     influence: 15, // Starting trust score
     profileImage: null,
@@ -32,12 +34,13 @@ const userSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        setUserData: (state, action: PayloadAction<{ xp: number; level: number; streak: number; inventory?: string[]; equippedAura?: string | null; unlockedThemes?: string[]; influence?: number; profileImage?: string | null }>) => {
+        setUserData: (state, action: PayloadAction<{ xp: number; level: number; streak: number; inventory?: string[]; equippedAura?: string | null; equippedTheme?: string | null; unlockedThemes?: string[]; influence?: number; profileImage?: string | null }>) => {
             state.xp = action.payload.xp;
             state.level = action.payload.level;
             state.streak = action.payload.streak;
             if (action.payload.inventory) state.inventory = action.payload.inventory;
             if (action.payload.equippedAura !== undefined) state.equippedAura = action.payload.equippedAura;
+            if (action.payload.equippedTheme !== undefined) state.equippedTheme = action.payload.equippedTheme;
             if (action.payload.unlockedThemes) state.unlockedThemes = action.payload.unlockedThemes;
             if (action.payload.influence) state.influence = action.payload.influence;
             if (action.payload.profileImage !== undefined) state.profileImage = action.payload.profileImage;
@@ -64,8 +67,11 @@ const userSlice = createSlice({
                 }
             }
         },
-        equipAura: (state, action: PayloadAction<string>) => {
+        equipAura: (state, action: PayloadAction<string | null>) => {
             state.equippedAura = action.payload;
+        },
+        equipTheme: (state, action: PayloadAction<string | null>) => {
+            state.equippedTheme = action.payload;
         },
         updateQuestProgress: (state, action: PayloadAction<{ id: string; amount: number }>) => {
             const quest = state.quests.find(q => q.id === action.payload.id);
@@ -86,5 +92,5 @@ const userSlice = createSlice({
     },
 });
 
-export const { setUserData, addXP, updateStreak, spendXP, equipAura, updateQuestProgress, claimQuestReward, addInfluence } = userSlice.actions;
+export const { setUserData, addXP, updateStreak, spendXP, equipAura, equipTheme, updateQuestProgress, claimQuestReward, addInfluence } = userSlice.actions;
 export default userSlice.reducer;

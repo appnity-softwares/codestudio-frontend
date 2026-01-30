@@ -171,6 +171,7 @@ export default function Leaderboard() {
                                                             src={user.image}
                                                             username={user.username}
                                                             xp={user.xp || 0}
+                                                            equippedAura={user.equippedAura}
                                                             size="md"
                                                         />
                                                         {idx < 3 && (
@@ -239,7 +240,7 @@ export default function Leaderboard() {
                                                 <div className="flex items-center gap-6">
                                                     <div className="text-2xl font-black italic text-amber-500 opacity-20 group-hover:opacity-100 transition-opacity">#{idx + 1}</div>
                                                     <div className="flex items-center gap-4">
-                                                        <AuraAvatar username={user.username} xp={0} size="md" />
+                                                        <AuraAvatar username={user.username} xp={0} equippedAura={user.equippedAura} size="md" />
                                                         <div>
                                                             <h4 className="font-black text-lg text-foreground">{user.username}</h4>
                                                             <p className="text-xs text-amber-500/60 font-black uppercase">Arena Warrior</p>

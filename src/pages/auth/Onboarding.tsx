@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-// @ts-ignore
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +13,7 @@ import { usersAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 import confetti from 'canvas-confetti';
-
-// ... (keep existing imports)
+import AvatarPickerModal from '@/components/AvatarPickerModal';
 
 const steps = [
     { id: 'profile', title: 'Profile Basics', description: 'Tell us a bit about yourself.' },
@@ -33,18 +31,33 @@ export default function Onboarding() {
     const [currentStep, setCurrentStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Form State
-    const [name, setName] = useState(user?.name || '');
-    const [username, setUsername] = useState(user?.username || '');
-    const [bio, setBio] = useState('');
-    const [image, setImage] = useState(user?.image || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix');
-    const [githubUrl, setGithubUrl] = useState('');
-    const [instagramUrl, setInstagramUrl] = useState('');
-    const [linkedinUrl, setLinkedinUrl] = useState('');
-    const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
-    const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+    // Form State with Persistence
+    const [name, setName] = useState(() => localStorage.getItem('onboarding_name') || user?.name || '');
+    const [username, setUsername] = useState(() => localStorage.getItem('onboarding_username') || user?.username || '');
+    const [bio, setBio] = useState(() => localStorage.getItem('onboarding_bio') || '');
+    const [image, setImage] = useState(() => localStorage.getItem('onboarding_image') || user?.image || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix');
+    const [githubUrl, setGithubUrl] = useState(() => localStorage.getItem('onboarding_githubUrl') || '');
+    const [instagramUrl, setInstagramUrl] = useState(() => localStorage.getItem('onboarding_instagramUrl') || '');
+    const [linkedinUrl, setLinkedinUrl] = useState(() => localStorage.getItem('onboarding_linkedinUrl') || '');
+    const [selectedLangs, setSelectedLangs] = useState<string[]>(() => JSON.parse(localStorage.getItem('onboarding_langs') || '[]'));
+    const [selectedInterests, setSelectedInterests] = useState<string[]>(() => JSON.parse(localStorage.getItem('onboarding_interests') || '[]'));
+
     const [availableAvatars, setAvailableAvatars] = useState<any[]>([]);
     const [isAvatarsLoading, setIsAvatarsLoading] = useState(true);
+    const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+
+    // Persistence Effect
+    useEffect(() => {
+        localStorage.setItem('onboarding_name', name);
+        localStorage.setItem('onboarding_username', username);
+        localStorage.setItem('onboarding_bio', bio);
+        localStorage.setItem('onboarding_image', image);
+        localStorage.setItem('onboarding_githubUrl', githubUrl);
+        localStorage.setItem('onboarding_instagramUrl', instagramUrl);
+        localStorage.setItem('onboarding_linkedinUrl', linkedinUrl);
+        localStorage.setItem('onboarding_langs', JSON.stringify(selectedLangs));
+        localStorage.setItem('onboarding_interests', JSON.stringify(selectedInterests));
+    }, [name, username, bio, image, githubUrl, instagramUrl, linkedinUrl, selectedLangs, selectedInterests]);
 
     useEffect(() => {
         // If user already completed onboarding, don't show this screen
@@ -139,6 +152,14 @@ export default function Onboarding() {
                 interests: selectedInterests
             });
 
+            // Clear Persistence
+            const keysToRemove = [
+                'onboarding_name', 'onboarding_username', 'onboarding_bio',
+                'onboarding_image', 'onboarding_githubUrl', 'onboarding_instagramUrl',
+                'onboarding_linkedinUrl', 'onboarding_langs', 'onboarding_interests'
+            ];
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+
             // Force update local user state or refresh
             if (updateUser) {
                 await updateUser({ onboardingCompleted: true, name: finalName, username: finalUsername, image });
@@ -176,9 +197,13 @@ export default function Onboarding() {
                                 <div className="h-24 w-24 rounded-full border-2 border-primary/20 overflow-hidden bg-muted">
                                     <img src={image} alt="Avatar" className="h-full w-full object-cover" />
                                 </div>
-                                <Link to="/settings/avatars" className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-full transition-opacity cursor-pointer">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAvatarModalOpen(true)}
+                                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-full transition-opacity cursor-pointer border-none"
+                                >
                                     <span className="text-[10px] text-white font-bold uppercase tracking-widest">More...</span>
-                                </Link>
+                                </button>
                             </div>
                             <div className="flex flex-wrap justify-center gap-2">
                                 {isAvatarsLoading ? (
@@ -203,7 +228,7 @@ export default function Onboarding() {
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 rounded-full border border-dashed border-white/20"
-                                    onClick={() => navigate('/settings/avatars')}
+                                    onClick={() => setIsAvatarModalOpen(true)}
                                 >
                                     <Plus className="h-4 w-4" />
                                 </Button>
@@ -396,6 +421,13 @@ export default function Onboarding() {
                     )}
                 </CardFooter>
             </Card>
+
+            <AvatarPickerModal
+                isOpen={isAvatarModalOpen}
+                onClose={() => setIsAvatarModalOpen(false)}
+                onSelect={(url) => setImage(url)}
+                currentImage={image}
+            />
         </div>
     );
 }
