@@ -16,8 +16,9 @@ export default function Leaderboard() {
     const [activeTab, setActiveTab] = useState<"global" | "arena" | "creators">("global");
 
     const { data: globalData, isLoading: globalLoading } = useQuery({
-        queryKey: ['leaderboard', 'global'],
-        queryFn: () => leaderboardAPI.getGlobal(),
+        queryKey: ['leaderboard', activeTab],
+        queryFn: () => leaderboardAPI.getGlobal(activeTab === 'creators' ? 'creators' : 'xp'),
+        enabled: activeTab === 'global' || activeTab === 'creators'
     });
 
     const { data: trendingData } = useQuery({
@@ -197,12 +198,13 @@ export default function Leaderboard() {
 
                                                     <div className="text-right flex flex-col items-end gap-1">
                                                         <span className="text-xl font-black text-foreground">
-                                                            {activeTab === 'creators' ? (user.snippetsCount || 0) : user.xp?.toLocaleString()}
-                                                            <span className="text-[10px] text-primary ml-1 uppercase">{activeTab === 'creators' ? 'Blocks' : 'XP'}</span>
+                                                            {activeTab === 'creators' ? (user.influenceScore || 0).toLocaleString() : user.xp?.toLocaleString()}
+                                                            <span className="text-[10px] text-primary ml-1 uppercase">{activeTab === 'creators' ? 'Influence' : 'XP'}</span>
                                                         </span>
-                                                        <div className="flex gap-1">
+                                                        <div className="flex gap-1 items-center">
+                                                            {activeTab === 'creators' && <span className="text-[9px] font-black opacity-50 mr-2">{user.snippetsCount || 0} BLOCKS</span>}
                                                             <div className="h-1 w-20 bg-muted rounded-full overflow-hidden">
-                                                                <div className="h-full bg-primary" style={{ width: `${Math.min(100, ((activeTab === 'creators' ? (user.snippetsCount || 0) : user.xp) / ((activeTab === 'creators' ? (leaderboard[0]?.snippetsCount || 1) : leaderboard[0]?.xp) || 1)) * 100)}%` }} />
+                                                                <div className="h-full bg-primary" style={{ width: `${Math.min(100, ((activeTab === 'creators' ? (user.influenceScore || 0) : user.xp) / ((activeTab === 'creators' ? (leaderboard[0]?.influenceScore || 1) : leaderboard[0]?.xp) || 1)) * 100)}%` }} />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -316,11 +318,11 @@ export default function Leaderboard() {
                             </div>
                             <div className="flex items-start gap-3">
                                 <div className="h-6 w-6 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                                    <span className="text-[10px] font-bold text-purple-500">AR</span>
+                                    <span className="text-[10px] font-bold text-purple-500">IS</span>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold">Authority Rank</p>
-                                    <p className="text-xs text-muted-foreground">Permanent reputation unlocked at specific XP milestones.</p>
+                                    <p className="text-sm font-bold">Influence Score</p>
+                                    <p className="text-xs text-muted-foreground">Calculated based on Trust, Logic Blocks, Arena Solves, and Social reach.</p>
                                 </div>
                             </div>
                         </CardContent>

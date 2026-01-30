@@ -5,7 +5,6 @@ import { User, LogOut, Lock, Trash2, Shield, Link as LinkIcon, Image as ImageIco
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,6 +16,8 @@ import { TagInput } from "@/components/ui/tag-input";
 import { useDispatch } from "react-redux";
 import { setUserData } from "@/store/slices/userSlice";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { PrivacySettings } from "@/components/profile/PrivacySettings";
+import { VisibilityMode, PrivacySettings as PrivacySettingsType, DEFAULT_PUBLIC_PRIVACY, DEFAULT_PRIVATE_PRIVACY, DEFAULT_HYBRID_PRIVACY } from "@/types";
 
 export default function SettingsPage() {
     const { user, updateUser } = useAuth();
@@ -29,13 +30,13 @@ export default function SettingsPage() {
     const [username, setUsername] = useState("");
     const [bio, setBio] = useState("");
     const [image, setImage] = useState("");
-    const [publicProfile, setPublicProfile] = useState(true);
     const [githubUrl, setGithubUrl] = useState("");
     const [linkedinUrl, setLinkedinUrl] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");
     const [languages, setLanguages] = useState<string[]>([]);
     const [interests, setInterests] = useState<string[]>([]);
-    const [githubStatsVisible, setGithubStatsVisible] = useState(true);
+    const [visibility, setVisibility] = useState<VisibilityMode>("PUBLIC");
+    const [privacySettings, setPrivacySettings] = useState<PrivacySettingsType>(DEFAULT_PUBLIC_PRIVACY);
 
     // Initialize state
     useEffect(() => {
@@ -62,8 +63,25 @@ export default function SettingsPage() {
 
             setLanguages(getArray(user.preferredLanguages));
             setInterests(getArray(user.interests));
-            setPublicProfile(user.visibility === "PUBLIC");
-            setGithubStatsVisible(user.githubStatsVisible !== false);
+
+            // Handle visibility mode
+            const userVisibility = user.visibility as VisibilityMode;
+            if (userVisibility === "PUBLIC" || userVisibility === "PRIVATE" || userVisibility === "HYBRID") {
+                setVisibility(userVisibility);
+                // Set default privacy settings based on visibility mode
+                switch (userVisibility) {
+                    case "PUBLIC":
+                        setPrivacySettings(DEFAULT_PUBLIC_PRIVACY);
+                        break;
+                    case "PRIVATE":
+                        setPrivacySettings(DEFAULT_PRIVATE_PRIVACY);
+                        break;
+                    case "HYBRID":
+                        // For hybrid, try to load saved settings or use default
+                        setPrivacySettings(user.privacySettings || DEFAULT_HYBRID_PRIVACY);
+                        break;
+                }
+            }
             console.log("Profile Data Loaded:", { languages: user.preferredLanguages, interests: user.interests });
         }
     }, [user]);
@@ -81,8 +99,9 @@ export default function SettingsPage() {
                 instagramUrl,
                 languages: languages,
                 interests: interests,
-                visibility: publicProfile ? "PUBLIC" : "PRIVATE",
-                githubStatsVisible
+                visibility: visibility,
+                privacySettings: privacySettings,
+                githubStatsVisible: privacySettings.showGithubStats
             });
             updateUser(response.user);
             // Sync to Redux for instant global update
@@ -300,36 +319,13 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {/* Privacy Section */}
-                <div className="space-y-6 bg-surface p-6 rounded-xl border border-border transition-all shadow-sm">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-border pb-3">
-                        <Shield className="h-4 w-4 text-primary" /> Privacy & Security
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label className="text-sm font-medium text-foreground">Public Profile</Label>
-                            <p className="text-xs text-muted-foreground">Allow others to view your profile details.</p>
-                        </div>
-                        <Switch
-                            checked={publicProfile}
-                            onCheckedChange={setPublicProfile}
-                            className="data-[state=checked]:bg-primary"
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label className="text-sm font-medium text-foreground">GitHub Statistics</Label>
-                            <p className="text-xs text-muted-foreground">Show GitHub activity graph on your public profile.</p>
-                        </div>
-                        <Switch
-                            checked={githubStatsVisible}
-                            onCheckedChange={setGithubStatsVisible}
-                            className="data-[state=checked]:bg-primary"
-                        />
-                    </div>
-                </div>
+                {/* Privacy Section - Hybrid Mode */}
+                <PrivacySettings
+                    visibility={visibility}
+                    setVisibility={setVisibility}
+                    privacySettings={privacySettings}
+                    setPrivacySettings={setPrivacySettings}
+                />
 
                 {/* Blocked Users Section */}
                 <BlockedUsersSection />

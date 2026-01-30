@@ -3,13 +3,14 @@ import { Theme } from "@/context/ThemeContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Shield, Save, LogOut, Loader2, Palette, Database, Camera, Github, Instagram } from "lucide-react";
+import { Save, LogOut, Loader2, Palette, Database, Camera, Github, Instagram } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useState, useRef } from "react";
 import { uploadAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { PrivacySettings as PrivacySettingsComponent } from "./PrivacySettings";
+import { VisibilityMode, PrivacySettings as PrivacySettingsType, DEFAULT_PUBLIC_PRIVACY } from "@/types";
 
 interface ProfileSettingsProps {
     name: string;
@@ -18,8 +19,10 @@ interface ProfileSettingsProps {
     setUsername: (username: string) => void;
     bio: string;
     setBio: (bio: string) => void;
-    visibility: string;
-    setVisibility: (v: string) => void;
+    visibility: VisibilityMode;
+    setVisibility: (v: VisibilityMode) => void;
+    privacySettings?: PrivacySettingsType;
+    setPrivacySettings?: (settings: PrivacySettingsType) => void;
     onSave: () => void;
     isLoading: boolean;
     signOut: () => void;
@@ -31,18 +34,16 @@ interface ProfileSettingsProps {
     setGithubUrl?: (url: string) => void;
     instagramUrl?: string;
     setInstagramUrl?: (url: string) => void;
-    githubStatsVisible?: boolean;
-    setGithubStatsVisible?: (visible: boolean) => void;
 }
 
 export function ProfileSettings({
     name, setName, username, setUsername, bio, setBio,
     visibility, setVisibility,
+    privacySettings = DEFAULT_PUBLIC_PRIVACY, setPrivacySettings,
     onSave, isLoading, signOut, theme, setTheme,
     currentImage, onImageUpdate,
     githubUrl = "", setGithubUrl,
-    instagramUrl = "", setInstagramUrl,
-    githubStatsVisible = true, setGithubStatsVisible
+    instagramUrl = "", setInstagramUrl
 }: ProfileSettingsProps) {
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
@@ -175,44 +176,24 @@ export function ProfileSettings({
                         </CardContent>
                     </Card>
 
+                    {/* Privacy Settings - Hybrid Mode Support */}
+                    <PrivacySettingsComponent
+                        visibility={visibility}
+                        setVisibility={setVisibility}
+                        privacySettings={privacySettings}
+                        setPrivacySettings={setPrivacySettings || (() => { })}
+                    />
+
+                    {/* Sign Out Button */}
                     <Card className="border-none bg-white/5 backdrop-blur-md p-6">
-                        <CardHeader className="px-0 pt-0">
-                            <CardTitle className="flex items-center gap-2 italic">
-                                <Shield className="h-5 w-5 text-primary" />
-                                Security Protocols
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="px-0 space-y-4 pt-4">
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-white/5">
-                                <div className="space-y-0.5">
-                                    <Label className="uppercase text-[10px] font-black tracking-widest">Shadow Protocol</Label>
-                                    <p className="text-[10px] text-white/30 font-medium">Conceal your activity from non-operatives</p>
-                                </div>
-                                <Switch
-                                    checked={visibility === 'PRIVATE'}
-                                    onCheckedChange={(checked) => setVisibility(checked ? 'PRIVATE' : 'PUBLIC')}
-                                />
-                            </div>
-
-                            {/* GitHub Stats Visibility Toggle */}
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-white/5">
-                                <div className="space-y-0.5">
-                                    <Label className="uppercase text-[10px] font-black tracking-widest flex items-center gap-1">
-                                        <Github className="h-3 w-3" /> GitHub Stats
-                                    </Label>
-                                    <p className="text-[10px] text-white/30 font-medium">Show contribution graph on profile</p>
-                                </div>
-                                <Switch
-                                    checked={githubStatsVisible}
-                                    onCheckedChange={setGithubStatsVisible}
-                                />
-                            </div>
-
-                            <Button variant="ghost" className="w-full justify-between hover:bg-red-500/10 hover:text-red-400 group rounded-xl" onClick={signOut}>
-                                <span className="uppercase text-[10px] font-black tracking-widest">Terminate Session</span>
-                                <LogOut className="h-4 w-4 opacity-50 group-hover:opacity-100" />
-                            </Button>
-                        </CardContent>
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-between hover:bg-red-500/10 hover:text-red-400 group rounded-xl"
+                            onClick={signOut}
+                        >
+                            <span className="uppercase text-[10px] font-black tracking-widest">Terminate Session</span>
+                            <LogOut className="h-4 w-4 opacity-50 group-hover:opacity-100" />
+                        </Button>
                     </Card>
                 </div>
 

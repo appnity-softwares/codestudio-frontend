@@ -7,7 +7,10 @@ export type ExecutionResult = {
 };
 
 // Supported languages that can be executed via backend
-const SUPPORTED_LANGUAGES = ['python', 'javascript', 'typescript', 'node', 'cpp', 'java', 'go', 'rust', 'c'];
+const SUPPORTED_LANGUAGES = [
+    'python', 'javascript', 'typescript',
+    'cpp', 'c++', 'java', 'go', 'rust', 'c'
+];
 
 // Built-in library restrictions warning
 const LIBRARY_WARNING = `
@@ -32,9 +35,11 @@ export const executeCode = async (language: string, code: string): Promise<Execu
 
     // Map language aliases
     const languageMap: Record<string, string> = {
-        'node': 'javascript',
         'ts': 'typescript',
         'py': 'python',
+        'python3': 'python',
+        'node': 'javascript',
+        'golang': 'go',
         'c++': 'cpp',
     };
     const normalizedLang = languageMap[lang] || lang;

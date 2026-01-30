@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Markdown } from "@/components/shared/Markdown";
 
 
 
@@ -360,7 +361,7 @@ export default function OfficialContest() {
     // 3. MAIN ARENA UI (Only if Registered AND Live/Open)
     return (
         <div className="flex flex-col h-screen bg-background font-sans selection:bg-yellow-500/30">
-            {/* Header */}
+            {/* Header omitted for brevity in mental model, but I must include it if I'm replacing everything between 363 and 636 */}
             <header className="h-14 border-b flex items-center justify-between px-4 bg-muted/5 shrink-0">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={handleExit}>
@@ -421,7 +422,7 @@ export default function OfficialContest() {
                                     onClick={() => {
                                         if (isDirty && !confirm("Switching problem might lose unsaved code. Continue?")) return;
                                         setSelectedProblemId(p.id);
-                                        setCode(BOILERPLATES[language] || "");
+                                        setCode(BOILERPLATES[language as keyof typeof BOILERPLATES] || "");
                                         setIsDirty(false);
                                     }}
                                     className={`w-full text-left px-3 py-3 rounded-md text-sm transition-all border border-transparent ${selectedProblemId === p.id
@@ -455,8 +456,8 @@ export default function OfficialContest() {
                                     }>{problem.difficulty}</Badge>
                                 </div>
 
-                                <div className="prose dark:prose-invert max-w-none text-sm/relaxed">
-                                    <p className="whitespace-pre-wrap mb-8">{problem.description}</p>
+                                <div className="space-y-6">
+                                    <Markdown content={problem.description} />
 
                                     <div className="grid grid-cols-2 gap-4 mb-8">
                                         <div className="bg-muted/50 p-3 rounded-lg border">
@@ -490,23 +491,25 @@ export default function OfficialContest() {
                             </SelectContent>
                         </Select>
 
-                        <Button
-                            size="sm"
-                            className="h-7 text-xs px-6 font-semibold shadow-sm"
-                            onClick={() => submitMutation.mutate()}
-                            disabled={submitMutation.isPending}
-                        >
-                            {submitMutation.isPending ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : "Submit Solution"}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="secondary"
-                            className="h-7 text-xs px-4 font-semibold shadow-sm ml-2"
-                            onClick={() => runMutation.mutate()}
-                            disabled={runMutation.isPending || submitMutation.isPending}
-                        >
-                            {runMutation.isPending ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <><Play className="w-3 h-3 mr-2" /> Run</>}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-7 text-xs px-4 font-semibold shadow-sm"
+                                onClick={() => runMutation.mutate()}
+                                disabled={runMutation.isPending || submitMutation.isPending}
+                            >
+                                {runMutation.isPending ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <><Play className="w-3 h-3 mr-2" /> Run</>}
+                            </Button>
+                            <Button
+                                size="sm"
+                                className="h-7 text-xs px-6 font-semibold shadow-sm"
+                                onClick={() => submitMutation.mutate()}
+                                disabled={submitMutation.isPending}
+                            >
+                                {submitMutation.isPending ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : "Submit Solution"}
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="flex-1 relative bg-black/5 dark:bg-black/20">
@@ -574,15 +577,15 @@ export default function OfficialContest() {
                                                                 <div className="grid grid-cols-2 gap-2 text-xs font-mono mt-2">
                                                                     <div>
                                                                         <div className="text-[10px] uppercase text-muted-foreground mb-1">Input</div>
-                                                                        <div className="bg-muted p-2 rounded">{res.input}</div>
+                                                                        <div className="bg-muted p-2 rounded whitespace-pre-wrap">{res.input}</div>
                                                                     </div>
                                                                     <div>
                                                                         <div className="text-[10px] uppercase text-muted-foreground mb-1">Expected</div>
-                                                                        <div className="bg-muted p-2 rounded">{res.expected}</div>
+                                                                        <div className="bg-muted p-2 rounded whitespace-pre-wrap">{res.expected}</div>
                                                                     </div>
                                                                     <div className="col-span-2">
                                                                         <div className="text-[10px] uppercase text-muted-foreground mb-1">Your Output</div>
-                                                                        <div className={cn("bg-muted p-2 rounded", res.status !== 'PASSED' && "bg-red-500/10 border-red-500/20 border")}>{res.actual}</div>
+                                                                        <div className={cn("bg-muted p-2 rounded whitespace-pre-wrap", res.status !== 'PASSED' && "bg-red-500/10 border-red-500/20 border")}>{res.actual}</div>
                                                                     </div>
                                                                     {res.stderr && (
                                                                         <div className="col-span-2">

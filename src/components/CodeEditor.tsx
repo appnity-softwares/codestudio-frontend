@@ -94,7 +94,8 @@ export function CodeEditor({
         // Register custom themes if they are in STORE_ITEMS
         try {
             STORE_ITEMS.filter(i => i.type === 'THEME').forEach(theme => {
-                monaco.editor.defineTheme(theme.id, {
+                const safeThemeId = theme.id.replace(/[^a-zA-Z0-9]/g, '');
+                monaco.editor.defineTheme(safeThemeId, {
                     base: 'vs-dark',
                     inherit: true,
                     rules: [],
@@ -115,8 +116,9 @@ export function CodeEditor({
         // Apply theme after mount to ensure it's registered
         if (equippedThemeId) {
             const theme = STORE_ITEMS.find(i => i.id === equippedThemeId);
-            if (theme) {
-                monaco.editor.setTheme(theme.id);
+            if (theme && equippedThemeId === theme.id) {
+                const safeThemeId = theme.id.replace(/[^a-zA-Z0-9]/g, '');
+                monaco.editor.setTheme(safeThemeId);
             }
         }
 
@@ -135,15 +137,12 @@ export function CodeEditor({
     // React to theme changes
     useEffect(() => {
         if (monacoRef.current) {
-            if (equippedThemeId) {
-                const theme = STORE_ITEMS.find(i => i.id === equippedThemeId);
-                if (theme) {
-                    monacoRef.current.editor.setTheme(equippedThemeId);
-                    return;
-                }
+            let currentTheme = equippedThemeId || (resolvedTheme === "dark" ? "vs-dark" : "vs");
+            // Sanitize custom themes (those starting with 'theme_')
+            if (currentTheme.startsWith('theme_')) {
+                currentTheme = currentTheme.replace(/[^a-zA-Z0-9]/g, '');
             }
-            // Fallback
-            monacoRef.current.editor.setTheme(resolvedTheme === "dark" ? "vs-dark" : "light");
+            monacoRef.current.editor.setTheme(currentTheme);
         }
     }, [equippedThemeId, resolvedTheme]);
 
@@ -155,12 +154,25 @@ export function CodeEditor({
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Map language to Monaco-supported language ID
+    const getMonacoLanguage = (lang: string): string => {
+        const langMap: Record<string, string> = {
+            'cpp': 'cpp',
+            'c++': 'cpp',
+            'react': 'javascript',
+            'markdown': 'markdown',
+            'mermaid': 'markdown',
+        };
+        return langMap[lang.toLowerCase()] || lang.toLowerCase();
+    };
+
     return (
         <Editor
+            key={`${resolvedTheme}-${equippedThemeId}`}
             height="100%"
-            language={language.toLowerCase() === 'c++' ? 'cpp' : language.toLowerCase()}
+            language={getMonacoLanguage(language)}
             value={code}
-            theme={resolvedTheme === "dark" ? "vs-dark" : "light"} // Safe default, updated via effect
+            theme={equippedThemeId || (resolvedTheme === "dark" ? "vs-dark" : "vs")}
             onChange={onChange}
             onMount={handleEditorDidMount}
             beforeMount={handleBeforeMount}

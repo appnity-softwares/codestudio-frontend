@@ -320,6 +320,8 @@ export default function FeedbackWall() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['feedback'] });
             setEditingId(null);
+            setContent(""); // Clear input after update
+            setCategory("FEATURE"); // Reset category to default
             toast({ title: "Feedback updated" });
         },
         onError: (err: any) => {
@@ -404,9 +406,9 @@ export default function FeedbackWall() {
                 <div
                     ref={scrollContainerRef}
                     onScroll={handleScroll}
-                    className="flex-1 overflow-y-auto"
+                    className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
                 >
-                    <div className="max-w-4xl mx-auto w-full min-h-full flex flex-col justify-end px-6 py-6 gap-4">
+                    <div className="max-w-4xl mx-auto w-full px-6 py-6 space-y-4">
 
                         {/* Empty State with CTA */}
                         {!isLoading && messages.length === 0 && (

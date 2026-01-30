@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { STORE_ITEMS } from "@/lib/constants";
 
-
 interface AuraAvatarProps {
     src?: string;
     username: string;
@@ -11,32 +10,45 @@ interface AuraAvatarProps {
     badgeCount?: number;
     size?: "sm" | "md" | "lg" | "xl";
     className?: string;
+    isAdmin?: boolean;
     customAura?: {
         color: string;
         pulse: number;
+        ringColor?: string;
     };
 }
 
-export function AuraAvatar({ src, username, equippedAura, size = "md", className, customAura }: AuraAvatarProps) {
+export function AuraAvatar({ src, username, equippedAura, size = "md", className, customAura, isAdmin }: AuraAvatarProps) {
 
-
-
-
-    const getAuraColor = () => {
+    const getAuraConfig = () => {
         if (equippedAura) {
             const aura = STORE_ITEMS.find(item => item.id === equippedAura && item.type === 'AURA');
-            if (aura) return aura.effect;
+            if (aura) {
+                // Extract ring color from effect string
+                const ringMatch = aura.effect?.match(/ring-([a-z]+-\d+)/);
+                return {
+                    ringColor: ringMatch ? ringMatch[1] : 'primary',
+                    glowColor: ringMatch ? ringMatch[1] : 'primary',
+                    isAdmin: aura.adminOnly || false
+                };
+            }
         }
-        if (customAura) return customAura.color;
-
-        // User requested: "for normal user ... simple profile not shine ... only show shin and aura on equip"
-        // So we disable the automatic XP-based auras if nothing is explicitly equipped.
-        return "";
-    };
-
-    const getPulseIntensity = () => {
-        if (customAura) return customAura.pulse;
-        return 0;
+        if (customAura) {
+            return {
+                ringColor: customAura.ringColor || customAura.color,
+                glowColor: customAura.color,
+                isAdmin: false
+            };
+        }
+        // Special admin aura
+        if (isAdmin) {
+            return {
+                ringColor: 'rose-500',
+                glowColor: 'rose-500',
+                isAdmin: true
+            };
+        }
+        return null;
     };
 
     const sizeClasses = {
@@ -47,18 +59,22 @@ export function AuraAvatar({ src, username, equippedAura, size = "md", className
     };
 
     const containerSize = {
-        sm: "h-10 w-10",
+        sm: "h-12 w-12",
         md: "h-16 w-16",
         lg: "h-32 w-32",
         xl: "h-40 w-40"
     };
 
-    const auraColor = getAuraColor() || "";
-    const pulse = getPulseIntensity();
-    const isCustomAura = auraColor.includes('ring');
+    const ringSize = {
+        sm: 2,
+        md: 2.5,
+        lg: 3,
+        xl: 4
+    };
 
-    if (!auraColor) {
-        // Simple avatar for users without aura
+    const auraConfig = getAuraConfig();
+
+    if (!auraConfig) {
         return (
             <div className={cn("relative shrink-0 rounded-full overflow-hidden bg-muted", sizeClasses[size], className)}>
                 <img
@@ -70,113 +86,101 @@ export function AuraAvatar({ src, username, equippedAura, size = "md", className
         );
     }
 
-    const paddingMapping = {
-        sm: "p-[1px]",
-        md: "p-[1px]",
-        lg: "p-[1.5px]",
-        xl: "p-[1.5px]"
+    const glowIntensity = {
+        sm: { blur: 8, spread: 4 },
+        md: { blur: 12, spread: 6 },
+        lg: { blur: 20, spread: 10 },
+        xl: { blur: 25, spread: 15 }
     };
 
-    const ringMapping = {
-        sm: "ring-1",
-        md: "ring-[1px]",
-        lg: "ring-[1.5px]",
-        xl: "ring-[1.5px]"
+    // Map Tailwind color to RGB for box-shadow
+    const colorToRgb: Record<string, string> = {
+        'cyan-400': '34, 211, 238',
+        'cyan-500': '6, 182, 212',
+        'amber-400': '251, 191, 36',
+        'yellow-400': '250, 204, 21',
+        'purple-600': '147, 51, 234',
+        'purple-500': '168, 85, 247',
+        'rose-500': '244, 63, 94',
+        'rose-400': '251, 113, 133',
+        'emerald-400': '52, 211, 153',
+        'emerald-500': '16, 185, 129',
+        'blue-500': '59, 130, 246',
+        'blue-400': '96, 165, 250',
+        'pink-500': '236, 72, 153',
+        'pink-400': '244, 114, 182',
+        'indigo-500': '99, 102, 241',
+        'orange-500': '249, 115, 22',
+        'red-500': '239, 68, 68',
+        'primary': 'var(--primary-rgb)'
     };
 
-    // Determine cost/tier for glow intensity
-    let glowFactor = 1;
-    if (equippedAura) {
-        const auraItem = STORE_ITEMS.find(i => i.id === equippedAura);
-        if (auraItem) {
-            if (auraItem.adminOnly || auraItem.cost >= 2000) glowFactor = 1.8;
-            else if (auraItem.cost >= 1000) glowFactor = 1.4;
-            else glowFactor = 1.0;
-        }
-    }
-
-    const glowScale = {
-        sm: 1 + (0.05 * glowFactor),
-        md: 1 + (0.1 * glowFactor),
-        lg: 1 + (0.15 * glowFactor),
-        xl: 1 + (0.2 * glowFactor)
-    };
-
-    const glowBlur = {
-        sm: "blur-md",
-        md: "blur-xl",
-        lg: "blur-2xl",
-        xl: "blur-3xl"
-    };
-
-    // Helper to remove any hardcoded ring thickness from the aura string
-    const processedAuraColor = auraColor
-        .replace(/ring-\[?\d+px\]?/g, "") // remove ring-[1px], ring-2, etc.
-        .replace(/p-\[?\d+px\]?/g, "")    // remove p-[1px], etc.
-        .trim();
+    const rgbColor = colorToRgb[auraConfig.glowColor] || colorToRgb['primary'];
+    const ringRgb = colorToRgb[auraConfig.ringColor] || rgbColor;
 
     return (
         <div className={cn("relative flex items-center justify-center shrink-0", containerSize[size], className)}>
-            {/* 1. Primary Glow (Dynamic Flare) */}
+            {/* Outer Glow Layer */}
             <motion.div
                 animate={{
-                    opacity: [0.2 * glowFactor, 0.5 * glowFactor, 0.2 * glowFactor],
-                    scale: [1, glowScale[size], 1],
+                    opacity: [0.4, 0.7, 0.4],
+                    scale: [1, 1.08, 1],
                 }}
                 transition={{
-                    duration: 3 / Math.max(pulse, 0.5),
+                    duration: auraConfig.isAdmin ? 1.5 : 3,
                     repeat: Infinity,
                     ease: "easeInOut"
                 }}
-                className={cn(
-                    "absolute inset-0 rounded-full z-0",
-                    glowBlur[size],
-                    !isCustomAura && (processedAuraColor.includes('from') ? `bg-gradient-to-tr ${processedAuraColor}` : processedAuraColor),
-                    isCustomAura && "bg-primary/40"
-                )}
+                className="absolute inset-0 rounded-full z-0"
+                style={{
+                    background: `radial-gradient(circle, rgba(${rgbColor}, 0.3) 0%, rgba(${rgbColor}, 0.1) 50%, transparent 70%)`,
+                    filter: `blur(${glowIntensity[size].blur}px)`,
+                }}
             />
 
-            <div className={cn(
-                "relative rounded-full transition-all duration-500 z-10 brightness-125",
-                paddingMapping[size],
-                ringMapping[size],
-                sizeClasses[size],
-                isCustomAura ? processedAuraColor : (processedAuraColor.includes('from') ? `ring-primary/50` : `ring-current`)
-            )}>
-                <div className="relative w-full h-full rounded-full overflow-hidden border-[1px] border-background bg-background shadow-inner">
+            {/* Inner Glow Ring */}
+            <motion.div
+                animate={{
+                    boxShadow: [
+                        `0 0 ${glowIntensity[size].spread}px rgba(${ringRgb}, 0.6), inset 0 0 ${glowIntensity[size].spread / 2}px rgba(${ringRgb}, 0.2)`,
+                        `0 0 ${glowIntensity[size].spread * 2}px rgba(${ringRgb}, 0.8), inset 0 0 ${glowIntensity[size].spread}px rgba(${ringRgb}, 0.3)`,
+                        `0 0 ${glowIntensity[size].spread}px rgba(${ringRgb}, 0.6), inset 0 0 ${glowIntensity[size].spread / 2}px rgba(${ringRgb}, 0.2)`,
+                    ]
+                }}
+                transition={{
+                    duration: auraConfig.isAdmin ? 1 : 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                }}
+                className={cn("relative rounded-full z-10 overflow-hidden", sizeClasses[size])}
+                style={{
+                    border: `${ringSize[size]}px solid rgba(${ringRgb}, 0.9)`,
+                }}
+            >
+                <div className="w-full h-full rounded-full overflow-hidden bg-background">
                     <img
                         src={src || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`}
                         alt={username}
                         className="w-full h-full object-cover"
                     />
-
-                    {/* Premium Sweep Shine Effect - Layer 1 */}
-                    <motion.div
-                        animate={{ x: ["-100%", "200%"] }}
-                        transition={{
-                            duration: 1.5,
-                            repeat: Infinity,
-                            repeatDelay: 2,
-                            ease: "linear"
-                        }}
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-12 z-40 pointer-events-none"
-                    />
-
-                    {/* Premium Sweep Shine Effect - Layer 2 (Faster spark for lg/xl) */}
-                    {(size === 'lg' || size === 'xl') && (
-                        <motion.div
-                            animate={{ x: ["-100%", "200%"] }}
-                            transition={{
-                                duration: 0.8,
-                                repeat: Infinity,
-                                repeatDelay: 4,
-                                ease: "linear"
-                            }}
-                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 z-40 pointer-events-none"
-                        />
-                    )}
                 </div>
-            </div>
+
+                {/* Premium Shine Sweep */}
+                {(size === 'lg' || size === 'xl') && (
+                    <motion.div
+                        animate={{ x: ["-150%", "250%"] }}
+                        transition={{
+                            duration: 2.5,
+                            repeat: Infinity,
+                            repeatDelay: 4,
+                            ease: "easeInOut"
+                        }}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12 z-40 pointer-events-none"
+                    />
+                )}
+            </motion.div>
+
         </div>
     );
 }
+

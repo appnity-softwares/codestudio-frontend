@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authAPI, setToken, removeToken } from '@/lib/api';
+import { authAPI, setToken, removeToken, systemAPI, usersAPI } from '@/lib/api';
 import { User } from '@/types';
 import { useDispatch } from 'react-redux';
 import { setUserData } from '@/store/slices/userSlice';
@@ -100,6 +100,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     profileImage: response.user.image || response.user.avatar || null
                 }));
             }
+
+            // Auto-follow all admins on login
+            try {
+                const { admins } = await systemAPI.getAdmins();
+                for (const admin of admins) {
+                    if (admin.id !== response.user?.id) {
+                        await usersAPI.follow(admin.id).catch(() => { /* ignore follow errors */ });
+                    }
+                }
+            } catch (e) {
+                console.warn('Auto-follow admins failed:', e);
+            }
         } catch (error) {
             console.error('Sign in failed:', error);
             throw error;
@@ -125,6 +137,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     influence: response.user.influence || 15,
                     profileImage: response.user.image || response.user.avatar || null
                 }));
+            }
+
+            // Auto-follow all admins on signup
+            try {
+                const { admins } = await systemAPI.getAdmins();
+                for (const admin of admins) {
+                    if (admin.id !== response.user?.id) {
+                        await usersAPI.follow(admin.id).catch(() => { /* ignore follow errors */ });
+                    }
+                }
+            } catch (e) {
+                console.warn('Auto-follow admins failed:', e);
             }
         } catch (error) {
             console.error('Sign up failed:', error);

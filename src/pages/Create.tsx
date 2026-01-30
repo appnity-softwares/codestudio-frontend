@@ -45,10 +45,30 @@ const BOILERPLATES: Record<string, string> = {
     html: `<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #0f172a; color: white; margin: 0; }\n        .card { padding: 2rem; background: rgba(255,255,255,0.05); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1); text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }\n        h1 { color: #38bdf8; margin: 0 0 1rem 0; font-size: 2.5rem; }\n    </style>\n</head>\n<body>\n    <div class="card">\n        <h1>Hello CodeStudio</h1>\n        <p>Edit this code to see live changes!</p>\n    </div>\n</body>\n</html>`,
     react: `import React, { useState } from 'react';\n\nexport default function App() {\n    const [count, setCount] = useState(0);\n\n    return (\n        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-8 font-sans">\n            <h1 className="text-5xl font-extrabold text-sky-400 mb-6 drop-shadow-md">\n                React Preview\n            </h1>\n            <div className="bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-xl shadow-2xl">\n                <p className="text-xl text-slate-300 mb-6">Interactive component demonstration</p>\n                <button \n                    onClick={() => setCount(c => c + 1)}\n                    className="px-8 py-3 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-full transition-all active:scale-95 shadow-lg shadow-sky-500/20"\n                >\n                    Clicked {count} times\n                </button>\n            </div>\n        </div>\n    );\n}`,
     markdown: `# 🖋️ Markdown Preview\n\nWelcome to the **CodeStudio** Markdown editor!\n\n## Features:\n- **Rich Text**: Bold, *italic*, ~~strikethrough~~\n- **Lists**:\n  1. Automated\n  2. Sequential\n  3. Interactive\n- **Code Blocks**:\n\`\`\`javascript\nconsole.log("Hello World");\n\`\`\`\n\n> "Simplicity is the soul of efficiency."\n`,
-    mermaid: `graph TD\n    A[Start] --> B{Is it working?}\n    B -- Yes --> C[Great!]\n    B -- No --> D[Fix it]\n    D --> B\n    C --> E[End]\n\n    style A fill:#38bdf8,stroke:#0f172a,color:#fff\n    style C fill:#27c93f,stroke:#0f172a,color:#fff\n    style E fill:#ff5f56,stroke:#0f172a,color:#fff`
+    mermaid: `graph TD\n    A[Start] --> B{Is it working?}\n    B -- Yes --> C[Great!]\n    B -- No --> D[Fix it]\n    D --> B\n    C --> E[End]\n\n    style A fill:#38bdf8,stroke:#0f172a,color:#fff\n    style C fill:#27c93f,stroke:#0f172a,color:#fff\n    style E fill:#ff5f56,stroke:#0f172a,color:#fff`,
+    php: `<?php\n\nfunction greet($name) {\n    echo "Hello, " . $name . "!\\n";\n}\n\ngreet("Developer");\n?>`,
+    ruby: `def greet(name)\n  puts "Hello, #{name}!"\nend\n\ngreet("Developer")`
 };
 
-import { useQuery } from "@tanstack/react-query";
+const SUPPORTED_LANGUAGES = [
+    { id: 'python', label: 'Python 3', type: 'EXECUTE' },
+    { id: 'javascript', label: 'JavaScript', type: 'EXECUTE' },
+    { id: 'typescript', label: 'TypeScript', type: 'EXECUTE' },
+    { id: 'go', label: 'Go', type: 'EXECUTE' },
+    { id: 'rust', label: 'Rust', type: 'EXECUTE' },
+    { id: 'cpp', label: 'C++', type: 'EXECUTE' },
+    { id: 'c', label: 'C', type: 'EXECUTE' },
+    { id: 'java', label: 'Java', type: 'EXECUTE' },
+    { id: 'php', label: 'PHP', type: 'EXECUTE' },
+    { id: 'ruby', label: 'Ruby', type: 'EXECUTE' },
+    { id: 'react', label: 'React', type: 'PREVIEW' },
+    { id: 'html', label: 'HTML', type: 'PREVIEW' },
+    { id: 'markdown', label: 'Markdown', type: 'PREVIEW' },
+    { id: 'mermaid', label: 'Mermaid', type: 'PREVIEW' }
+];
+
+
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { feedAPI } from "@/lib/api";
 import { SnippetCard } from "@/components/SnippetCard";
 import { LayoutGrid } from "lucide-react";
@@ -57,6 +77,7 @@ export default function Create() {
     const navigate = useNavigate();
     const { toast } = useToast();
     const isMobile = useIsMobile();
+    const queryClient = useQueryClient();
     const { celebrate, celebrateXP } = useBadgeCelebration();
     const [loading, setLoading] = useState(false);
     const [searchParams] = useSearchParams();
@@ -73,7 +94,7 @@ export default function Create() {
     const [snippetRefUrl, setSnippetRefUrl] = useState("");
     const [stdIn, setStdIn] = useState("");
     const [executing, setExecuting] = useState(false);
-    const [executionResult, setExecutionResult] = useState<{ stdout: string; stderr: string; code: number } | null>(null);
+    const [executionResult, setExecutionResult] = useState<{ stdout: string; stderr: string; code: number; signal?: string } | null>(null);
     const [terminalLines, setTerminalLines] = useState<{ type: 'input' | 'output' | 'error', text: string }[]>([]);
     const [activeTab, setActiveTab] = useState("code");
     const [showFeed, setShowFeed] = useState(false);
@@ -91,7 +112,8 @@ export default function Create() {
     const MAX_TITLE = 80;
     const MAX_DESC = 300;
 
-    const isVisualLang = ['html', 'react', 'markdown', 'mermaid'].includes(snippetLang);
+    const selectedLangObj = SUPPORTED_LANGUAGES.find(l => l.id === snippetLang);
+    const isVisualLang = selectedLangObj?.type === 'PREVIEW';
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -155,8 +177,8 @@ export default function Create() {
             if (res.run.stdout) lines.push({ type: 'output', text: res.run.stdout });
             if (res.run.stderr) lines.push({ type: 'error', text: res.run.stderr });
             setTerminalLines(lines);
-            if (res.run.code === 0) toast({ title: "Run Successful" });
-            else toast({ title: "Execution Failed", variant: "destructive" });
+            if (res.run.code === 0) toast({ title: "Run Successful", description: "Verification complete. You can now publish." });
+            else toast({ title: "Execution Failed", description: "Fix the errors before publishing.", variant: "destructive" });
         } catch (error) {
             toast({ title: "Runtime Error", variant: "destructive" });
         } finally {
@@ -201,9 +223,12 @@ export default function Create() {
                 celebrateXP(50);
                 if (res.newBadges?.length > 0) celebrate(res.newBadges);
             }
-            navigate("/feed");
-        } catch (error) {
-            toast({ title: "Failed to publish", variant: "destructive" });
+            // Invalidate feed queries to show new snippet
+            queryClient.invalidateQueries({ queryKey: ['feed'] });
+            navigate("/feed", { state: { newSnippet: true } });
+        } catch (error: any) {
+            const errorMsg = error?.response?.data?.error || error?.message || "Failed to publish";
+            toast({ title: "Failed to publish", description: errorMsg, variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -245,18 +270,32 @@ export default function Create() {
                     >
                         <LayoutGrid className="h-5 w-5" />
                     </Button>
-                    <Button
-                        variant="outline"
-                        onClick={() => handleRunCode()}
-                        disabled={executing}
-                        className="h-10 px-4 rounded-xl gap-2 font-bold"
-                    >
-                        <Play className="h-4 w-4 fill-current" /> Run
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {executionResult && !isVisualLang && (
+                            <div className={cn(
+                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter transition-all",
+                                executionResult.code === 0 ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                            )}>
+                                {executionResult.code === 0 ? (
+                                    <><div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Verified</>
+                                ) : (
+                                    <><div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Failed</>
+                                )}
+                            </div>
+                        )}
+                        <Button
+                            variant="outline"
+                            onClick={() => handleRunCode()}
+                            disabled={executing}
+                            className="h-10 px-4 rounded-xl gap-2 font-bold hover:bg-primary/5 transition-all"
+                        >
+                            <Play className="h-4 w-4 fill-current text-primary" /> Run
+                        </Button>
+                    </div>
                     <Button
                         onClick={handleSubmit}
                         className="h-10 px-6 rounded-xl gap-2 font-bold shadow-lg shadow-primary/20"
-                        disabled={loading || (!isVisualLang && !executionResult)}
+                        disabled={loading || (!isVisualLang && executionResult?.code !== 0)}
                     >
                         <Send className="h-4 w-4" /> Publish
                     </Button>
@@ -309,8 +348,18 @@ export default function Create() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {Object.keys(BOILERPLATES).map(l => (
-                                            <SelectItem key={l} value={l} className="uppercase font-mono text-[11px]">{l}</SelectItem>
+                                        {SUPPORTED_LANGUAGES.map(l => (
+                                            <SelectItem key={l.id} value={l.id} className="font-medium text-[11px]">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="uppercase font-mono">{l.label}</span>
+                                                    <span className={cn(
+                                                        "text-[8px] px-1.5 py-0.5 rounded-full font-bold",
+                                                        l.type === 'EXECUTE' ? "bg-emerald-500/10 text-emerald-500" : "bg-blue-500/10 text-blue-500"
+                                                    )}>
+                                                        {l.type}
+                                                    </span>
+                                                </div>
+                                            </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -430,28 +479,67 @@ export default function Create() {
                         {/* Terminal Area */}
                         {(!isVisualLang || activeTab === 'code') && (
                             <div className="h-1/3 min-h-[200px] border-t border-border flex flex-col bg-background">
-                                <div className="px-4 py-2 border-b border-border flex items-center justify-between shrink-0 bg-muted/20">
-                                    <div className="flex items-center gap-2">
-                                        <TerminalIcon className="h-4 w-4 opacity-50" />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">System Console</span>
+                                <div className="px-4 py-2.5 border-b border-border flex items-center justify-between shrink-0 bg-muted/40 backdrop-blur-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex gap-1.5">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/40" />
+                                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/40" />
+                                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/40" />
+                                        </div>
+                                        <div className="h-3 w-px bg-border mx-1" />
+                                        <div className="flex items-center gap-2">
+                                            <TerminalIcon className="h-4 w-4 text-primary opacity-60" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">System Console</span>
+                                        </div>
                                     </div>
-                                    <button onClick={() => { setTerminalLines([]); setExecutionResult(null); }} className="hover:text-primary transition-colors">
-                                        <RefreshCcw className="h-3 w-3" />
+                                    <button
+                                        onClick={() => { setTerminalLines([]); setExecutionResult(null); setStdIn(""); }}
+                                        className="p-1.5 hover:bg-primary/10 hover:text-primary rounded-lg transition-all"
+                                        title="Flush Console"
+                                    >
+                                        <RefreshCcw className="h-3.5 w-3.5" />
                                     </button>
                                 </div>
-                                <div className="flex-1 overflow-y-auto p-4 font-mono text-[13px] space-y-1.5 custom-scrollbar">
+                                <div className="flex-1 overflow-y-auto p-4 font-mono text-[13px] space-y-2 custom-scrollbar">
                                     {terminalLines.length === 0 && !executing ? (
-                                        <div className="text-muted-foreground/30 italic text-xs">Awaiting process initiation...</div>
+                                        <div className="flex flex-col items-center justify-center h-full opacity-20 select-none">
+                                            <TerminalIcon className="h-12 w-12 mb-4" />
+                                            <p className="text-sm font-medium uppercase tracking-widest italic">Awaiting process initiation...</p>
+                                        </div>
                                     ) : (
-                                        terminalLines.map((line, i) => (
-                                            <div key={i} className={cn(
-                                                "leading-relaxed whitespace-pre-wrap break-all",
-                                                line.type === 'input' ? "text-primary/70 before:content-['>_']" :
-                                                    line.type === 'error' ? "text-destructive" : "text-emerald-500"
-                                            )}>
-                                                {line.text}
-                                            </div>
-                                        ))
+                                        <>
+                                            {terminalLines.map((line, i) => (
+                                                <div key={i} className={cn(
+                                                    "relative pl-6 py-0.5 leading-relaxed whitespace-pre-wrap break-all rounded-md transition-colors",
+                                                    line.type === 'input' && "text-primary/70 bg-primary/5 border-l-2 border-primary/30",
+                                                    line.type === 'output' && "text-emerald-400 bg-emerald-500/5 border-l-2 border-emerald-500/30",
+                                                    line.type === 'error' && "text-rose-400 bg-rose-500/5 border-l-2 border-rose-500/30"
+                                                )}>
+                                                    <span className="absolute left-1 top-1.5 opacity-30 text-[10px]">
+                                                        {line.type === 'input' ? '>' : line.type === 'error' ? '!' : '#'}
+                                                    </span>
+                                                    {line.text}
+                                                </div>
+                                            ))}
+                                            {executing && (
+                                                <div className="flex items-center gap-3 text-primary/50 italic py-2 animate-pulse">
+                                                    <RefreshCcw className="h-3 w-3 animate-spin" />
+                                                    <span>Synthesizing output...</span>
+                                                </div>
+                                            )}
+                                            {executionResult && !executing && (
+                                                <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between text-[10px] uppercase tracking-widest font-bold opacity-40">
+                                                    <div className="flex gap-4">
+                                                        <span>Exit Code: {executionResult.code}</span>
+                                                        {executionResult.signal && <span>Signal: {executionResult.signal}</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={cn("w-1.5 h-1.5 rounded-full", executionResult.code === 0 ? "bg-emerald-500" : "bg-rose-500")} />
+                                                        <span>Process {executionResult.code === 0 ? "Satisfied" : "Terminated"}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                     <div ref={terminalEndRef} />
                                 </div>
@@ -470,7 +558,7 @@ export default function Create() {
                                     className="h-11 border-t border-border flex items-center px-4 gap-3 bg-muted/10"
                                 >
                                     <span className="text-primary font-bold">~</span>
-                                    <input name="terminalIn" autoComplete="off" placeholder="Injection parameter..." className="flex-1 bg-transparent border-none outline-none text-xs font-mono" />
+                                    <input name="terminalIn" autoComplete="off" placeholder="Standard Input (stdin)..." className="flex-1 bg-transparent border-none outline-none text-xs font-mono" />
                                 </form>
                             </div>
                         )}

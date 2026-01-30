@@ -523,7 +523,7 @@ export const submissionsAPI = {
 
 // Leaderboard API (Stubbed)
 export const leaderboardAPI = {
-    getGlobal: () => apiRequest<{ leaderboard: any[] }>('/leaderboard/global'),
+    getGlobal: (type?: string) => apiRequest<{ leaderboard: any[] }>(`/leaderboard/global${type ? `?type=${type}` : ''}`),
 };
 
 export const registrationsAPI = {
@@ -856,6 +856,7 @@ export const systemAPI = {
         method: 'POST',
         body: JSON.stringify({ url })
     }),
+    getAdmins: () => apiRequest<{ admins: { id: string; username: string; name: string }[] }>('/system/admins'),
 };
 
 

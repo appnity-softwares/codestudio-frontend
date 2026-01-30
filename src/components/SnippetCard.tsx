@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
     Copy, Check, Eye, Edit, Trash2, ListPlus, Heart,
-    MessageCircle, Share2, Shield, Plus, MoreHorizontal,
+    MessageCircle, Share2, Plus, MoreHorizontal,
     Flag, Ban, Terminal, Monitor, Code, ExternalLink, ThumbsDown
 } from "lucide-react";
 import { AuraAvatar } from "@/components/AuraAvatar";
@@ -286,16 +286,6 @@ export const SnippetCard = memo(({ snippet, className }: SnippetCardProps) => {
                         <div className="flex flex-col leading-tight">
                             <div className="flex items-center gap-1.5">
                                 <span className="text-sm font-bold text-foreground/90 group-hover/author:text-primary transition-colors">{snippet.author?.name || 'Anonymous'}</span>
-                                {snippet.author?.role === 'ADMIN' && (
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <Shield className="w-3 h-3 text-primary fill-primary/20" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>Staff Member</TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                )}
                             </div>
                             <span className="text-[10px] font-medium text-muted-foreground">@{snippet.author?.username} • {snippet.createdAt ? formatDistanceToNow(new Date(snippet.createdAt), { addSuffix: true }) : 'Recently'}</span>
                         </div>

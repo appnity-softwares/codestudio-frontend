@@ -23,7 +23,6 @@ import {
 import { claimQuestReward } from "@/store/slices/userSlice";
 import confetti from "canvas-confetti";
 import { useBadgeCelebration } from "@/context/BadgeContext";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
@@ -48,6 +47,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleSidebar } from "@/store/slices/uiSlice";
+import { setUserData } from "@/store/slices/userSlice";
 import { RootState } from "@/store";
 
 export function Dock() {
@@ -65,6 +65,31 @@ export function Dock() {
     const userQuests = useSelector((state: RootState) => state.user.quests) || [];
     const setIsCollapsed = () => dispatch(toggleSidebar());
     const { celebrateXP } = useBadgeCelebration();
+
+    // Sync XP from server using React Query
+    useQuery({
+        queryKey: ['user-xp', user?.id],
+        queryFn: async () => {
+            const response = await authAPI.me();
+            if (response.user) {
+                dispatch(setUserData({
+                    xp: response.user.xp || 0,
+                    level: response.user.level || 1,
+                    streak: response.user.streak || 0,
+                    inventory: response.user.purchasedComponentIds || response.user.inventory || [],
+                    equippedAura: response.user.equippedAura || null,
+                    equippedTheme: response.user.equippedTheme || null,
+                    unlockedThemes: response.user.unlockedThemes || ['default'],
+                    influence: response.user.influence || 15,
+                    profileImage: response.user.image || response.user.avatar || null
+                }));
+            }
+            return response.user;
+        },
+        enabled: !!user?.id,
+        staleTime: 30000, // Refresh every 30 seconds
+        refetchInterval: 60000, // Auto-refetch every minute
+    });
 
     const handleClaimQuest = (questId: string) => {
         dispatch(claimQuestReward(questId));
@@ -181,11 +206,18 @@ export function Dock() {
                                     <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />
                                 )}
 
-                                <item.icon className={cn(
-                                    "shrink-0 transition-all duration-300 group-hover:scale-110",
-                                    isCollapsed ? "w-5 h-5" : "w-[20px] h-[20px]",
-                                    isActive ? "text-primary drop-shadow-sm" : "group-hover:text-foreground"
-                                )} />
+                                <div className="relative">
+                                    <item.icon className={cn(
+                                        "shrink-0 transition-all duration-300 group-hover:scale-110",
+                                        isCollapsed ? "w-5 h-5" : "w-[20px] h-[20px]",
+                                        isActive ? "text-primary drop-shadow-sm" : "group-hover:text-foreground"
+                                    )} />
+                                    {isCollapsed && item.badge !== undefined && (
+                                        <div className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[8px] font-black h-4 w-4 rounded-full flex items-center justify-center ring-2 ring-background shadow-lg">
+                                            {item.badge > 9 ? '9+' : item.badge}
+                                        </div>
+                                    )}
+                                </div>
 
                                 {!isCollapsed && (
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -344,6 +376,7 @@ export function Dock() {
                                     xp={userXP || user?.xp || 0}
                                     equippedAura={user?.equippedAura}
                                     size="sm"
+                                    isAdmin={isAdmin}
                                     className="h-9 w-9"
                                 />
                                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-surface rounded-full shadow-sm z-20" />

@@ -243,9 +243,9 @@ export default function Landing() {
                             className="hidden lg:block relative group p-1"
                         >
                             <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 rounded-[3rem] blur-3xl opacity-50 group-hover:opacity-80 transition-opacity" />
-                            <div className="relative bg-[#0c0c0e]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden min-h-[500px]">
+                            <div className="relative bg-[#0c0c0e]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden">
                                 {/* Activity Ticker */}
-                                <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
                                     <div className="flex items-center gap-2">
                                         <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                                         <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Global Activity Hub</span>
@@ -258,7 +258,7 @@ export default function Landing() {
                                 </div>
 
                                 {/* Placeholder Snippets */}
-                                <div className="space-y-6 text-left">
+                                <div className="space-y-4 text-left mb-6">
                                     {[
                                         { user: "0xNeo", action: "shared a protocol", color: "text-primary" },
                                         { user: "cyber_ghost", action: "solved hard arena #42", color: "text-purple-400" },
@@ -280,7 +280,7 @@ export default function Landing() {
                                                         <span className="text-xs font-black uppercase tracking-widest">@{act.user}</span>
                                                         <span className="text-[9px] font-mono text-white/20 italic">now</span>
                                                     </div>
-                                                    <p className="text-[11px] text-white/60 mb-3 line-clamp-1">{act.action}</p>
+                                                    <p className="text-[11px] text-white/60 mb-2 line-clamp-1">{act.action}</p>
                                                     <div className="flex items-center gap-4 text-[9px] font-mono text-white/20">
                                                         <span className="flex items-center gap-1 group-hover/card:text-primary transition-colors"><Heart className="h-3 w-3" /> 124</span>
                                                         <span className="flex items-center gap-1 group-hover/card:text-blue-400 transition-colors"><MessageSquare className="h-3 w-3" /> 12</span>
@@ -292,13 +292,13 @@ export default function Landing() {
                                     ))}
                                 </div>
 
-                                {/* Floating Code Bubble */}
-                                <div className="absolute bottom-6 right-6 left-6 bg-[#050505]/40 border border-white/10 p-5 rounded-3xl backdrop-blur-2xl text-left shadow-2xl">
-                                    <div className="flex items-center gap-2 mb-3">
+                                {/* Floating Code Bubble - Below the cards, not absolute */}
+                                <div className="bg-[#050505]/60 border border-white/10 p-4 rounded-2xl backdrop-blur-2xl text-left shadow-xl">
+                                    <div className="flex items-center gap-2 mb-2">
                                         <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                                         <div className="font-mono text-[10px] text-primary/80 font-black uppercase tracking-[0.2em]">LIVE_PROTOCOL</div>
                                     </div>
-                                    <div className="font-mono text-[12px] text-white/90 bg-white/5 p-3 rounded-xl border border-white/5">
+                                    <div className="font-mono text-[11px] text-white/90 bg-white/5 p-3 rounded-xl border border-white/5">
                                         <span className="text-purple-400">await</span> <span className="text-primary">studio</span>.<span className="text-blue-400">initialize</span>(&#123;
                                         <br />
                                         &nbsp;&nbsp;<span className="text-white/40">mode:</span> <span className="text-emerald-400">'ULTRA_LOW_LATENCY'</span>
@@ -311,11 +311,14 @@ export default function Landing() {
                     </div>
 
                     {/* Scroll Indicator */}
-                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2 z-20">
+                    <button
+                        onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="absolute bottom-10 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2 z-20 cursor-pointer hover:opacity-100 opacity-50 transition-opacity group"
+                    >
                         <motion.span
                             initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.2 }}
-                            className="text-[10px] font-mono text-white uppercase tracking-[0.4em]"
+                            animate={{ opacity: 1 }}
+                            className="text-[10px] font-mono text-white uppercase tracking-[0.4em] group-hover:text-primary transition-colors"
                         >
                             Explore_Core
                         </motion.span>
@@ -327,7 +330,7 @@ export default function Landing() {
                             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                             className="w-[1px] bg-primary"
                         />
-                    </div>
+                    </button>
                 </div>
             </section>
 

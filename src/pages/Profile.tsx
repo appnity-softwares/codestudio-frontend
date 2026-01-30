@@ -26,6 +26,7 @@ import { useIsMobile } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { HamsterLoader } from "@/components/shared/HamsterLoader";
+import { VisibilityMode, PrivacySettings, DEFAULT_HYBRID_PRIVACY } from "@/types";
 
 export default function Profile() {
     const { username } = useParams<{ username: string }>();
@@ -42,7 +43,8 @@ export default function Profile() {
     const [name, setName] = useState("");
     const [editedUsername, setEditedUsername] = useState("");
     const [bio, setBio] = useState("");
-    const [visibility, setVisibility] = useState("PUBLIC");
+    const [visibility, setVisibility] = useState<VisibilityMode>("PUBLIC");
+    const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(DEFAULT_HYBRID_PRIVACY);
     const [profileImage, setProfileImage] = useState("");
     const [githubUrl, setGithubUrl] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");
@@ -516,9 +518,9 @@ export default function Profile() {
             {/* 1. Identity Header */}
             <div className="flex flex-col md:flex-row gap-6 items-start md:items-center bg-surface border border-border p-6 rounded-2xl relative overflow-hidden">
                 {/* Aura Background Glow */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] pointer-events-none bg-primary/5" />
 
-                <div className="relative">
+                <div className="relative flex flex-col items-center gap-2">
                     {/* Replace standard Avatar with AuraAvatar if available, else standard */}
                     <AuraAvatar
                         src={profileUser.image}
@@ -526,7 +528,21 @@ export default function Profile() {
                         xp={profileUser.xp || 0}
                         equippedAura={profileUser.equippedAura}
                         size="lg"
+                        isAdmin={false}
                     />
+                    {/* Admin Endorsements */}
+                    {profileUser.endorsements && profileUser.endorsements.length > 0 && (
+                        <div className="flex flex-wrap justify-center gap-1 max-w-[150px]">
+                            {profileUser.endorsements.map((endorsement: string, idx: number) => (
+                                <span
+                                    key={idx}
+                                    className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 text-[9px] uppercase font-black tracking-wide border border-amber-500/30 shadow-[0_0_8px_rgba(245,158,11,0.2)]"
+                                >
+                                    {endorsement}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 space-y-4 relative z-10">
@@ -817,9 +833,9 @@ export default function Profile() {
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {snippets.slice(0, 3).map((snippet: any) => (
-                                <SnippetCard key={snippet.id} snippet={snippet} className="max-w-none mx-0 mb-0" />
+                                <SnippetCard key={snippet.id} snippet={snippet} className="max-w-none mx-0 mb-0 shadow-lg shadow-black/20" />
                             ))}
                             {snippets.length === 0 && (
                                 <div className="col-span-full py-12 border border-dashed border-border rounded-xl bg-surface/30 flex flex-col items-center justify-center text-center px-6">
@@ -931,6 +947,7 @@ export default function Profile() {
                             username={editedUsername} setUsername={setEditedUsername}
                             bio={bio} setBio={setBio}
                             visibility={visibility} setVisibility={setVisibility}
+                            privacySettings={privacySettings} setPrivacySettings={setPrivacySettings}
                             onSave={handleSaveSettings} isLoading={isLoadingSettings}
                             signOut={signOut!} theme={theme} setTheme={setTheme}
                             currentImage={profileImage} onImageUpdate={setProfileImage}
