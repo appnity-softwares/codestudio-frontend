@@ -295,6 +295,7 @@ function AppRoutes() {
 import { SidebarProvider } from "./context/SidebarContext"
 import { ChatProvider } from "./context/ChatContext"
 import { PresenceProvider } from "./context/PresenceContext"
+import { NotificationHandler } from "./components/NotificationHandler"
 
 function App() {
     return (
@@ -308,6 +309,7 @@ function App() {
                                     <ChatProvider>
                                         <PresenceProvider>
                                             <BadgeProvider>
+                                                <NotificationHandler />
                                                 <AppRoutes />
                                                 <Toaster />
                                             </BadgeProvider>

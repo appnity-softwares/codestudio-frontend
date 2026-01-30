@@ -11,7 +11,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, LayoutGrid } from "lucide-react";
+import { User, Settings, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
@@ -53,12 +53,6 @@ export function UserNav() {
                         <Link to={`/u/${user.username}`}>
                             <User className="mr-2 h-4 w-4" />
                             <span>Profile</span>
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                        <Link to="/saved">
-                            <LayoutGrid className="mr-2 h-4 w-4" />
-                            <span>Saved</span>
                         </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>

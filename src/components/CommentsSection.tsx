@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { snippetsAPI } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, Sparkles, Send, Trash2, CornerDownRight } from "lucide-react";
+import { Sparkles, Send, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -73,35 +73,6 @@ export function CommentsSection({ snippetId, comments: initialComments = [] }: {
         };
         fetchComments();
     }, [snippetId]);
-
-    const handleLike = async (commentId: string) => {
-        setComments(prev => prev.map(c => {
-            if (c.id === commentId) {
-                return {
-                    ...c,
-                    likesCount: c.isLiked ? c.likesCount - 1 : c.likesCount + 1,
-                    isLiked: !c.isLiked
-                };
-            }
-            return c;
-        }));
-
-        try {
-            await snippetsAPI.likeComment(commentId);
-        } catch (error) {
-            console.error("Failed to like comment", error);
-            setComments(prev => prev.map(c => {
-                if (c.id === commentId) {
-                    return {
-                        ...c,
-                        likesCount: c.isLiked ? c.likesCount + 1 : c.likesCount - 1,
-                        isLiked: !c.isLiked
-                    }
-                }
-                return c;
-            }));
-        }
-    };
 
     const handleDelete = async (commentId: string) => {
         if (!confirm("Delete this comment?")) return;
@@ -228,16 +199,6 @@ export function CommentsSection({ snippetId, comments: initialComments = [] }: {
                             title="Replies disabled for MVP"
                         >
                             Reply
-                        </button>
-                        <button
-                            onClick={() => handleLike(comment.id)}
-                            className={cn(
-                                "text-[10px] font-medium transition-colors flex items-center gap-1 group/like",
-                                comment.isLiked ? "text-red-400" : "text-white/40 hover:text-red-400"
-                            )}
-                        >
-                            <Heart className={cn("h-3 w-3 transition-transform group-active/like:scale-75", comment.isLiked && "fill-current")} />
-                            {comment.likesCount > 0 && comment.likesCount} {comment.likesCount === 0 ? "Like" : ""}
                         </button>
                     </div>
                 </div>

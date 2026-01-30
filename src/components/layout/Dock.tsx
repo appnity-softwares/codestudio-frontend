@@ -149,7 +149,7 @@ export function Dock() {
         { icon: Sparkles, label: "Arena", path: "/arena" },
         ...(isFeatureEnabled('feature_sidebar_practice') ? [{ icon: Dumbbell, label: "Practice", path: "/practice" }] : []),
         { icon: BookOpen, label: "Roadmaps", path: "/roadmaps" },
-        ...(isFeatureEnabled('feature_sidebar_community') ? [{ icon: Globe, label: "Discover", path: "/community" }] : []),
+        ...(isFeatureEnabled('feature_sidebar_community') ? [{ icon: Globe, label: "Community", path: "/community" }] : []),
         ...(isFeatureEnabled('feature_sidebar_trophy_room') ? [{ icon: Award, label: "Trophy Room", path: "/trophy-room" }] : []),
         ...(isFeatureEnabled('feature_sidebar_xp_store') ? [{ icon: ShoppingBag, label: "XP Store", path: "/xp-store" }] : []),
         ...(isFeatureEnabled('feature_sidebar_feedback') ? [{ icon: Megaphone, label: "Feedback Wall", path: "/feedback" }] : []),

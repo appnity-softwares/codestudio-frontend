@@ -128,6 +128,34 @@ export default function ContestEnvironment() {
 
     const problem = problemData?.problem;
 
+    const checkAccessMutation = useMutation({
+        mutationFn: () => eventsAPI.getAccessDetails(eventId!),
+        onError: (err: any) => {
+            toast({
+                title: "Access Denied",
+                description: err.message || "You no longer have access to this contest.",
+                variant: "destructive"
+            });
+            navigate('/arena');
+        }
+    });
+
+    const handleProblemChange = async (problemId: string) => {
+        if (isDirty) {
+            if (!confirm("Switching problem might lose unsaved code. Continue?")) return;
+        }
+
+        try {
+            await checkAccessMutation.mutateAsync();
+            setSelectedProblemId(problemId);
+            setIsDirty(false);
+            setExecutionResult(null);
+            setActiveTab("description");
+        } catch (e) {
+            // Error already handled by mutation's onError
+        }
+    };
+
     // Submit Solution Mutation
     const submitMutation = useMutation({
         mutationFn: () => contestsAPI.submitSolution(eventId!, selectedProblemId!, code, language),
@@ -252,11 +280,12 @@ export default function ContestEnvironment() {
                             {problemsData?.problems?.map((p: any) => (
                                 <button
                                     key={p.id}
-                                    onClick={() => setSelectedProblemId(p.id)}
+                                    onClick={() => handleProblemChange(p.id)}
+                                    disabled={checkAccessMutation.isPending}
                                     className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex justify-between items-center ${selectedProblemId === p.id
                                         ? 'bg-primary/10 text-primary font-medium'
                                         : 'hover:bg-muted text-muted-foreground'
-                                        }`}
+                                        } ${checkAccessMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <span className="truncate">{p.orderIndex || p.order}. {p.title}</span>
                                     {/* Status Icon Placeholder (would need user submission status) */}
@@ -400,6 +429,38 @@ export default function ContestEnvironment() {
                                                     <p className="text-muted-foreground">
                                                         Passed {executionResult.passed} of {executionResult.total} test cases
                                                     </p>
+                                                    {executionResult.status === 'ACCEPTED' && (
+                                                        <div className="pt-4 border-t border-border/50 mt-4 flex items-center justify-between w-full">
+                                                            <div className="text-xs text-muted-foreground">
+                                                                Solution accepted!
+                                                            </div>
+                                                            {(() => {
+                                                                const problems = problemsData?.problems;
+                                                                if (!problems) return null;
+                                                                const currentIndex = problems.findIndex((p: any) => p.id === selectedProblemId);
+                                                                const nextProblem = problems[currentIndex + 1];
+                                                                if (nextProblem) {
+                                                                    return (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            onClick={() => handleProblemChange(nextProblem.id)}
+                                                                            disabled={checkAccessMutation.isPending}
+                                                                            className="font-bold gap-2"
+                                                                        >
+                                                                            Next Problem
+                                                                            <ChevronLeft className="w-4 h-4 rotate-180" />
+                                                                        </Button>
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <div className="text-green-600 text-xs font-bold flex items-center gap-2">
+                                                                        <Trophy className="w-4 h-4" />
+                                                                        Completed!
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

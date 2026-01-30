@@ -1,4 +1,4 @@
-import { Heart, ThumbsDown, Share2, MessageCircle } from "lucide-react";
+import { Heart, ThumbsDown, Share2, MessageCircle, GitFork } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -63,6 +63,24 @@ export function SnippetInteraction({ snippet, className, onShareClick }: Interac
         }
     });
 
+    const forkMutation = useMutation({
+        mutationFn: () => {
+            if (!isAuthenticated) throw new Error("LOGIN_REQUIRED");
+            return snippetsAPI.fork(snippet.id);
+        },
+        onSuccess: (data) => {
+            toast({ title: "Snippet Forked!", description: "You now have your own copy." });
+            window.location.href = `/snippets/${data.snippet.id}`;
+        },
+        onError: (err: any) => {
+            if (err.message === "LOGIN_REQUIRED") {
+                toast({ variant: "destructive", title: "Login Required", description: "You need to be logged in to fork." });
+                return;
+            }
+            toast({ variant: "destructive", title: "Fork failed", description: err.message });
+        }
+    });
+
     return (
         <TooltipProvider>
             <div className={cn("flex items-center gap-4 w-full", className)}>
@@ -93,6 +111,20 @@ export function SnippetInteraction({ snippet, className, onShareClick }: Interac
                             </button>
                         </TooltipTrigger>
                         <TooltipContent>Dislike this snippet</TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => forkMutation.mutate()}
+                                disabled={forkMutation.isPending}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground transition-all border border-transparent"
+                            >
+                                <GitFork className={cn("h-3.5 w-3.5", forkMutation.isPending && "animate-spin")} />
+                                <span>{forkMutation.isPending ? 'Forking...' : 'Fork'}</span>
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Create your own copy</TooltipContent>
                     </Tooltip>
 
                     <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground transition-all border border-transparent">

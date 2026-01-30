@@ -182,6 +182,34 @@ export default function OfficialContest() {
         };
     }, [isLocked, showLanding]);
 
+    const checkAccessMutation = useMutation({
+        mutationFn: () => eventsAPI.getAccessDetails(eventId!),
+        onError: (err: any) => {
+            toast({
+                title: "Access Denied",
+                description: err.message || "You no longer have access to this contest.",
+                variant: "destructive"
+            });
+            navigate('/arena');
+        }
+    });
+
+    const handleProblemChange = async (problemId: string) => {
+        if (isDirty) {
+            if (!confirm("Switching problem might lose unsaved code. Continue?")) return;
+        }
+
+        try {
+            await checkAccessMutation.mutateAsync();
+            setSelectedProblemId(problemId);
+            setIsDirty(false);
+            setExecutionResult(null);
+            setActiveTab("description");
+        } catch (e) {
+            // Error already handled by mutation's onError
+        }
+    };
+
     const submitMutation = useMutation({
         mutationFn: () => contestsAPI.submitSolution(eventId!, selectedProblemId!, code, language, {
             pasteCount: pasteCount.current,
@@ -419,16 +447,12 @@ export default function OfficialContest() {
                             {problemsData?.problems?.map((p: any) => (
                                 <button
                                     key={p.id}
-                                    onClick={() => {
-                                        if (isDirty && !confirm("Switching problem might lose unsaved code. Continue?")) return;
-                                        setSelectedProblemId(p.id);
-                                        setCode(BOILERPLATES[language as keyof typeof BOILERPLATES] || "");
-                                        setIsDirty(false);
-                                    }}
+                                    onClick={() => handleProblemChange(p.id)}
+                                    disabled={checkAccessMutation.isPending}
                                     className={`w-full text-left px-3 py-3 rounded-md text-sm transition-all border border-transparent ${selectedProblemId === p.id
                                         ? 'bg-background border-border shadow-sm font-medium'
                                         : 'hover:bg-muted text-muted-foreground'
-                                        }`}
+                                        } ${checkAccessMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <div className="flex justify-between items-center">
                                         <span className="truncate w-32">{p.title}</span>
@@ -616,11 +640,40 @@ export default function OfficialContest() {
                                                 Passed {executionResult.passed} of {executionResult.total} test cases
                                             </p>
                                             {executionResult.runtime !== undefined && (
-                                                <div className="flex gap-4 text-xs font-mono">
+                                                <div className="flex gap-4 text-xs font-mono mb-6">
                                                     <div className="bg-muted px-3 py-1 rounded">
                                                         <span className="text-muted-foreground mr-2">Time:</span>
                                                         {executionResult.runtime.toFixed(2)}ms
                                                     </div>
+                                                </div>
+                                            )}
+
+                                            {executionResult.status === 'ACCEPTED' && (
+                                                <div className="pt-2">
+                                                    {(() => {
+                                                        const problems = problemsData?.problems;
+                                                        if (!problems) return null;
+                                                        const currentIndex = problems.findIndex((p: any) => p.id === selectedProblemId);
+                                                        const nextProblem = problems[currentIndex + 1];
+                                                        if (nextProblem) {
+                                                            return (
+                                                                <Button
+                                                                    onClick={() => handleProblemChange(nextProblem.id)}
+                                                                    disabled={checkAccessMutation.isPending}
+                                                                    className="font-bold gap-2 animate-in slide-in-from-bottom-2 duration-300"
+                                                                >
+                                                                    Next Problem
+                                                                    <ChevronLeft className="w-4 h-4 rotate-180" />
+                                                                </Button>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <div className="text-green-600 font-bold flex items-center justify-center gap-2">
+                                                                <Trophy className="w-5 h-5" />
+                                                                All problems completed!
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             )}
                                         </div>
